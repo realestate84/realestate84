@@ -114,6 +114,15 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 @media(max-width:768px){.container{padding:16px;}.header-actions{gap:6px;}.form-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}}
+/* 전체지도 */
+#mapAllModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center;padding:20px;}
+#mapAllModal.active{display:flex;}
+#mapAllModal .modal{max-width:900px;width:100%;}
+#mapAll{width:100%;height:60vh;border-radius:10px;border:1px solid var(--border);}
+.map-marker-info{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:180px;font-family:'Noto Sans KR',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+.map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
+.map-marker-info .mi-addr{color:var(--text);margin-bottom:2px;}
+.map-marker-info .mi-price{color:var(--danger);font-weight:600;}
 </style>
 </head>
 <body>
@@ -121,6 +130,7 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 <header>
   <div class="logo">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
+    <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
     <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
     <button class="btn btn-outline" onclick="downloadExcel()">📥 엑셀 다운로드</button>
@@ -299,6 +309,20 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
     <button onclick="lightboxNext()">›</button>
   </div>
   <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+
+<!-- 전체 지도 모달 -->
+<div id="mapAllModal" onclick="if(event.target===this)closeMapAll()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📍 전체 매물 지도</div>
+      <button class="modal-close" onclick="closeMapAll()">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="mapAll"></div>
+      <div id="mapAllInfo" style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -811,6 +835,53 @@ function parseCSV(row){
     else cur+=c;
   }
   result.push(cur.trim()); return result;
+}
+
+// ── 전체 지도 ─────────────────────────────
+function openMapAll() {
+  if(typeof kakao === 'undefined') { alert('카카오 지도가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return; }
+  if(properties.length === 0) { alert('등록된 매물이 없습니다.'); return; }
+  document.getElementById('mapAllModal').classList.add('active');
+
+  setTimeout(function(){
+    var container = document.getElementById('mapAll');
+    var map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(36.5, 127.5), level: 13 });
+    var gc = new kakao.maps.services.Geocoder();
+    var bounds = new kakao.maps.LatLngBounds();
+    var successCount = 0;
+    var infowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+
+    properties.forEach(function(p) {
+      if(!p.address) return;
+      gc.addressSearch(p.address, function(result, status) {
+        if(status !== kakao.maps.services.Status.OK) return;
+        var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+        var marker = new kakao.maps.Marker({ map: map, position: coords });
+        bounds.extend(coords);
+        successCount++;
+        if(successCount > 0) map.setBounds(bounds);
+
+        // 마커 클릭 시 정보창
+        kakao.maps.event.addListener(marker, 'click', function() {
+          var content =
+            '<div class="map-marker-info">'+
+            '<div class="mi-title">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
+            '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
+            (p.price?'<div class="mi-price">💰 '+p.price+'</div>':'')+
+            (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
+            '</div>';
+          infowindow.setContent(content);
+          infowindow.open(map, marker);
+        });
+
+        document.getElementById('mapAllInfo').textContent = '총 '+successCount+'개 매물 표시 중';
+      });
+    });
+  }, 300);
+}
+
+function closeMapAll() {
+  document.getElementById('mapAllModal').classList.remove('active');
 }
 
 // ── 시작 ──────────────────────────────────

@@ -1313,10 +1313,7 @@
     }
   }
 
-  // Click outside to close
-  document.getElementById('formModal').addEventListener('click', function(e) {
-    if (e.target === this) closeFormModal();
-  });
+  // Click outside to close (상세보기만 적용, 매물등록/수정은 취소/저장 버튼으로만 닫기)
   document.getElementById('detailModal').addEventListener('click', function(e) {
     if (e.target === this) closeDetailModal();
   });

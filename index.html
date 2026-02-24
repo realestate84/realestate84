@@ -4,578 +4,116 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>새롬부동산 매물관리시스템</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display&family=Nanum+Gothic&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #f4f6fb;
-    --surface: #ffffff;
-    --surface2: #eef1f8;
-    --border: #dde2f0;
-    --accent: #3a7ef6;
-    --accent2: #6c47f5;
-    --text: #1a1f36;
-    --text-muted: #7a85a8;
-    --success: #2eab7a;
-    --warning: #f0a030;
-    --danger: #e04a5a;
-    --tag-매매: #3a7ef6;
-    --tag-전세: #6c47f5;
-    --tag-월세: #f0a030;
-    --tag-토지: #2eab7a;
-    --tag-공장창고: #e06830;
-    --tag-상가: #e04a5a;
-    --tag-아파트: #3a7ef6;
-    --tag-빌라: #6c47f5;
-    --tag-원투룸: #20aac8;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    min-height: 100vh;
-  }
-
-  /* Header */
-  header {
-    background: linear-gradient(135deg, #ffffff 0%, #f4f6fb 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-  }
-
-  .logo {
-    font-family: 'Nanum Gothic', sans-serif;
-    font-weight: 400;
-    font-size: 22px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: 1px;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  /* Buttons */
-  .btn {
-    padding: 8px 18px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff;
-  }
-
-  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-
-  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-
-  .btn-danger {
-    background: rgba(224,92,106,0.15);
-    color: var(--danger);
-    border: 1px solid rgba(224,92,106,0.3);
-  }
-
-  .btn-danger:hover { background: rgba(224,92,106,0.25); }
-
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-
-  /* Main layout */
-  .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 24px;
-  }
-
-  /* Stats bar */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    text-align: center;
-  }
-
-  .stat-num {
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-
-  /* Filter bar */
-  .filter-bar {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 200px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--text-muted); }
-
-  .filter-select {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .filter-select:focus { border-color: var(--accent); }
-
-  /* Table */
-  .table-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-
-  thead {
-    background: var(--surface2);
-  }
-
-  th {
-    padding: 12px 16px;
-    text-align: left;
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 12px;
-    white-space: nowrap;
-    border-bottom: 1px solid var(--border);
-  }
-
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(46,50,80,0.5);
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  tr:last-child td { border-bottom: none; }
-
-  tr:hover td { background: rgba(79,142,247,0.04); }
-
-  .tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .tag-매매 { background: rgba(79,142,247,0.18); color: var(--tag-매매); }
-  .tag-전세 { background: rgba(124,92,252,0.18); color: var(--tag-전세); }
-  .tag-월세 { background: rgba(244,168,74,0.18); color: var(--tag-월세); }
-  .tag-토지 { background: rgba(76,175,138,0.18); color: var(--tag-토지); }
-  .tag-공장창고 { background: rgba(232,112,64,0.18); color: var(--tag-공장창고); }
-  .tag-상가 { background: rgba(224,92,106,0.18); color: var(--tag-상가); }
-  .tag-아파트 { background: rgba(79,142,247,0.18); color: var(--tag-아파트); }
-  .tag-빌라 { background: rgba(124,92,252,0.18); color: var(--tag-빌라); }
-  .tag-원투룸 { background: rgba(56,188,212,0.18); color: var(--tag-원투룸); }
-
-  .price-text { font-weight: 600; color: var(--text); }
-  .address-text { color: var(--text); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-  .muted { color: var(--text-muted); }
-
-  .action-btns { display: flex; gap: 6px; }
-
-  /* Modal */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-
-  .modal-overlay.active { display: flex; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 680px;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: modalIn 0.25s ease;
-  }
-
-  @keyframes modalIn {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .modal-header {
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .modal-title {
-    font-size: 17px;
-    font-weight: 700;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 22px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px;
-  }
-
-  .modal-close:hover { color: var(--text); }
-
-  .modal-body {
-    padding: 20px 24px;
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  @media (max-width: 520px) {
-    .form-grid { grid-template-columns: 1fr; }
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .form-group.full { grid-column: 1 / -1; }
-
-  label {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  .form-input, .form-select, .form-textarea {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 12px;
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus {
-    border-color: var(--accent);
-  }
-
-  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
-
-  .form-textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-
-  .modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-  }
-
-  /* Detail modal */
-  .detail-section {
-    margin-bottom: 20px;
-  }
-
-  .detail-section-title {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .detail-item label {
-    display: block;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 3px;
-  }
-
-  .detail-item .val {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .detail-item.full { grid-column: 1 / -1; }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-muted);
-  }
-
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .container { padding: 16px; }
-    .stats-bar { grid-template-columns: repeat(3, 1fr); }
-    header { padding: 0 16px; }
-    .logo { font-size: 18px; }
-  }
-
-  /* Photo upload */
-  .photo-upload-area {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text-muted);
-    font-size: 13px;
-  }
-  .photo-upload-area:hover, .photo-upload-area.drag-over {
-    border-color: var(--accent);
-    background: rgba(79,142,247,0.05);
-    color: var(--accent);
-  }
-  .photo-upload-area .upload-icon { font-size: 28px; margin-bottom: 6px; }
-
-  .photo-preview-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .photo-thumb-wrap {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--bg);
-  }
-
-  .photo-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .photo-thumb-del {
-    position: absolute;
-    top: 3px; right: 3px;
-    background: rgba(0,0,0,0.7);
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 20px; height: 20px;
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  /* Lightbox */
-  .lightbox {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.88);
-    z-index: 500;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-  }
-  .lightbox.active { display: flex; }
-  .lightbox img {
-    max-width: 90vw;
-    max-height: 80vh;
-    border-radius: 8px;
-    object-fit: contain;
-  }
-  .lightbox-close {
-    position: absolute;
-    top: 18px; right: 22px;
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 32px;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .lightbox-nav {
-    display: flex;
-    gap: 16px;
-    margin-top: 16px;
-  }
-  .lightbox-nav button {
-    background: rgba(255,255,255,0.15);
-    border: none;
-    color: #fff;
-    border-radius: 8px;
-    padding: 8px 20px;
-    cursor: pointer;
-    font-size: 18px;
-    transition: background 0.2s;
-  }
-  .lightbox-nav button:hover { background: rgba(255,255,255,0.25); }
-  .lightbox-counter {
-    color: rgba(255,255,255,0.5);
-    font-size: 13px;
-    margin-top: 10px;
-  }
-
-  /* Detail photo grid */
-  .detail-photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 8px;
-    margin-top: 4px;
-  }
-  .detail-photo-grid img {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 8px;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    transition: transform 0.15s, border-color 0.15s;
-  }
-  .detail-photo-grid img:hover {
-    transform: scale(1.04);
-    border-color: var(--accent);
-  }
-
-  /* Table thumbnail */
-  .table-thumb {
-    width: 36px; height: 36px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid var(--border);
-    vertical-align: middle;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* Kakao Map */
-  #kakaoMap {
-    width: 100%;
-    height: 250px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin-top: 4px;
-  }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic&display=swap" rel="stylesheet">
+<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<!-- 카카오맵 -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services&autoload=false"></script>
+<style>
+:root {
+  --bg:#f4f6fb; --surface:#fff; --surface2:#eef1f8; --border:#dde2f0;
+  --accent:#3a7ef6; --accent2:#6c47f5; --text:#1a1f36; --text-muted:#7a85a8;
+  --danger:#e04a5a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;}
+header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
+.logo{font-family:'Nanum Gothic',sans-serif;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.btn-primary:hover{opacity:0.85;}
+.btn-primary:disabled{opacity:0.6;cursor:not-allowed;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:rgba(224,74,90,0.12);color:var(--danger);border:1px solid rgba(224,74,90,0.3);}
+.btn-danger:hover{background:rgba(224,74,90,0.22);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.container{max-width:1400px;margin:0 auto;padding:24px;}
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+.stat-num{font-size:26px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.stat-label{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.filter-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.search-input,.filter-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;}
+.search-input{flex:1;min-width:200px;}
+.search-input:focus,.filter-select:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--text-muted);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{background:var(--surface2);}
+th{padding:12px 14px;text-align:left;color:var(--text-muted);font-weight:500;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border);}
+td{padding:11px 14px;border-bottom:1px solid rgba(221,226,240,0.6);vertical-align:middle;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(58,126,246,0.03);}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.tag-매매{background:rgba(58,126,246,0.15);color:#3a7ef6;}
+.tag-전세{background:rgba(108,71,245,0.15);color:#6c47f5;}
+.tag-월세{background:rgba(240,160,48,0.15);color:#f0a030;}
+.tag-토지{background:rgba(46,171,122,0.15);color:#2eab7a;}
+.tag-공장창고{background:rgba(224,104,48,0.15);color:#e06830;}
+.tag-상가{background:rgba(224,74,90,0.15);color:#e04a5a;}
+.tag-아파트{background:rgba(58,126,246,0.15);color:#3a7ef6;}
+.tag-빌라{background:rgba(108,71,245,0.15);color:#6c47f5;}
+.tag-원투룸{background:rgba(32,170,200,0.15);color:#20aac8;}
+.table-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);}
+.action-btns{display:flex;gap:5px;}
+.muted{color:var(--text-muted);}
+.address-text{max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;animation:modalIn 0.22s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(0.97)}to{opacity:1;transform:none}}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;padding:4px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:12px;color:var(--text-muted);font-weight:500;}
+.form-input,.form-select,.form-textarea{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--text-muted);}
+.form-textarea{resize:vertical;min-height:80px;}
+/* Detail */
+.detail-section{margin-bottom:20px;}
+.detail-section-title{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.detail-item label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:3px;}
+.detail-item .val{font-size:14px;font-weight:500;}
+.detail-item.full{grid-column:1/-1;}
+/* Photo */
+.photo-upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);font-size:13px;}
+.photo-upload-area:hover,.photo-upload-area.drag-over{border-color:var(--accent);background:rgba(58,126,246,0.04);color:var(--accent);}
+.photo-upload-area .upload-icon{font-size:28px;margin-bottom:6px;}
+.photo-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;}
+.photo-thumb-wrap{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--bg);}
+.photo-thumb-wrap img{width:100%;height:100%;object-fit:cover;}
+.photo-thumb-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.detail-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:4px;}
+/* Lightbox */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:500;align-items:center;justify-content:center;flex-direction:column;}
+.lightbox.active{display:flex;}
+.lightbox img{max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain;}
+.lightbox-close{position:absolute;top:18px;right:22px;background:none;border:none;color:#fff;font-size:32px;cursor:pointer;}
+.lightbox-nav{display:flex;gap:12px;margin-top:16px;align-items:center;}
+.lightbox-nav button{background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:18px;}
+.lightbox-nav button:hover{background:rgba(255,255,255,0.25);}
+.lightbox-counter{color:rgba(255,255,255,0.5);font-size:13px;margin-top:10px;}
+#kakaoMap{width:100%;height:250px;border-radius:10px;border:1px solid var(--border);margin-top:4px;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+@media(max-width:768px){.container{padding:16px;}.header-actions{gap:6px;}.form-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}}
+</style>
 </head>
 <body>
 
@@ -590,61 +128,39 @@
 </header>
 
 <div class="container">
-
-  <!-- Stats -->
   <div class="stats-bar" id="statsBar"></div>
-
-  <!-- Filter -->
   <div class="filter-bar">
     <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="renderTable()">
     <select class="filter-select" id="filterGeorae" onchange="renderTable()">
       <option value="">거래유형 전체</option>
-      <option>매매</option>
-      <option>전세</option>
-      <option>월세</option>
+      <option>매매</option><option>전세</option><option>월세</option>
     </select>
     <select class="filter-select" id="filterType" onchange="renderTable()">
       <option value="">매물종류 전체</option>
-      <option>토지</option>
-      <option>공장창고</option>
-      <option>상가</option>
-      <option>아파트</option>
-      <option>빌라</option>
-      <option>원투룸</option>
+      <option>토지</option><option>공장창고</option><option>상가</option>
+      <option>아파트</option><option>빌라</option><option>원투룸</option>
     </select>
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
   </div>
-
-  <!-- Table -->
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>No.</th>
-          <th>사진</th>
-          <th>거래</th>
-          <th>종류</th>
-          <th>주소</th>
-          <th>가격</th>
-          <th>토지면적</th>
-          <th>연면적</th>
-          <th>용도지역</th>
-          <th>지목</th>
-          <th>소유자</th>
-          <th>등록일시</th>
-          <th>관리</th>
+          <th>No.</th><th>사진</th><th>거래</th><th>종류</th><th>주소</th>
+          <th>가격</th><th>토지면적</th><th>연면적</th><th>용도지역</th>
+          <th>지목</th><th>소유자</th><th>등록일시</th><th>관리</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
     <div id="emptyState" class="empty-state" style="display:none">
       <div class="empty-icon">🏠</div>
-      <p>등록된 매물이 없습니다.<br>매물을 등록해 보세요.</p>
+      <p>등록된 매물이 없습니다.</p>
     </div>
   </div>
 </div>
 
-<!-- Add/Edit Modal -->
+<!-- 등록/수정 모달 -->
 <div class="modal-overlay" id="formModal">
   <div class="modal">
     <div class="modal-header">
@@ -657,30 +173,24 @@
           <label>거래유형 *</label>
           <select class="form-select" id="f_georae">
             <option value="">선택</option>
-            <option>매매</option>
-            <option>전세</option>
-            <option>월세</option>
+            <option>매매</option><option>전세</option><option>월세</option>
           </select>
         </div>
         <div class="form-group">
           <label>매물종류 *</label>
           <select class="form-select" id="f_type">
             <option value="">선택</option>
-            <option>토지</option>
-            <option>공장창고</option>
-            <option>상가</option>
-            <option>아파트</option>
-            <option>빌라</option>
-            <option>원투룸</option>
+            <option>토지</option><option>공장창고</option><option>상가</option>
+            <option>아파트</option><option>빌라</option><option>원투룸</option>
           </select>
         </div>
         <div class="form-group full">
           <label>주소 *</label>
-          <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ..." >
+          <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
         </div>
         <div class="form-group">
           <label>가격</label>
-          <input class="form-input" type="text" id="f_price" placeholder="예) 3억 5000만 / 보3억/월100">
+          <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
         </div>
         <div class="form-group">
           <label>토지면적 (평)</label>
@@ -732,10 +242,14 @@
         </div>
         <div class="form-group full">
           <label>사진 (여러 장 가능)</label>
-          <div class="photo-upload-area" id="uploadArea" onclick="document.getElementById('f_photos').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <div class="photo-upload-area" id="uploadArea"
+            onclick="document.getElementById('f_photos').click()"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleDrop(event)">
             <div class="upload-icon">📷</div>
             <div>클릭하거나 사진을 여기에 드래그하세요</div>
-            <div style="font-size:11px;margin-top:4px;color:var(--text-muted)">JPG, PNG, GIF 등 이미지 파일</div>
+            <div style="font-size:11px;margin-top:4px;color:var(--text-muted)">JPG, PNG 등 이미지 파일</div>
           </div>
           <input type="file" id="f_photos" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
           <div class="photo-preview-grid" id="photoPreviewGrid"></div>
@@ -744,16 +258,16 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeFormModal()">취소</button>
-      <button class="btn btn-primary" onclick="saveProperty()">저장</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveProperty()">저장</button>
     </div>
   </div>
 </div>
 
-<!-- Detail Modal -->
+<!-- 상세 모달 -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="detailTitle">매물 상세</div>
+      <div class="modal-title" id="detailTitle"></div>
       <button class="modal-close" onclick="closeDetailModal()">×</button>
     </div>
     <div class="modal-body" id="detailBody"></div>
@@ -764,752 +278,492 @@
   </div>
 </div>
 
-<!-- Lightbox -->
-<div class="lightbox" id="lightbox">
+<!-- 라이트박스 -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
   <button class="lightbox-close" onclick="closeLightbox()">×</button>
   <img id="lightboxImg" src="" alt="">
   <div class="lightbox-nav">
     <button onclick="lightboxPrev()">‹</button>
-    <a id="lightboxDownload" download="사진.jpg" style="background:rgba(255,255,255,0.15);color:#fff;border-radius:8px;padding:8px 20px;font-size:15px;text-decoration:none;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">⬇ 다운로드</a>
+    <a id="lightboxDownload" download="사진.jpg" style="background:rgba(255,255,255,0.15);color:#fff;border-radius:8px;padding:8px 18px;font-size:14px;text-decoration:none;">⬇ 다운로드</a>
     <button onclick="lightboxNext()">›</button>
   </div>
   <div class="lightbox-counter" id="lightboxCounter"></div>
 </div>
 
 <script>
-  // Firebase 및 전역 변수
-  let db, storage;
-  let properties = [];
-  let editingId = null;
-  let currentPhotos = [];
-  let lightboxPhotos = [];
-  let lightboxIndex = 0;
+// ── 전역 변수 ──────────────────────────────
+var db, storage;
+var properties = [];
+var editingId = null;
+var currentPhotos = [];
+var lightboxPhotos = [];
+var lightboxIndex = 0;
+var COLLECTION = 'properties';
 
-  window.addEventListener('load', function() {
-    // Firebase 초기화
-    const firebaseConfig = {
-      apiKey: "AIzaSyBYGw8kz3JkVbJ4zIvaMPyCMznGwg_r8tA",
-      authDomain: "realestate84-3574f.firebaseapp.com",
-      projectId: "realestate84-3574f",
-      storageBucket: "realestate84-3574f.firebasestorage.app",
-      messagingSenderId: "382904420257",
-      appId: "1:382904420257:web:09b3fe5c77ce3b28096de0"
-    };
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    storage = firebase.storage();
+// ── Firebase 초기화 ───────────────────────
+var firebaseConfig = {
+  apiKey: "AIzaSyBYGw8kz3JkVbJ4zIvaMPyCMznGwg_r8tA",
+  authDomain: "realestate84-3574f.firebaseapp.com",
+  projectId: "realestate84-3574f",
+  storageBucket: "realestate84-3574f.firebasestorage.app",
+  messagingSenderId: "382904420257",
+  appId: "1:382904420257:web:09b3fe5c77ce3b28096de0"
+};
+firebase.initializeApp(firebaseConfig);
+db = firebase.firestore();
+storage = firebase.storage();
 
-    // 카카오맵 로드
-    const kakaoScript = document.createElement('script');
-    kakaoScript.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services';
-    document.head.appendChild(kakaoScript);
-
-    load();
-  });
-
-  // Photo handling
-  function handlePhotoSelect(e) {
-    const files = Array.from(e.target.files);
-    files.forEach(readPhoto);
-    e.target.value = '';
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault();
-    document.getElementById('uploadArea').classList.add('drag-over');
-  }
-
-  function handleDragLeave(e) {
-    document.getElementById('uploadArea').classList.remove('drag-over');
-  }
-
-  function handleDrop(e) {
-    e.preventDefault();
-    document.getElementById('uploadArea').classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    files.forEach(readPhoto);
-  }
-
-  function readPhoto(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        // 캔버스로 압축 (최대 1200px, 품질 70%)
-        const MAX = 1200;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        currentPhotos.push(compressed);
-        renderPhotoPreview();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function renderPhotoPreview() {
-    const grid = document.getElementById('photoPreviewGrid');
-    grid.innerHTML = currentPhotos.map((src, i) => `
-      <div class="photo-thumb-wrap">
-        <img src="${typeof src === 'string' ? src : src.src}" alt="사진${i+1}">
-        <button class="photo-thumb-del" onclick="removePhoto(${i})">×</button>
-      </div>
-    `).join('');
-  }
-
-  function removePhoto(i) {
-    currentPhotos.splice(i, 1);
-    renderPhotoPreview();
-  }
-
-  // Lightbox
-  function openLightbox(photos, idx) {
-    lightboxPhotos = photos;
-    lightboxIndex = idx;
-    updateLightbox();
-    document.getElementById('lightbox').classList.add('active');
-  }
-
-  function updateLightbox() {
-    const photo = lightboxPhotos[lightboxIndex];
-    const src = typeof photo === 'string' ? photo : photo.src;
-    document.getElementById('lightboxImg').src = src;
-    document.getElementById('lightboxCounter').textContent = `${lightboxIndex + 1} / ${lightboxPhotos.length}`;
-    const dl = document.getElementById('lightboxDownload');
-    dl.href = src;
-    dl.download = `사진_${lightboxIndex + 1}.jpg`;
-  }
-
-  function lightboxPrev() {
-    lightboxIndex = (lightboxIndex - 1 + lightboxPhotos.length) % lightboxPhotos.length;
-    updateLightbox();
-  }
-
-  function lightboxNext() {
-    lightboxIndex = (lightboxIndex + 1) % lightboxPhotos.length;
-    updateLightbox();
-  }
-
-  function closeLightbox() {
-    document.getElementById('lightbox').classList.remove('active');
-  }
-
-  document.getElementById('lightbox').addEventListener('click', function(e) {
-    if (e.target === this) closeLightbox();
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (!document.getElementById('lightbox').classList.contains('active')) return;
-    if (e.key === 'ArrowLeft') lightboxPrev();
-    if (e.key === 'ArrowRight') lightboxNext();
-    if (e.key === 'Escape') closeLightbox();
-  });
-
-  // ── Firebase ──────────────────────────────────────────
-  const COLLECTION = 'properties';
-
-  function showLoading(msg = '불러오는 중...') {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">${msg}</td></tr>`;
-    document.getElementById('emptyState').style.display = 'none';
-  }
-
-  async function load() {
-    showLoading();
-    try {
-      const snap = await db.collection(COLLECTION).orderBy('createdDate', 'desc').get();
-      properties = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch(e) {
+// ── Firebase CRUD ─────────────────────────
+function load() {
+  showLoading();
+  db.collection(COLLECTION).orderBy('createdDate','desc').get()
+    .then(function(snap) {
+      properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      renderTable();
+    })
+    .catch(function(e){
       console.error(e);
       properties = [];
-    }
-    renderTable();
-  }
-
-  async function saveNew(data) {
-    if (!data.propNo) {
-      const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
-      data.propNo = maxNo + 1;
-    }
-    const docRef = await db.collection(COLLECTION).add(data);
-    return docRef.id;
-  }
-
-  async function saveEdit(id, data) {
-    await db.collection(COLLECTION).doc(id).update(data);
-  }
-
-  async function deleteFromDB(id, photos) {
-    if (photos && photos.length > 0) {
-      for (const url of photos) {
-        try {
-          if (url.startsWith('https://')) {
-            await storage.refFromURL(url).delete();
-          }
-        } catch(e) {}
-      }
-    }
-    await db.collection(COLLECTION).doc(id).delete();
-  }
-
-  async function uploadPhotos(id, photoList) {
-    const urls = [];
-    for (let i = 0; i < photoList.length; i++) {
-      const src = photoList[i];
-      if (src.startsWith('https://')) {
-        urls.push(src);
-        continue;
-      }
-      const photoRef = storage.ref(`properties/${id}/photo_${Date.now()}_${i}.jpg`);
-      await photoRef.putString(src, 'data_url');
-      const url = await photoRef.getDownloadURL();
-      urls.push(url);
-    }
-    return urls;
-  }
-
-  function genId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  }
-
-  // Stats
-  function renderStats() {
-    const total = properties.length;
-    const 매매 = properties.filter(p => p.georae === '매매').length;
-    const 전세 = properties.filter(p => p.georae === '전세').length;
-    const 월세 = properties.filter(p => p.georae === '월세').length;
-    const 토지 = properties.filter(p => p.type === '토지').length;
-
-    document.getElementById('statsBar').innerHTML = `
-      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">전체 매물</div></div>
-      <div class="stat-card"><div class="stat-num">${매매}</div><div class="stat-label">매매</div></div>
-      <div class="stat-card"><div class="stat-num">${전세}</div><div class="stat-label">전세</div></div>
-      <div class="stat-card"><div class="stat-num">${월세}</div><div class="stat-label">월세</div></div>
-      <div class="stat-card"><div class="stat-num">${토지}</div><div class="stat-label">토지</div></div>
-    `;
-  }
-
-  // Table
-  function renderTable() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    const fg = document.getElementById('filterGeorae').value;
-    const ft = document.getElementById('filterType').value;
-
-    let list = properties.filter(p => {
-      if (fg && p.georae !== fg) return false;
-      if (ft && p.type !== ft) return false;
-      if (q) {
-        const hay = [p.address, p.memo, p.ownerName, p.ownerPhone, p.useZone, p.jimok].join(' ').toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    const tbody = document.getElementById('tableBody');
-    const empty = document.getElementById('emptyState');
-
-    if (list.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = 'block';
-    } else {
-      empty.style.display = 'none';
-      tbody.innerHTML = list.map(p => `
-        <tr>
-          <td style="font-weight:700;color:var(--accent);font-size:13px">${p.propNo || '-'}</td>
-          <td>${p.photos && p.photos.length > 0 ? `<img class="table-thumb" src="${typeof p.photos[0]==='string'?p.photos[0]:p.photos[0].src}" alt="사진">` : '<span class="muted" style="font-size:18px">—</span>'}</td>
-          <td><span class="tag tag-${p.georae}">${p.georae || '-'}</span></td>
-          <td><span class="tag tag-${p.type}">${p.type || '-'}</span></td>
-          <td class="address-text">${p.address || '-'}</td>
-          <td class="price-text">${p.price || '-'}</td>
-          <td class="muted">${p.landArea ? p.landArea + '평' : '-'}</td>
-          <td class="muted">${p.totalArea ? p.totalArea + '평' : '-'}</td>
-          <td class="muted">${p.useZone || '-'}</td>
-          <td class="muted">${p.jimok || '-'}</td>
-          <td class="muted">${p.ownerName || '-'}</td>
-          <td class="muted" style="font-size:11px;white-space:nowrap">${p.createdDate || p.createdAt || '-'}</td>
-          <td>
-            <div class="action-btns">
-              <button class="btn btn-outline btn-sm" onclick="openDetail('${p.id}')">상세</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteProperty('${p.id}')">삭제</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    renderStats();
-  }
-
-  function resetFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('filterGeorae').value = '';
-    document.getElementById('filterType').value = '';
-    renderTable();
-  }
-
-  // Form Modal
-  function openAddModal() {
-    editingId = null;
-    currentPhotos = [];
-    document.getElementById('formModalTitle').textContent = '매물 등록';
-    clearForm();
-    renderPhotoPreview();
-    restoreMemoHeight();
-    document.getElementById('formModal').classList.add('active');
-  }
-
-  function openEditModal(id) {
-    const p = properties.find(x => x.id === id);
-    if (!p) return;
-    editingId = id;
-    document.getElementById('formModalTitle').textContent = '매물 수정';
-    document.getElementById('f_georae').value = p.georae || '';
-    document.getElementById('f_type').value = p.type || '';
-    document.getElementById('f_address').value = p.address || '';
-    document.getElementById('f_price').value = p.price || '';
-    document.getElementById('f_landArea').value = p.landArea || '';
-    document.getElementById('f_totalArea').value = p.totalArea || '';
-    document.getElementById('f_roadArea').value = p.roadArea || '';
-    document.getElementById('f_useZone').value = p.useZone || '';
-    document.getElementById('f_jimok').value = p.jimok || '';
-    document.getElementById('f_buildingUse').value = p.buildingUse || '';
-    document.getElementById('f_approvalDate').value = p.approvalDate || '';
-    document.getElementById('f_electric').value = p.electric || '';
-    document.getElementById('f_access').value = p.access || '';
-    document.getElementById('f_ownerName').value = p.ownerName || '';
-    document.getElementById('f_ownerPhone').value = p.ownerPhone || '';
-    document.getElementById('f_memo').value = p.memo || '';
-    currentPhotos = p.photos ? [...p.photos] : [];
-    renderPhotoPreview();
-    restoreMemoHeight();
-    closeDetailModal();
-    document.getElementById('formModal').classList.add('active');
-  }
-
-  function closeFormModal() {
-    document.getElementById('formModal').classList.remove('active');
-  }
-
-  function clearForm() {
-    ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_ownerName','f_ownerPhone','f_memo'].forEach(id => {
-      const el = document.getElementById(id);
-      el.value = '';
-    });
-  }
-
-  async function saveProperty() {
-    const georae = document.getElementById('f_georae').value;
-    const type = document.getElementById('f_type').value;
-    const address = document.getElementById('f_address').value.trim();
-
-    if (!georae || !type || !address) {
-      alert('거래유형, 매물종류, 주소는 필수입니다.');
-      return;
-    }
-
-    const saveBtn = document.querySelector('#formModal .btn-primary');
-    saveBtn.textContent = '저장 중...';
-    saveBtn.disabled = true;
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('ko-KR');
-    const timeStr = now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
-
-    try {
-      let photoUrls = [];
-      const docId = editingId || genId();
-
-      // 사진 업로드
-      photoUrls = await uploadPhotos(docId, currentPhotos);
-
-      const data = {
-        georae, type, address,
-        price: document.getElementById('f_price').value.trim(),
-        landArea: document.getElementById('f_landArea').value.trim(),
-        totalArea: document.getElementById('f_totalArea').value.trim(),
-        roadArea: document.getElementById('f_roadArea').value.trim(),
-        useZone: document.getElementById('f_useZone').value.trim(),
-        jimok: document.getElementById('f_jimok').value.trim(),
-        buildingUse: document.getElementById('f_buildingUse').value.trim(),
-        approvalDate: document.getElementById('f_approvalDate').value,
-        electric: document.getElementById('f_electric').value.trim(),
-        access: document.getElementById('f_access').value.trim(),
-        ownerName: document.getElementById('f_ownerName').value.trim(),
-        ownerPhone: document.getElementById('f_ownerPhone').value.trim(),
-        memo: document.getElementById('f_memo').value.trim(),
-        photos: photoUrls,
-        updatedDate: dateStr,
-        updatedTime: timeStr,
-      };
-
-      if (editingId) {
-        await saveEdit(editingId, data);
-        const idx = properties.findIndex(p => p.id === editingId);
-        properties[idx] = { ...properties[idx], ...data };
-      } else {
-        data.createdDate = dateStr;
-        data.createdTime = timeStr;
-        data.updatedDate = '';
-        data.updatedTime = '';
-        const newId = await saveNew(data);
-        properties.unshift({ id: newId, ...data });
-      }
-
       renderTable();
-      closeFormModal();
-    } catch(e) {
-      alert('저장 중 오류가 발생했습니다: ' + e.message);
-    } finally {
-      saveBtn.textContent = '저장';
-      saveBtn.disabled = false;
-    }
+    });
+}
+
+function saveNew(data, callback) {
+  var maxNo = properties.length > 0 ? Math.max.apply(null, properties.map(function(p){return p.propNo||0;})) : 0;
+  if (!data.propNo) data.propNo = maxNo + 1;
+  db.collection(COLLECTION).add(data)
+    .then(function(ref){ callback(null, ref.id); })
+    .catch(function(e){ callback(e); });
+}
+
+function saveEdit(id, data, callback) {
+  db.collection(COLLECTION).doc(id).update(data)
+    .then(function(){ callback(null); })
+    .catch(function(e){ callback(e); });
+}
+
+function deleteFromDB(id, photos, callback) {
+  var deletePhotos = function() {
+    if (!photos || photos.length === 0) return db.collection(COLLECTION).doc(id).delete();
+    var deletes = photos.filter(function(u){return u && u.startsWith('https://');}).map(function(url){
+      try { return storage.refFromURL(url).delete(); } catch(e){ return Promise.resolve(); }
+    });
+    return Promise.all(deletes).then(function(){ return db.collection(COLLECTION).doc(id).delete(); });
+  };
+  deletePhotos().then(function(){ callback(null); }).catch(function(e){ callback(e); });
+}
+
+function uploadPhotos(id, photoList, callback) {
+  var urls = [];
+  var i = 0;
+  function next() {
+    if (i >= photoList.length) { callback(null, urls); return; }
+    var src = photoList[i];
+    if (src.startsWith('https://')) { urls.push(src); i++; next(); return; }
+    var ref = storage.ref('properties/' + id + '/photo_' + Date.now() + '_' + i + '.jpg');
+    ref.putString(src, 'data_url')
+      .then(function(){ return ref.getDownloadURL(); })
+      .then(function(url){ urls.push(url); i++; next(); })
+      .catch(function(e){ callback(e); });
   }
+  next();
+}
 
-  // Detail Modal
-  function openDetail(id) {
-    const p = properties.find(x => x.id === id);
-    if (!p) return;
+// ── UI 헬퍼 ──────────────────────────────
+function showLoading(msg) {
+  msg = msg || '불러오는 중...';
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">'+msg+'</td></tr>';
+  document.getElementById('emptyState').style.display = 'none';
+}
 
-    document.getElementById('detailTitle').innerHTML = `
-      ${p.propNo ? `<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. ${p.propNo}</span>` : ''}
-      <span class="tag tag-${p.georae}" style="margin-right:8px">${p.georae}</span>
-      <span class="tag tag-${p.type}">${p.type}</span>
-    `;
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
 
-    document.getElementById('detailBody').innerHTML = `
-      <div class="detail-section">
-        <div class="detail-section-title">기본 정보</div>
-        <div class="detail-grid">
-          <div class="detail-item full">
-            <label>주소</label>
-            <div class="val">${p.address || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>가격</label>
-            <div class="val" style="color:var(--accent)">${p.price || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>등록일시</label>
-            <div class="val">${p.createdDate || p.createdAt || '-'}<br><span style="font-size:13px;color:var(--text-muted)">${p.createdTime || ''}</span></div>
-          </div>
-          <div class="detail-item">
-            <label>최종수정</label>
-            <div class="val">${p.updatedDate ? p.updatedDate + '<br><span style="font-size:13px;color:var(--text-muted)">' + (p.updatedTime || '') + '</span>' : '-'}</div>
-          </div>
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">토지 / 면적 정보</div>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <label>토지면적</label>
-            <div class="val">${p.landArea ? p.landArea + ' 평' : '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>연면적</label>
-            <div class="val">${p.totalArea ? p.totalArea + ' 평' : '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>도로부지면적</label>
-            <div class="val">${p.roadArea ? p.roadArea + ' 평' : '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>용도지역</label>
-            <div class="val">${p.useZone || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>지목</label>
-            <div class="val">${p.jimok || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>건축물용도</label>
-            <div class="val">${p.buildingUse || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>사용승인일</label>
-            <div class="val">${p.approvalDate || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>전기</label>
-            <div class="val">${p.electric || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>진출입로</label>
-            <div class="val">${p.access || '-'}</div>
-          </div>
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">소유자 정보</div>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <label>소유자명</label>
-            <div class="val">${p.ownerName || '-'}</div>
-          </div>
-          <div class="detail-item">
-            <label>연락처</label>
-            <div class="val">${p.ownerPhone ? `<a href="tel:${p.ownerPhone}" style="color:var(--accent);text-decoration:none">${p.ownerPhone}</a>` : '-'}</div>
-          </div>
-        </div>
-      </div>
-      ${p.memo ? `
-      <div class="detail-section">
-        <div class="detail-section-title">특이사항 / 메모</div>
-        <div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap">${p.memo}</div>
-      </div>` : ''}
-      ${p.address ? `
-      <div class="detail-section">
-        <div class="detail-section-title">위치</div>
-        <div id="kakaoMap"></div>
-      </div>` : ''}
-      ${p.photos && p.photos.length > 0 ? `
-      <div class="detail-section">
-        <div class="detail-section-title">사진 (${p.photos.length}장)</div>
-        <div class="detail-photo-grid">
-          ${p.photos.map((photo, i) => {
-            const src = typeof photo === 'string' ? photo : photo.src;
-            return `<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
-              <img src="${src}" alt="사진${i+1}" onclick="openLightbox(window._detailPhotos, ${i})" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">
-              <a href="${src}" download="사진_${i+1}.jpg" title="다운로드" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>` : ''}
-    `;
+// ── 통계 ──────────────────────────────────
+function renderStats() {
+  var total=properties.length,
+      매매=properties.filter(function(p){return p.georae==='매매';}).length,
+      전세=properties.filter(function(p){return p.georae==='전세';}).length,
+      월세=properties.filter(function(p){return p.georae==='월세';}).length,
+      토지=properties.filter(function(p){return p.type==='토지';}).length;
+  document.getElementById('statsBar').innerHTML =
+    '<div class="stat-card"><div class="stat-num">'+total+'</div><div class="stat-label">전체 매물</div></div>'+
+    '<div class="stat-card"><div class="stat-num">'+매매+'</div><div class="stat-label">매매</div></div>'+
+    '<div class="stat-card"><div class="stat-num">'+전세+'</div><div class="stat-label">전세</div></div>'+
+    '<div class="stat-card"><div class="stat-num">'+월세+'</div><div class="stat-label">월세</div></div>'+
+    '<div class="stat-card"><div class="stat-num">'+토지+'</div><div class="stat-label">토지</div></div>';
+}
 
-    document.getElementById('detailEditBtn').onclick = () => openEditModal(id);
-    window._detailPhotos = p.photos || [];
-    document.getElementById('detailModal').classList.add('active');
+// ── 테이블 ────────────────────────────────
+function renderTable() {
+  var q = document.getElementById('searchInput').value.toLowerCase();
+  var fg = document.getElementById('filterGeorae').value;
+  var ft = document.getElementById('filterType').value;
+  var list = properties.filter(function(p){
+    if(fg && p.georae!==fg) return false;
+    if(ft && p.type!==ft) return false;
+    if(q){var hay=[p.address,p.memo,p.ownerName,p.ownerPhone,p.useZone,p.jimok].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    return true;
+  });
+  var tbody = document.getElementById('tableBody');
+  var empty = document.getElementById('emptyState');
+  if(list.length===0){ tbody.innerHTML=''; empty.style.display='block'; }
+  else {
+    empty.style.display='none';
+    tbody.innerHTML = list.map(function(p){
+      var thumb = p.photos&&p.photos.length>0
+        ? '<img class="table-thumb" src="'+p.photos[0]+'" alt="사진">'
+        : '<span class="muted">—</span>';
+      return '<tr>'+
+        '<td style="font-weight:700;color:var(--accent)">'+(p.propNo||'-')+'</td>'+
+        '<td>'+thumb+'</td>'+
+        '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>'+
+        '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>'+
+        '<td class="address-text">'+(p.address||'-')+'</td>'+
+        '<td style="font-weight:600">'+(p.price||'-')+'</td>'+
+        '<td class="muted">'+(p.landArea?p.landArea+'평':'-')+'</td>'+
+        '<td class="muted">'+(p.totalArea?p.totalArea+'평':'-')+'</td>'+
+        '<td class="muted">'+(p.useZone||'-')+'</td>'+
+        '<td class="muted">'+(p.jimok||'-')+'</td>'+
+        '<td class="muted">'+(p.ownerName||'-')+'</td>'+
+        '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
+        '<td><div class="action-btns">'+
+          '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteProperty(\''+p.id+'\')">삭제</button>'+
+        '</div></td>'+
+      '</tr>';
+    }).join('');
+  }
+  renderStats();
+}
 
-    // 카카오 지도 - 주소로 검색
-    if (p.address) {
-      setTimeout(() => {
-        const container = document.getElementById('kakaoMap');
-        if (!container) return;
-        const map = new kakao.maps.Map(container, {
-          center: new kakao.maps.LatLng(37.5665, 126.9780),
-          level: 4
-        });
-        const geocoder = new kakao.maps.services.Geocoder();
-        geocoder.addressSearch(p.address, function(result, status) {
-          if (status === kakao.maps.services.Status.OK) {
-            const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-            new kakao.maps.Marker({ map, position: coords });
+function resetFilters(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('filterGeorae').value='';
+  document.getElementById('filterType').value='';
+  renderTable();
+}
+
+// ── 사진 처리 ─────────────────────────────
+function handlePhotoSelect(e){
+  Array.from(e.target.files).forEach(readPhoto);
+  e.target.value='';
+}
+function handleDragOver(e){ e.preventDefault(); document.getElementById('uploadArea').classList.add('drag-over'); }
+function handleDragLeave(e){ document.getElementById('uploadArea').classList.remove('drag-over'); }
+function handleDrop(e){
+  e.preventDefault(); document.getElementById('uploadArea').classList.remove('drag-over');
+  Array.from(e.dataTransfer.files).filter(function(f){return f.type.startsWith('image/');}).forEach(readPhoto);
+}
+function readPhoto(file){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var MAX=1200, w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      var canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      currentPhotos.push(canvas.toDataURL('image/jpeg',0.7));
+      renderPhotoPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function renderPhotoPreview(){
+  document.getElementById('photoPreviewGrid').innerHTML = currentPhotos.map(function(src,i){
+    return '<div class="photo-thumb-wrap"><img src="'+src+'" alt="사진'+(i+1)+'"><button class="photo-thumb-del" onclick="removePhoto('+i+')">×</button></div>';
+  }).join('');
+}
+function removePhoto(i){ currentPhotos.splice(i,1); renderPhotoPreview(); }
+
+// ── 라이트박스 ────────────────────────────
+function openLightbox(photos,idx){ lightboxPhotos=photos; lightboxIndex=idx; updateLightbox(); document.getElementById('lightbox').classList.add('active'); }
+function updateLightbox(){
+  var src=lightboxPhotos[lightboxIndex];
+  document.getElementById('lightboxImg').src=src;
+  document.getElementById('lightboxCounter').textContent=(lightboxIndex+1)+' / '+lightboxPhotos.length;
+  var dl=document.getElementById('lightboxDownload'); dl.href=src; dl.download='사진_'+(lightboxIndex+1)+'.jpg';
+}
+function lightboxPrev(){ lightboxIndex=(lightboxIndex-1+lightboxPhotos.length)%lightboxPhotos.length; updateLightbox(); }
+function lightboxNext(){ lightboxIndex=(lightboxIndex+1)%lightboxPhotos.length; updateLightbox(); }
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('active'); }
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('lightbox').classList.contains('active')) return;
+  if(e.key==='ArrowLeft') lightboxPrev();
+  if(e.key==='ArrowRight') lightboxNext();
+  if(e.key==='Escape') closeLightbox();
+});
+
+// ── 폼 모달 ──────────────────────────────
+function openAddModal(){
+  editingId=null; currentPhotos=[];
+  document.getElementById('formModalTitle').textContent='매물 등록';
+  clearForm(); renderPhotoPreview(); restoreMemoHeight();
+  document.getElementById('formModal').classList.add('active');
+}
+function openEditModal(id){
+  var p=properties.find(function(x){return x.id===id;});
+  if(!p) return;
+  editingId=id;
+  document.getElementById('formModalTitle').textContent='매물 수정';
+  document.getElementById('f_georae').value=p.georae||'';
+  document.getElementById('f_type').value=p.type||'';
+  document.getElementById('f_address').value=p.address||'';
+  document.getElementById('f_price').value=p.price||'';
+  document.getElementById('f_landArea').value=p.landArea||'';
+  document.getElementById('f_totalArea').value=p.totalArea||'';
+  document.getElementById('f_roadArea').value=p.roadArea||'';
+  document.getElementById('f_useZone').value=p.useZone||'';
+  document.getElementById('f_jimok').value=p.jimok||'';
+  document.getElementById('f_buildingUse').value=p.buildingUse||'';
+  document.getElementById('f_approvalDate').value=p.approvalDate||'';
+  document.getElementById('f_electric').value=p.electric||'';
+  document.getElementById('f_access').value=p.access||'';
+  document.getElementById('f_ownerName').value=p.ownerName||'';
+  document.getElementById('f_ownerPhone').value=p.ownerPhone||'';
+  document.getElementById('f_memo').value=p.memo||'';
+  currentPhotos=p.photos?p.photos.slice():[];
+  renderPhotoPreview(); restoreMemoHeight();
+  closeDetailModal();
+  document.getElementById('formModal').classList.add('active');
+}
+function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
+function clearForm(){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+}
+
+function saveProperty(){
+  var georae=document.getElementById('f_georae').value;
+  var type=document.getElementById('f_type').value;
+  var address=document.getElementById('f_address').value.trim();
+  if(!georae||!type||!address){ alert('거래유형, 매물종류, 주소는 필수입니다.'); return; }
+  var btn=document.getElementById('saveBtn'); btn.textContent='저장 중...'; btn.disabled=true;
+  var now=new Date();
+  var dateStr=now.toLocaleDateString('ko-KR');
+  var timeStr=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var data={
+    georae:georae, type:type, address:address,
+    price:document.getElementById('f_price').value.trim(),
+    landArea:document.getElementById('f_landArea').value.trim(),
+    totalArea:document.getElementById('f_totalArea').value.trim(),
+    roadArea:document.getElementById('f_roadArea').value.trim(),
+    useZone:document.getElementById('f_useZone').value.trim(),
+    jimok:document.getElementById('f_jimok').value.trim(),
+    buildingUse:document.getElementById('f_buildingUse').value.trim(),
+    approvalDate:document.getElementById('f_approvalDate').value,
+    electric:document.getElementById('f_electric').value.trim(),
+    access:document.getElementById('f_access').value.trim(),
+    ownerName:document.getElementById('f_ownerName').value.trim(),
+    ownerPhone:document.getElementById('f_ownerPhone').value.trim(),
+    memo:document.getElementById('f_memo').value.trim(),
+    updatedDate:dateStr, updatedTime:timeStr,
+  };
+  var docId=editingId||genId();
+  uploadPhotos(docId, currentPhotos, function(err, urls){
+    if(err){ alert('사진 업로드 오류: '+err.message); btn.textContent='저장'; btn.disabled=false; return; }
+    data.photos=urls;
+    if(editingId){
+      saveEdit(editingId, data, function(err){
+        btn.textContent='저장'; btn.disabled=false;
+        if(err){ alert('저장 오류: '+err.message); return; }
+        var idx=properties.findIndex(function(p){return p.id===editingId;});
+        properties[idx]=Object.assign({},properties[idx],data);
+        renderTable(); closeFormModal();
+      });
+    } else {
+      data.createdDate=dateStr; data.createdTime=timeStr; data.updatedDate=''; data.updatedTime='';
+      saveNew(data, function(err, newId){
+        btn.textContent='저장'; btn.disabled=false;
+        if(err){ alert('저장 오류: '+err.message); return; }
+        properties.unshift(Object.assign({id:newId},data));
+        renderTable(); closeFormModal();
+      });
+    }
+  });
+}
+
+// ── 상세 모달 ─────────────────────────────
+function openDetail(id){
+  var p=properties.find(function(x){return x.id===id;});
+  if(!p) return;
+  document.getElementById('detailTitle').innerHTML=
+    (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
+    '<span class="tag tag-'+(p.georae||'')+'" style="margin-right:8px">'+(p.georae||'')+'</span>'+
+    '<span class="tag tag-'+(p.type||'')+'">'+(p.type||'')+'</span>';
+
+  document.getElementById('detailBody').innerHTML =
+    '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
+      '<div class="detail-item full"><label>주소</label><div class="val">'+(p.address||'-')+'</div></div>'+
+      '<div class="detail-item"><label>가격</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
+      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
+      '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
+    '</div></div>'+
+    '<div class="detail-section"><div class="detail-section-title">토지 / 면적 정보</div><div class="detail-grid">'+
+      '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>연면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>'+
+      '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
+      '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>'+
+      '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>'+
+      '<div class="detail-item"><label>전기</label><div class="val">'+(p.electric||'-')+'</div></div>'+
+      '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
+    '</div></div>'+
+    '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
+      '<div class="detail-item"><label>소유자명</label><div class="val">'+(p.ownerName||'-')+'</div></div>'+
+      '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
+    '</div></div>'+
+    (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+p.memo+'</div></div>':'')+
+    (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div><div id="kakaoMap"></div></div>':'')+
+    (p.photos&&p.photos.length>0?
+      '<div class="detail-section"><div class="detail-section-title">사진 ('+p.photos.length+'장)</div><div class="detail-photo-grid">'+
+      p.photos.map(function(src,i){
+        return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+          '<img src="'+src+'" onclick="openLightbox(window._dp,'+i+')" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">'+
+          '<a href="'+src+'" download="사진_'+(i+1)+'.jpg" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>'+
+        '</div>';
+      }).join('')+'</div></div>':'');
+
+  window._dp=p.photos||[];
+  document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };
+  document.getElementById('detailModal').classList.add('active');
+
+  if(p.address){
+    setTimeout(function(){
+      kakao.maps.load(function(){
+        var container=document.getElementById('kakaoMap');
+        if(!container) return;
+        var map=new kakao.maps.Map(container,{center:new kakao.maps.LatLng(37.5665,126.9780),level:4});
+        var gc=new kakao.maps.services.Geocoder();
+        gc.addressSearch(p.address,function(result,status){
+          if(status===kakao.maps.services.Status.OK){
+            var coords=new kakao.maps.LatLng(result[0].y,result[0].x);
+            new kakao.maps.Marker({map:map,position:coords});
             map.setCenter(coords);
           } else {
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
+            container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
           }
         });
-      }, 100);
-    }
+      });
+    },300);
   }
+}
+function closeDetailModal(){ document.getElementById('detailModal').classList.remove('active'); }
 
-  function closeDetailModal() {
-    document.getElementById('detailModal').classList.remove('active');
-  }
-
-  async function deleteProperty(id) {
-    if (!confirm('이 매물을 삭제하시겠습니까?')) return;
-    const p = properties.find(x => x.id === id);
-    try {
-      await deleteFromDB(id, p ? p.photos : []);
-      properties = properties.filter(p => p.id !== id);
-      renderTable();
-    } catch(e) {
-      alert('삭제 중 오류가 발생했습니다: ' + e.message);
-    }
-  }
-
-  // Click outside to close (상세보기만 적용, 매물등록/수정은 취소/저장 버튼으로만 닫기)
-  document.getElementById('detailModal').addEventListener('click', function(e) {
-    if (e.target === this) closeDetailModal();
-  });
-
-  // Textarea 높이 매물별 기억
-  function saveMemoHeight() {
-    const height = document.getElementById('f_memo').style.height;
-    if (!height) return;
-    const key = editingId ? `memo_height_${editingId}` : 'memo_height_new';
-    localStorage.setItem(key, height);
-  }
-
-  function restoreMemoHeight() {
-    const key = editingId ? `memo_height_${editingId}` : 'memo_height_new';
-    const saved = localStorage.getItem(key);
-    document.getElementById('f_memo').style.height = saved || '';
-  }
-
-  document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
-
-  // 엑셀 업로드
-  async function uploadExcel(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-
-    const text = await file.text();
-    const lines = text.replace(/^\uFEFF/, '').split('\n').filter(l => l.trim());
-    if (lines.length < 2) { alert('데이터가 없습니다.'); return; }
-
-    // 헤더 파싱
-    const headers = parseCSVRow(lines[0]);
-    const colMap = {
-      georae:      headers.indexOf('거래유형'),
-      type:        headers.indexOf('매물종류'),
-      address:     headers.indexOf('주소'),
-      price:       headers.indexOf('가격'),
-      landArea:    headers.indexOf('토지면적(평)'),
-      totalArea:   headers.indexOf('연면적(평)'),
-      roadArea:    headers.indexOf('도로부지면적(평)'),
-      useZone:     headers.indexOf('용도지역'),
-      jimok:       headers.indexOf('지목'),
-      buildingUse: headers.indexOf('건축물용도'),
-      approvalDate:headers.indexOf('사용승인일'),
-      electric:    headers.indexOf('전기(kw)'),
-      access:      headers.indexOf('진출입로'),
-      ownerName:   headers.indexOf('소유자명'),
-      ownerPhone:  headers.indexOf('소유자연락처'),
-      memo:        headers.indexOf('특이사항/메모'),
-    };
-
-    // 필수 컬럼 체크
-    if (colMap.address === -1 || colMap.georae === -1) {
-      alert('올바른 양식의 CSV 파일이 아닙니다.\n엑셀 다운로드 후 양식에 맞게 입력해주세요.');
-      return;
-    }
-
-    const dataRows = lines.slice(1);
-    if (!confirm(`${dataRows.length}건의 매물을 등록하시겠습니까?`)) return;
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('ko-KR');
-    const timeStr = now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
-    const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < dataRows.length; i++) {
-      const cols = parseCSVRow(dataRows[i]);
-      const address = colMap.address >= 0 ? cols[colMap.address] || '' : '';
-      if (!address.trim()) { failCount++; continue; }
-
-      const data = {
-        georae:      colMap.georae >= 0 ? cols[colMap.georae] || '' : '',
-        type:        colMap.type >= 0 ? cols[colMap.type] || '' : '',
-        address,
-        price:       colMap.price >= 0 ? cols[colMap.price] || '' : '',
-        landArea:    colMap.landArea >= 0 ? cols[colMap.landArea] || '' : '',
-        totalArea:   colMap.totalArea >= 0 ? cols[colMap.totalArea] || '' : '',
-        roadArea:    colMap.roadArea >= 0 ? cols[colMap.roadArea] || '' : '',
-        useZone:     colMap.useZone >= 0 ? cols[colMap.useZone] || '' : '',
-        jimok:       colMap.jimok >= 0 ? cols[colMap.jimok] || '' : '',
-        buildingUse: colMap.buildingUse >= 0 ? cols[colMap.buildingUse] || '' : '',
-        approvalDate:colMap.approvalDate >= 0 ? cols[colMap.approvalDate] || '' : '',
-        electric:    colMap.electric >= 0 ? cols[colMap.electric] || '' : '',
-        access:      colMap.access >= 0 ? cols[colMap.access] || '' : '',
-        ownerName:   colMap.ownerName >= 0 ? cols[colMap.ownerName] || '' : '',
-        ownerPhone:  colMap.ownerPhone >= 0 ? cols[colMap.ownerPhone] || '' : '',
-        memo:        colMap.memo >= 0 ? cols[colMap.memo] || '' : '',
-        photos: [],
-        propNo: maxNo + successCount + 1,
-        createdDate: dateStr,
-        createdTime: timeStr,
-        updatedDate: '',
-        updatedTime: '',
-      };
-
-      try {
-        const newId = await saveNew(data);
-        properties.unshift({ id: newId, ...data });
-        successCount++;
-      } catch(err) {
-        failCount++;
-      }
-    }
-
+// ── 삭제 ──────────────────────────────────
+function deleteProperty(id){
+  if(!confirm('이 매물을 삭제하시겠습니까?')) return;
+  var p=properties.find(function(x){return x.id===id;});
+  deleteFromDB(id, p?p.photos:[], function(err){
+    if(err){ alert('삭제 오류: '+err.message); return; }
+    properties=properties.filter(function(x){return x.id!==id;});
     renderTable();
-    alert(`업로드 완료!\n성공: ${successCount}건 / 실패: ${failCount}건`);
-  }
+  });
+}
 
-  // CSV 한 줄 파싱 (따옴표 처리 포함)
-  function parseCSVRow(row) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < row.length; i++) {
-      const ch = row[i];
-      if (ch === '"') {
-        if (inQuotes && row[i+1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += ch;
-      }
+// ── 이벤트 ────────────────────────────────
+document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
+
+// ── textarea 높이 기억 ────────────────────
+function saveMemoHeight(){
+  var h=document.getElementById('f_memo').style.height; if(!h) return;
+  localStorage.setItem('mh_'+(editingId||'new'), h);
+}
+function restoreMemoHeight(){
+  var h=localStorage.getItem('mh_'+(editingId||'new'));
+  document.getElementById('f_memo').style.height=h||'';
+}
+document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
+
+// ── 엑셀 다운로드 ─────────────────────────
+function downloadExcel(){
+  if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
+  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','연면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','전기(kw)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
+  var rows=properties.map(function(p){
+    return [p.propNo||'',p.georae||'',p.type||'',p.address||'',p.price||'',p.landArea||'',p.totalArea||'',p.roadArea||'',p.useZone||'',p.jimok||'',p.buildingUse||'',p.approvalDate||'',p.electric||'',p.access||'',p.ownerName||'',p.ownerPhone||'',p.memo||'',p.createdDate||'',p.createdTime||'',p.updatedDate||'',p.updatedTime||''];
+  });
+  var BOM='\uFEFF';
+  var csv=BOM+[headers].concat(rows).map(function(row){
+    return row.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='새롬부동산_매물목록.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── 엑셀 업로드 ───────────────────────────
+function uploadExcel(e){
+  var file=e.target.files[0]; if(!file) return; e.target.value='';
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var text=ev.target.result.replace(/^\uFEFF/,'');
+    var lines=text.split('\n').filter(function(l){return l.trim();});
+    if(lines.length<2){ alert('데이터가 없습니다.'); return; }
+    var headers=parseCSV(lines[0]);
+    var ci={
+      georae:headers.indexOf('거래유형'), type:headers.indexOf('매물종류'),
+      address:headers.indexOf('주소'), price:headers.indexOf('가격'),
+      landArea:headers.indexOf('토지면적(평)'), totalArea:headers.indexOf('연면적(평)'),
+      roadArea:headers.indexOf('도로부지면적(평)'), useZone:headers.indexOf('용도지역'),
+      jimok:headers.indexOf('지목'), buildingUse:headers.indexOf('건축물용도'),
+      approvalDate:headers.indexOf('사용승인일'), electric:headers.indexOf('전기(kw)'),
+      access:headers.indexOf('진출입로'), ownerName:headers.indexOf('소유자명'),
+      ownerPhone:headers.indexOf('소유자연락처'), memo:headers.indexOf('특이사항/메모'),
+    };
+    if(ci.address===-1){ alert('올바른 양식이 아닙니다.\n엑셀 다운로드 후 양식에 맞게 입력해주세요.'); return; }
+    var dataRows=lines.slice(1);
+    if(!confirm(dataRows.length+'건의 매물을 등록하시겠습니까?')) return;
+    var now=new Date();
+    var dateStr=now.toLocaleDateString('ko-KR');
+    var timeStr=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    var maxNo=properties.length>0?Math.max.apply(null,properties.map(function(p){return p.propNo||0;})):0;
+    var success=0, fail=0, idx=0;
+    function next(){
+      if(idx>=dataRows.length){ renderTable(); alert('업로드 완료!\n성공: '+success+'건 / 실패: '+fail+'건'); return; }
+      var cols=parseCSV(dataRows[idx]); idx++;
+      var addr=ci.address>=0?(cols[ci.address]||''):'';
+      if(!addr.trim()){ fail++; next(); return; }
+      function g(k){ return ci[k]>=0?(cols[ci[k]]||''):''; }
+      var data={
+        georae:g('georae'), type:g('type'), address:addr, price:g('price'),
+        landArea:g('landArea'), totalArea:g('totalArea'), roadArea:g('roadArea'),
+        useZone:g('useZone'), jimok:g('jimok'), buildingUse:g('buildingUse'),
+        approvalDate:g('approvalDate'), electric:g('electric'), access:g('access'),
+        ownerName:g('ownerName'), ownerPhone:g('ownerPhone'), memo:g('memo'),
+        photos:[], propNo:maxNo+success+1,
+        createdDate:dateStr, createdTime:timeStr, updatedDate:'', updatedTime:'',
+      };
+      saveNew(data, function(err, newId){
+        if(err){ fail++; } else { properties.unshift(Object.assign({id:newId},data)); success++; }
+        next();
+      });
     }
-    result.push(current.trim());
-    return result;
+    next();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(row){
+  var result=[], cur='', inQ=false;
+  for(var i=0;i<row.length;i++){
+    var c=row[i];
+    if(c==='"'){ if(inQ&&row[i+1]==='"'){cur+='"';i++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){ result.push(cur.trim()); cur=''; }
+    else cur+=c;
   }
+  result.push(cur.trim()); return result;
+}
 
-  // 엑셀 다운로드
-  function downloadExcel() {
-    if (properties.length === 0) {
-      alert('다운로드할 매물이 없습니다.');
-      return;
-    }
-
-    const headers = ['No.', '거래유형', '매물종류', '주소', '가격', '토지면적(평)', '연면적(평)', '도로부지면적(평)', '용도지역', '지목', '건축물용도', '사용승인일', '전기(kw)', '진출입로', '소유자명', '소유자연락처', '특이사항/메모', '등록일', '등록시간', '최종수정일', '최종수정시간'];
-
-    const rows = properties.map(p => [
-      p.propNo || '',
-      p.georae || '',
-      p.type || '',
-      p.address || '',
-      p.price || '',
-      p.landArea || '',
-      p.totalArea || '',
-      p.roadArea || '',
-      p.useZone || '',
-      p.jimok || '',
-      p.buildingUse || '',
-      p.approvalDate || '',
-      p.electric || '',
-      p.access || '',
-      p.ownerName || '',
-      p.ownerPhone || '',
-      p.memo || '',
-      p.createdDate || '',
-      p.createdTime || '',
-      p.updatedDate || '',
-      p.updatedTime || '',
-    ]);
-
-    // CSV 생성 (엑셀에서 열 수 있음)
-    const BOM = '\uFEFF'; // 한글 깨짐 방지
-    const csvContent = BOM + [headers, ...rows]
-      .map(row => row.map(cell => {
-        const str = String(cell).replace(/"/g, '""');
-        return `"${str}"`;
-      }).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const today = new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '');
-    a.href = url;
-    a.download = `새롬부동산_매물목록_${today}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+// ── 시작 ──────────────────────────────────
+showLoading('데이터 불러오는 중...');
+load();
 </script>
 </body>
 </html>

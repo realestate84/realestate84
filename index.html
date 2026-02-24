@@ -1523,6 +1523,28 @@
 
   // Firebase 로드 전 로딩 표시
   showLoading('Firebase 연결 중...');
+
+  // 전역 함수 노출 (type="module" 안에서는 onclick 접근 불가)
+  window.openAddModal = openAddModal;
+  window.openEditModal = openEditModal;
+  window.closeFormModal = closeFormModal;
+  window.saveProperty = saveProperty;
+  window.openDetail = openDetail;
+  window.closeDetailModal = closeDetailModal;
+  window.deleteProperty = deleteProperty;
+  window.resetFilters = resetFilters;
+  window.renderTable = renderTable;
+  window.openLightbox = openLightbox;
+  window.closeLightbox = closeLightbox;
+  window.lightboxPrev = lightboxPrev;
+  window.lightboxNext = lightboxNext;
+  window.downloadExcel = downloadExcel;
+  window.uploadExcel = uploadExcel;
+  window.handlePhotoSelect = handlePhotoSelect;
+  window.handleDragOver = handleDragOver;
+  window.handleDragLeave = handleDragLeave;
+  window.handleDrop = handleDrop;
+  window.removePhoto = removePhoto;
 </script>
 </body>
 </html>

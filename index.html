@@ -725,6 +725,10 @@
           <input class="form-input" type="text" id="f_buildingUse" placeholder="예) 단독주택, 근린생활시설">
         </div>
         <div class="form-group">
+          <label>사용승인일</label>
+          <input class="form-input" type="date" id="f_approvalDate">
+        </div>
+        <div class="form-group">
           <label>전기 (kw)</label>
           <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
         </div>
@@ -1073,6 +1077,7 @@
     document.getElementById('f_useZone').value = p.useZone || '';
     document.getElementById('f_jimok').value = p.jimok || '';
     document.getElementById('f_buildingUse').value = p.buildingUse || '';
+    document.getElementById('f_approvalDate').value = p.approvalDate || '';
     document.getElementById('f_electric').value = p.electric || '';
     document.getElementById('f_access').value = p.access || '';
     document.getElementById('f_ownerName').value = p.ownerName || '';
@@ -1130,6 +1135,7 @@
         useZone: document.getElementById('f_useZone').value.trim(),
         jimok: document.getElementById('f_jimok').value.trim(),
         buildingUse: document.getElementById('f_buildingUse').value.trim(),
+        approvalDate: document.getElementById('f_approvalDate').value,
         electric: document.getElementById('f_electric').value.trim(),
         access: document.getElementById('f_access').value.trim(),
         ownerName: document.getElementById('f_ownerName').value.trim(),
@@ -1221,6 +1227,10 @@
           <div class="detail-item">
             <label>건축물용도</label>
             <div class="val">${p.buildingUse || '-'}</div>
+          </div>
+          <div class="detail-item">
+            <label>사용승인일</label>
+            <div class="val">${p.approvalDate || '-'}</div>
           </div>
           <div class="detail-item">
             <label>전기</label>

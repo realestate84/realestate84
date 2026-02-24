@@ -45,6 +45,7 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead{background:var(--surface2);}
 th{padding:12px 14px;text-align:left;color:var(--text-muted);font-weight:500;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border);}
+th[onclick]:hover{color:var(--accent);background:rgba(58,126,246,0.05);}
 td{padding:11px 14px;border-bottom:1px solid rgba(221,226,240,0.6);vertical-align:middle;white-space:nowrap;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:rgba(58,126,246,0.03);}
@@ -146,9 +147,19 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
     <table>
       <thead>
         <tr>
-          <th>No.</th><th>사진</th><th>거래</th><th>종류</th><th>주소</th>
-          <th>가격</th><th>토지면적</th><th>연면적</th><th>용도지역</th>
-          <th>지목</th><th>소유자</th><th>등록일시</th><th>관리</th>
+          <th onclick="sortTable('propNo')" style="cursor:pointer">No. <span id="sort_propNo"></span></th>
+          <th>사진</th>
+          <th onclick="sortTable('georae')" style="cursor:pointer">거래 <span id="sort_georae"></span></th>
+          <th onclick="sortTable('type')" style="cursor:pointer">종류 <span id="sort_type"></span></th>
+          <th onclick="sortTable('address')" style="cursor:pointer">주소 <span id="sort_address"></span></th>
+          <th onclick="sortTable('price')" style="cursor:pointer">가격 <span id="sort_price"></span></th>
+          <th onclick="sortTable('landArea')" style="cursor:pointer">토지면적 <span id="sort_landArea"></span></th>
+          <th onclick="sortTable('totalArea')" style="cursor:pointer">연면적 <span id="sort_totalArea"></span></th>
+          <th onclick="sortTable('useZone')" style="cursor:pointer">용도지역 <span id="sort_useZone"></span></th>
+          <th onclick="sortTable('jimok')" style="cursor:pointer">지목 <span id="sort_jimok"></span></th>
+          <th onclick="sortTable('ownerName')" style="cursor:pointer">소유자 <span id="sort_ownerName"></span></th>
+          <th onclick="sortTable('createdDate')" style="cursor:pointer">등록일시 <span id="sort_createdDate"></span></th>
+          <th>관리</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -406,6 +417,23 @@ function renderTable() {
     if(q){var hay=[p.address,p.memo,p.ownerName,p.ownerPhone,p.useZone,p.jimok].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     return true;
   });
+  // 정렬
+  list.sort(function(a, b) {
+    var va = a[sortKey] || '';
+    var vb = b[sortKey] || '';
+    // 숫자 필드
+    if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea') {
+      va = parseFloat(va) || 0;
+      vb = parseFloat(vb) || 0;
+      return sortDir === 'asc' ? va - vb : vb - va;
+    }
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    if(va < vb) return sortDir === 'asc' ? -1 : 1;
+    if(va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   var tbody = document.getElementById('tableBody');
   var empty = document.getElementById('emptyState');
   if(list.length===0){ tbody.innerHTML=''; empty.style.display='block'; }
@@ -438,7 +466,28 @@ function renderTable() {
   renderStats();
 }
 
-function resetFilters(){
+var sortKey = 'createdDate';
+var sortDir = 'desc';
+
+function sortTable(key) {
+  if(sortKey === key) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey = key;
+    sortDir = 'asc';
+  }
+  // 모든 정렬 아이콘 초기화
+  ['propNo','georae','type','address','price','landArea','totalArea','useZone','jimok','ownerName','createdDate'].forEach(function(k){
+    var el = document.getElementById('sort_'+k);
+    if(el) el.textContent = '';
+  });
+  // 현재 정렬 아이콘 표시
+  var el = document.getElementById('sort_'+key);
+  if(el) el.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
+  renderTable();
+}
+
+
   document.getElementById('searchInput').value='';
   document.getElementById('filterGeorae').value='';
   document.getElementById('filterType').value='';

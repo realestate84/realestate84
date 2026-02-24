@@ -602,9 +602,10 @@
 <header>
   <div class="logo">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
-    <button class="btn btn-primary" onclick="openAddModal()">
-      ＋ 매물 등록
-    </button>
+    <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
+    <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
+    <button class="btn btn-outline" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
   </div>
 </header>
 
@@ -931,9 +932,10 @@
 
   async function saveNew(data) {
     const { db, collection, addDoc } = window._firebase;
-    // 고유번호: 현재 최대 번호 + 1
-    const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
-    data.propNo = maxNo + 1;
+    if (!data.propNo) {
+      const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
+      data.propNo = maxNo + 1;
+    }
     const docRef = await addDoc(collection(db, COLLECTION), data);
     return docRef.id;
   }
@@ -1349,6 +1351,170 @@
   }
 
   document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
+
+  // 엑셀 업로드
+  async function uploadExcel(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const text = await file.text();
+    const lines = text.replace(/^\uFEFF/, '').split('\n').filter(l => l.trim());
+    if (lines.length < 2) { alert('데이터가 없습니다.'); return; }
+
+    // 헤더 파싱
+    const headers = parseCSVRow(lines[0]);
+    const colMap = {
+      georae:      headers.indexOf('거래유형'),
+      type:        headers.indexOf('매물종류'),
+      address:     headers.indexOf('주소'),
+      price:       headers.indexOf('가격'),
+      landArea:    headers.indexOf('토지면적(평)'),
+      totalArea:   headers.indexOf('연면적(평)'),
+      roadArea:    headers.indexOf('도로부지면적(평)'),
+      useZone:     headers.indexOf('용도지역'),
+      jimok:       headers.indexOf('지목'),
+      buildingUse: headers.indexOf('건축물용도'),
+      approvalDate:headers.indexOf('사용승인일'),
+      electric:    headers.indexOf('전기(kw)'),
+      access:      headers.indexOf('진출입로'),
+      ownerName:   headers.indexOf('소유자명'),
+      ownerPhone:  headers.indexOf('소유자연락처'),
+      memo:        headers.indexOf('특이사항/메모'),
+    };
+
+    // 필수 컬럼 체크
+    if (colMap.address === -1 || colMap.georae === -1) {
+      alert('올바른 양식의 CSV 파일이 아닙니다.\n엑셀 다운로드 후 양식에 맞게 입력해주세요.');
+      return;
+    }
+
+    const dataRows = lines.slice(1);
+    if (!confirm(`${dataRows.length}건의 매물을 등록하시겠습니까?`)) return;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ko-KR');
+    const timeStr = now.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+    const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const cols = parseCSVRow(dataRows[i]);
+      const address = colMap.address >= 0 ? cols[colMap.address] || '' : '';
+      if (!address.trim()) { failCount++; continue; }
+
+      const data = {
+        georae:      colMap.georae >= 0 ? cols[colMap.georae] || '' : '',
+        type:        colMap.type >= 0 ? cols[colMap.type] || '' : '',
+        address,
+        price:       colMap.price >= 0 ? cols[colMap.price] || '' : '',
+        landArea:    colMap.landArea >= 0 ? cols[colMap.landArea] || '' : '',
+        totalArea:   colMap.totalArea >= 0 ? cols[colMap.totalArea] || '' : '',
+        roadArea:    colMap.roadArea >= 0 ? cols[colMap.roadArea] || '' : '',
+        useZone:     colMap.useZone >= 0 ? cols[colMap.useZone] || '' : '',
+        jimok:       colMap.jimok >= 0 ? cols[colMap.jimok] || '' : '',
+        buildingUse: colMap.buildingUse >= 0 ? cols[colMap.buildingUse] || '' : '',
+        approvalDate:colMap.approvalDate >= 0 ? cols[colMap.approvalDate] || '' : '',
+        electric:    colMap.electric >= 0 ? cols[colMap.electric] || '' : '',
+        access:      colMap.access >= 0 ? cols[colMap.access] || '' : '',
+        ownerName:   colMap.ownerName >= 0 ? cols[colMap.ownerName] || '' : '',
+        ownerPhone:  colMap.ownerPhone >= 0 ? cols[colMap.ownerPhone] || '' : '',
+        memo:        colMap.memo >= 0 ? cols[colMap.memo] || '' : '',
+        photos: [],
+        propNo: maxNo + successCount + 1,
+        createdDate: dateStr,
+        createdTime: timeStr,
+        updatedDate: '',
+        updatedTime: '',
+      };
+
+      try {
+        const newId = await saveNew(data);
+        properties.unshift({ id: newId, ...data });
+        successCount++;
+      } catch(err) {
+        failCount++;
+      }
+    }
+
+    renderTable();
+    alert(`업로드 완료!\n성공: ${successCount}건 / 실패: ${failCount}건`);
+  }
+
+  // CSV 한 줄 파싱 (따옴표 처리 포함)
+  function parseCSVRow(row) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (inQuotes && row[i+1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  }
+
+  // 엑셀 다운로드
+  function downloadExcel() {
+    if (properties.length === 0) {
+      alert('다운로드할 매물이 없습니다.');
+      return;
+    }
+
+    const headers = ['No.', '거래유형', '매물종류', '주소', '가격', '토지면적(평)', '연면적(평)', '도로부지면적(평)', '용도지역', '지목', '건축물용도', '사용승인일', '전기(kw)', '진출입로', '소유자명', '소유자연락처', '특이사항/메모', '등록일', '등록시간', '최종수정일', '최종수정시간'];
+
+    const rows = properties.map(p => [
+      p.propNo || '',
+      p.georae || '',
+      p.type || '',
+      p.address || '',
+      p.price || '',
+      p.landArea || '',
+      p.totalArea || '',
+      p.roadArea || '',
+      p.useZone || '',
+      p.jimok || '',
+      p.buildingUse || '',
+      p.approvalDate || '',
+      p.electric || '',
+      p.access || '',
+      p.ownerName || '',
+      p.ownerPhone || '',
+      p.memo || '',
+      p.createdDate || '',
+      p.createdTime || '',
+      p.updatedDate || '',
+      p.updatedTime || '',
+    ]);
+
+    // CSV 생성 (엑셀에서 열 수 있음)
+    const BOM = '\uFEFF'; // 한글 깨짐 방지
+    const csvContent = BOM + [headers, ...rows]
+      .map(row => row.map(cell => {
+        const str = String(cell).replace(/"/g, '""');
+        return `"${str}"`;
+      }).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '');
+    a.href = url;
+    a.download = `새롬부동산_매물목록_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Init - Firebase 준비 후 실행
   window.addEventListener('firebaseReady', () => {

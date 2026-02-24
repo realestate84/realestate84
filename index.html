@@ -573,29 +573,9 @@
     margin-top: 4px;
   }
 </style>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services"></script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBYGw8kz3JkVbJ4zIvaMPyCMznGwg_r8tA",
-    authDomain: "realestate84-3574f.firebaseapp.com",
-    projectId: "realestate84-3574f",
-    storageBucket: "realestate84-3574f.firebasestorage.app",
-    messagingSenderId: "382904420257",
-    appId: "1:382904420257:web:09b3fe5c77ce3b28096de0",
-    measurementId: "G-G5L47HTHQ6"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-
-  window._firebase = { db, storage, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, ref, uploadString, getDownloadURL, deleteObject };
-  window.dispatchEvent(new Event('firebaseReady'));
-</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -797,11 +777,35 @@
 </div>
 
 <script>
+  // Firebase 및 전역 변수
+  let db, storage;
   let properties = [];
   let editingId = null;
   let currentPhotos = [];
   let lightboxPhotos = [];
   let lightboxIndex = 0;
+
+  window.addEventListener('load', function() {
+    // Firebase 초기화
+    const firebaseConfig = {
+      apiKey: "AIzaSyBYGw8kz3JkVbJ4zIvaMPyCMznGwg_r8tA",
+      authDomain: "realestate84-3574f.firebaseapp.com",
+      projectId: "realestate84-3574f",
+      storageBucket: "realestate84-3574f.firebasestorage.app",
+      messagingSenderId: "382904420257",
+      appId: "1:382904420257:web:09b3fe5c77ce3b28096de0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    storage = firebase.storage();
+
+    // 카카오맵 로드
+    const kakaoScript = document.createElement('script');
+    kakaoScript.src = '//dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services';
+    document.head.appendChild(kakaoScript);
+
+    load();
+  });
 
   // Photo handling
   function handlePhotoSelect(e) {
@@ -912,16 +916,14 @@
   const COLLECTION = 'properties';
 
   function showLoading(msg = '불러오는 중...') {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted)">${msg}</td></tr>`;
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">${msg}</td></tr>`;
     document.getElementById('emptyState').style.display = 'none';
   }
 
   async function load() {
     showLoading();
     try {
-      const { db, collection, getDocs, query, orderBy } = window._firebase;
-      const q = query(collection(db, COLLECTION), orderBy('createdDate', 'desc'));
-      const snap = await getDocs(q);
+      const snap = await db.collection(COLLECTION).orderBy('createdDate', 'desc').get();
       properties = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch(e) {
       console.error(e);
@@ -931,49 +933,42 @@
   }
 
   async function saveNew(data) {
-    const { db, collection, addDoc } = window._firebase;
     if (!data.propNo) {
       const maxNo = properties.length > 0 ? Math.max(...properties.map(p => p.propNo || 0)) : 0;
       data.propNo = maxNo + 1;
     }
-    const docRef = await addDoc(collection(db, COLLECTION), data);
+    const docRef = await db.collection(COLLECTION).add(data);
     return docRef.id;
   }
 
   async function saveEdit(id, data) {
-    const { db, doc, updateDoc } = window._firebase;
-    await updateDoc(doc(db, COLLECTION, id), data);
+    await db.collection(COLLECTION).doc(id).update(data);
   }
 
   async function deleteFromDB(id, photos) {
-    const { db, doc, deleteDoc, storage, ref, deleteObject } = window._firebase;
-    // 사진 Storage에서 삭제
     if (photos && photos.length > 0) {
       for (const url of photos) {
         try {
           if (url.startsWith('https://')) {
-            const photoRef = ref(storage, url);
-            await deleteObject(photoRef);
+            await storage.refFromURL(url).delete();
           }
         } catch(e) {}
       }
     }
-    await deleteDoc(doc(db, COLLECTION, id));
+    await db.collection(COLLECTION).doc(id).delete();
   }
 
-  async function uploadPhotos(id, base64List) {
-    const { storage, ref, uploadString, getDownloadURL } = window._firebase;
+  async function uploadPhotos(id, photoList) {
     const urls = [];
-    for (let i = 0; i < base64List.length; i++) {
-      const src = base64List[i];
+    for (let i = 0; i < photoList.length; i++) {
+      const src = photoList[i];
       if (src.startsWith('https://')) {
-        // 이미 업로드된 사진은 그대로 유지
         urls.push(src);
         continue;
       }
-      const photoRef = ref(storage, `properties/${id}/photo_${Date.now()}_${i}.jpg`);
-      await uploadString(photoRef, src, 'data_url');
-      const url = await getDownloadURL(photoRef);
+      const photoRef = storage.ref(`properties/${id}/photo_${Date.now()}_${i}.jpg`);
+      await photoRef.putString(src, 'data_url');
+      const url = await photoRef.getDownloadURL();
       urls.push(url);
     }
     return urls;
@@ -1515,36 +1510,6 @@
     a.click();
     URL.revokeObjectURL(url);
   }
-
-  // Init - Firebase 준비 후 실행
-  window.addEventListener('firebaseReady', () => {
-    load();
-  });
-
-  // Firebase 로드 전 로딩 표시
-  showLoading('Firebase 연결 중...');
-
-  // 전역 함수 노출 (type="module" 안에서는 onclick 접근 불가)
-  window.openAddModal = openAddModal;
-  window.openEditModal = openEditModal;
-  window.closeFormModal = closeFormModal;
-  window.saveProperty = saveProperty;
-  window.openDetail = openDetail;
-  window.closeDetailModal = closeDetailModal;
-  window.deleteProperty = deleteProperty;
-  window.resetFilters = resetFilters;
-  window.renderTable = renderTable;
-  window.openLightbox = openLightbox;
-  window.closeLightbox = closeLightbox;
-  window.lightboxPrev = lightboxPrev;
-  window.lightboxNext = lightboxNext;
-  window.downloadExcel = downloadExcel;
-  window.uploadExcel = uploadExcel;
-  window.handlePhotoSelect = handlePhotoSelect;
-  window.handleDragOver = handleDragOver;
-  window.handleDragLeave = handleDragLeave;
-  window.handleDrop = handleDrop;
-  window.removePhoto = removePhoto;
 </script>
 </body>
 </html>

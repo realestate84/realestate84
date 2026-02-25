@@ -750,6 +750,14 @@ function deleteProperty(id){
 }
 
 // ── 이벤트 ────────────────────────────────
+// 전체지도 상세보기 버튼 전역 클릭 핸들러
+document.addEventListener('click', function(e) {
+  if(e.target && e.target.classList.contains('map-detail-btn')) {
+    var id = e.target.getAttribute('data-id');
+    if(id) openDetail(id);
+  }
+});
+
 function openDetailOverMap(id) {
   openDetail(id);
 }
@@ -896,13 +904,14 @@ function openMapAll() {
 
             var content = document.createElement('div');
             content.className = 'map-marker-info';
+            content.setAttribute('data-id', p.id);
             content.innerHTML =
               '<div class="mi-title">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
               '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
               (p.price?'<div class="mi-price">💰 '+p.price+'</div>':'')+
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
               '<div style="margin-top:8px;text-align:center">'+
-              '<button onclick="openDetail(\''+p.id+'\')" style="background:linear-gradient(135deg,#3a7ef6,#6c47f5);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">▶ 상세보기</button>'+
+              '<button class="map-detail-btn" data-id="'+p.id+'" style="background:linear-gradient(135deg,#3a7ef6,#6c47f5);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">▶ 상세보기</button>'+
               '</div>';
 
             var overlay = new kakao.maps.CustomOverlay({

@@ -273,7 +273,7 @@ th{position:relative;}
         </div>
         <div class="form-group">
           <label>소유자 연락처</label>
-          <input class="form-input" type="text" id="f_ownerPhone" placeholder="010-0000-0000">
+          <input class="form-input" type="text" id="f_ownerPhone" placeholder="010-0000-0000" oninput="formatPhone(this)" maxlength="13">
         </div>
         <div class="form-group full">
           <label>특이사항 / 메모</label>
@@ -546,6 +546,13 @@ function sortTable(key) {
   var el = document.getElementById('sort_'+key);
   if(el) el.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
   renderTable();
+}
+
+function formatPhone(input) {
+  var v = input.value.replace(/[^0-9]/g, '');
+  if(v.length <= 3) input.value = v;
+  else if(v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
 }
 
 function resetFilters(){

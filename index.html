@@ -129,6 +129,10 @@ th{position:relative;}
 .map-marker-info .mi-price{color:var(--danger);font-weight:600;}
 /* 상세모달은 전체지도 위에 표시 */
 #detailModal{z-index:500;}
+/* 지도 체크박스 필터 */
+.map-chk-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--text);user-select:none;}
+.map-chk-label input{width:14px;height:14px;cursor:pointer;}
+.map-chk-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -326,6 +330,24 @@ th{position:relative;}
       <button class="modal-close" onclick="closeMapAll()">×</button>
     </div>
     <div class="modal-body" style="padding:16px">
+      <!-- 필터 체크박스 -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px;">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;min-width:30px">거래</span>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="매매" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>매매</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="전세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>전세</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="월세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#f0a030"></span>월세</label>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;min-width:30px">종류</span>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="토지" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#2eab7a"></span>토지</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="공장창고" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e06830"></span>공장창고</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="상가" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e04a5a"></span>상가</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="아파트" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>아파트</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="빌라" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>빌라</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="원투룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#20aac8"></span>원투룸</label>
+        </div>
+      </div>
       <div id="mapAll"></div>
       <div id="mapAllInfo" style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center"></div>
     </div>
@@ -870,23 +892,36 @@ function togglePCView() {
 }
 
 // ── 전체 지도 ─────────────────────────────
+var _mapObj = null;
+var _mapMarkers = [];
+var _georaeColor = {'매매':'#3a7ef6','전세':'#6c47f5','월세':'#f0a030'};
+var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','원투룸':'#e91e8c'};
+
+function getMarkerImage(p) {
+  var color = _georaeColor[p.georae] || '#3a7ef6';
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">'+
+    '<path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="'+color+'"/>'+
+    '<circle cx="14" cy="14" r="6" fill="white"/></svg>';
+  var src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  return new kakao.maps.MarkerImage(src, new kakao.maps.Size(28,36), {offset: new kakao.maps.Point(14,36)});
+}
+
 function openMapAll() {
   if(typeof kakao === 'undefined') { alert('카카오 지도가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return; }
   if(properties.length === 0) { alert('등록된 매물이 없습니다.'); return; }
+  document.querySelectorAll('.map-chk').forEach(function(c){ c.checked = true; });
   document.getElementById('mapAllModal').classList.add('active');
 
   setTimeout(function(){
-    var container = document.getElementById('mapAll');
-    var map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(36.5, 127.5), level: 13 });
+    _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), {center: new kakao.maps.LatLng(36.5,127.5), level:13});
+    _mapMarkers = [];
     var gc = new kakao.maps.services.Geocoder();
     var bounds = new kakao.maps.LatLngBounds();
-    var successCount = 0;
 
-    // 지도 빈 곳 클릭시만 오버레이 닫기 (타이머로 구분)
     window._mapClickTimer = null;
-    kakao.maps.event.addListener(map, 'click', function() {
+    kakao.maps.event.addListener(_mapObj, 'click', function() {
       window._mapClickTimer = setTimeout(function() {
-        if(window._mapOverlay) { window._mapOverlay.setMap(null); window._mapOverlay = null; }
+        if(window._mapOverlay){window._mapOverlay.setMap(null);window._mapOverlay=null;}
       }, 200);
     });
 
@@ -895,46 +930,60 @@ function openMapAll() {
       gc.addressSearch(p.address, function(result, status) {
         if(status !== kakao.maps.services.Status.OK) return;
         var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-        var marker = new kakao.maps.Marker({ map: map, position: coords });
+        var marker = new kakao.maps.Marker({map:_mapObj, position:coords, image:getMarkerImage(p)});
+        _mapMarkers.push({marker:marker, p:p});
         bounds.extend(coords);
-        successCount++;
-        if(successCount > 0) map.setBounds(bounds);
+        _mapObj.setBounds(bounds);
 
-        // 마커 클릭 시 커스텀 오버레이
         (function(marker, p) {
           kakao.maps.event.addListener(marker, 'click', function() {
             if(window._mapOverlay) window._mapOverlay.setMap(null);
-
+            var color = _georaeColor[p.georae] || '#3a7ef6';
             var content = document.createElement('div');
             content.className = 'map-marker-info';
             content.style.cursor = 'pointer';
             content.innerHTML =
-              '<div class="mi-title">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
+              '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
               '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
               (p.price?'<div class="mi-price">💰 '+p.price+'</div>':'')+
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
-              '<div style="margin-top:8px;text-align:center;font-size:12px;color:var(--accent);font-weight:600;">▶ 클릭하면 상세보기</div>';
-
-            content.onclick = function(e) {
-              if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
+              '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
+            content.onclick = function() {
+              if(window._mapClickTimer){clearTimeout(window._mapClickTimer);window._mapClickTimer=null;}
               openDetail(p.id);
             };
-
-            var overlay = new kakao.maps.CustomOverlay({
-              content: content,
-              map: map,
-              position: marker.getPosition(),
-              yAnchor: 1.4,
-              zIndex: 3
-            });
-            window._mapOverlay = overlay;
+            window._mapOverlay = new kakao.maps.CustomOverlay({content:content, map:_mapObj, position:marker.getPosition(), yAnchor:1.4, zIndex:3});
           });
         })(marker, p);
 
-        document.getElementById('mapAllInfo').textContent = '총 '+successCount+'개 매물 표시 중';
+        updateMapInfo();
       });
     });
   }, 300);
+}
+
+function applyMapFilter() {
+  if(!_mapObj) return;
+  if(window._mapOverlay){window._mapOverlay.setMap(null);window._mapOverlay=null;}
+  var cg=[], ct=[];
+  document.querySelectorAll('.map-chk[data-filter="georae"]:checked').forEach(function(c){cg.push(c.getAttribute('data-value'));});
+  document.querySelectorAll('.map-chk[data-filter="type"]:checked').forEach(function(c){ct.push(c.getAttribute('data-value'));});
+  _mapMarkers.forEach(function(item){
+    var sg = cg.length===0 || cg.indexOf(item.p.georae)!==-1;
+    var st = ct.length===0 || ct.indexOf(item.p.type)!==-1;
+    item.marker.setMap(sg&&st?_mapObj:null);
+  });
+  updateMapInfo();
+}
+
+function updateMapInfo() {
+  var cg=[], ct=[];
+  document.querySelectorAll('.map-chk[data-filter="georae"]:checked').forEach(function(c){cg.push(c.getAttribute('data-value'));});
+  document.querySelectorAll('.map-chk[data-filter="type"]:checked').forEach(function(c){ct.push(c.getAttribute('data-value'));});
+  var v = _mapMarkers.filter(function(item){
+    return (cg.length===0||cg.indexOf(item.p.georae)!==-1) && (ct.length===0||ct.indexOf(item.p.type)!==-1);
+  }).length;
+  document.getElementById('mapAllInfo').textContent = '총 '+v+'개 매물 표시 중';
 }
 
 function closeMapAll() {

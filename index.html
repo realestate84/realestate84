@@ -780,9 +780,17 @@ function printDetail() {
     '</div>'+
     '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+
     body;
-  // 사진 섹션만 제거
+  // 사진 섹션, 소유자 정보, 등록일시, 최종수정 제외
   document.body.appendChild(div);
   div.querySelectorAll('.detail-photo-grid').forEach(function(el){ el.parentElement.remove(); });
+  div.querySelectorAll('.detail-section-title').forEach(function(el){
+    if(el.textContent.indexOf('소유자') !== -1) el.closest('.detail-section').remove();
+  });
+  div.querySelectorAll('.detail-item label').forEach(function(el){
+    if(el.textContent.indexOf('등록일시') !== -1 || el.textContent.indexOf('최종수정') !== -1) {
+      el.closest('.detail-item').remove();
+    }
+  });
   window.print();
   setTimeout(function(){ div.remove(); }, 1000);
 }

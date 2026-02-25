@@ -55,7 +55,8 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .tag-월세{background:rgba(240,160,48,0.15);color:#f0a030;}
 .tag-토지{background:rgba(46,171,122,0.15);color:#2eab7a;}
 .tag-공장창고{background:rgba(224,104,48,0.15);color:#e06830;}
-.tag-상가{background:rgba(224,74,90,0.15);color:#e04a5a;}
+.tag-상가\/사무실{background:rgba(224,74,90,0.15);color:#e04a5a;}
+.tag-오피스텔{background:rgba(255,152,0,0.15);color:#ff9800;}
 .tag-아파트{background:rgba(58,126,246,0.15);color:#3a7ef6;}
 .tag-빌라{background:rgba(108,71,245,0.15);color:#6c47f5;}
 .tag-원투룸{background:rgba(32,170,200,0.15);color:#20aac8;}
@@ -174,8 +175,8 @@ th{position:relative;}
     </select>
     <select class="filter-select" id="filterType" onchange="renderTable()">
       <option value="">매물종류 전체</option>
-      <option>토지</option><option>공장창고</option><option>상가</option>
-      <option>아파트</option><option>빌라</option><option>원투룸</option>
+      <option>토지</option><option>공장창고</option><option>상가/사무실</option>
+      <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option>
     </select>
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
   </div>
@@ -227,8 +228,8 @@ th{position:relative;}
           <label>매물종류 *</label>
           <select class="form-select" id="f_type">
             <option value="">선택</option>
-            <option>토지</option><option>공장창고</option><option>상가</option>
-            <option>아파트</option><option>빌라</option><option>원투룸</option>
+            <option>토지</option><option>공장창고</option><option>상가/사무실</option>
+            <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option>
           </select>
         </div>
         <div class="form-group full">
@@ -375,10 +376,11 @@ th{position:relative;}
           <span style="font-size:12px;color:var(--text-muted);font-weight:600;min-width:30px">종류</span>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="토지" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#2eab7a"></span>토지</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="공장창고" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e06830"></span>공장창고</label>
-          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="상가" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e04a5a"></span>상가</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="상가/사무실" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e04a5a"></span>상가/사무실</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="아파트" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>아파트</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="빌라" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>빌라</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="원투룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#20aac8"></span>원투룸</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="오피스텔" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#ff9800"></span>오피스텔</label>
         </div>
       </div>
       <div id="mapAll"></div>
@@ -1046,7 +1048,7 @@ function togglePCView() {
 var _mapObj = null;
 var _mapMarkers = [];
 var _georaeColor = {'매매':'#3a7ef6','전세':'#6c47f5','월세':'#f0a030'};
-var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','원투룸':'#e91e8c'};
+var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가/사무실':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','원투룸':'#e91e8c','오피스텔':'#ff9800'};
 
 function getMarkerImage(p) {
   var color = _georaeColor[p.georae] || '#3a7ef6';

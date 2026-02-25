@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <!-- 카카오맵 -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services"></script>
 <style>
@@ -154,6 +155,41 @@ th{position:relative;}
 </head>
 <body>
 
+<!-- 로그인 화면 -->
+<div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);">
+  <div style="background:#fff;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.1);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-family:'Nanum Gothic',sans-serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;">새롬부동산</div>
+      <div style="font-size:13px;color:var(--text-muted);">매물관리시스템</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:var(--text-muted);font-weight:500;">이메일</label>
+      <input id="loginEmail" type="email" class="form-input" placeholder="이메일 주소" style="margin-top:4px;width:100%" onkeydown="if(event.key==='Enter')document.getElementById('loginPw').focus()">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;color:var(--text-muted);font-weight:500;">비밀번호</label>
+      <input id="loginPw" type="password" class="form-input" placeholder="비밀번호" style="margin-top:4px;width:100%" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;padding:12px;">로그인</button>
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0;">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:12px;color:var(--text-muted)">또는</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button onclick="doGoogleLogin()" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;">
+      Google 계정으로 로그인
+    </button>
+    <div id="loginErr" style="margin-top:12px;font-size:12px;color:var(--danger);text-align:center;"></div>
+    <div style="margin-top:16px;text-align:center;">
+      <span style="font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;" onclick="doResetPw()">비밀번호 찾기</span>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 화면 -->
+<div id="mainScreen" style="display:none">
+
 <header>
   <div class="logo" onclick="location.reload()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
@@ -163,6 +199,7 @@ th{position:relative;}
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
     <button class="btn btn-outline" onclick="downloadExcel()">📥 엑셀 다운로드</button>
     <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
+    <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
   </div>
 </header>
 
@@ -392,7 +429,7 @@ th{position:relative;}
 
 <script>
 // ── 전역 변수 ──────────────────────────────
-var db, storage;
+var db, storage, auth;
 var properties = [];
 var editingId = null;
 var currentPhotos = [];
@@ -412,6 +449,54 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 db = firebase.firestore();
 storage = firebase.storage();
+auth = firebase.auth();
+
+// ── 로그인 상태 감지 ──────────────────────
+auth.onAuthStateChanged(function(user) {
+  if(user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
+    load();
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainScreen').style.display = 'none';
+  }
+});
+
+function doGoogleLogin() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(e) {
+    document.getElementById('loginErr').textContent = '구글 로그인에 실패했습니다.';
+  });
+}
+
+function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var pw = document.getElementById('loginPw').value;
+  var err = document.getElementById('loginErr');
+  err.textContent = '';
+  if(!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
+  auth.signInWithEmailAndPassword(email, pw)
+    .catch(function(e) {
+      err.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+    });
+}
+
+function doLogout() {
+  if(confirm('로그아웃 하시겠습니까?')) auth.signOut();
+}
+
+function doResetPw() {
+  var email = document.getElementById('loginEmail').value.trim();
+  if(!email) { document.getElementById('loginErr').textContent = '이메일을 먼저 입력해주세요.'; return; }
+  auth.sendPasswordResetEmail(email).then(function() {
+    document.getElementById('loginErr').style.color = 'var(--accent)';
+    document.getElementById('loginErr').textContent = '비밀번호 재설정 이메일을 보냈어요.';
+  }).catch(function() {
+    document.getElementById('loginErr').style.color = 'var(--danger)';
+    document.getElementById('loginErr').textContent = '이메일 주소를 확인해주세요.';
+  });
+}
 
 // ── Firebase CRUD ─────────────────────────
 function load() {
@@ -1209,5 +1294,6 @@ function closeMapAll() {
 showLoading('데이터 불러오는 중...');
 load();
 </script>
+</div><!-- /mainScreen -->
 </body>
 </html>

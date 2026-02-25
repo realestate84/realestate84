@@ -123,6 +123,8 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:var(--text);margin-bottom:2px;}
 .map-marker-info .mi-price{color:var(--danger);font-weight:600;}
+/* 지도 위 상세보기 모달 */
+#detailModal{z-index:400;}
 </style>
 </head>
 <body>
@@ -744,6 +746,10 @@ function deleteProperty(id){
 }
 
 // ── 이벤트 ────────────────────────────────
+function openDetailOverMap(id) {
+  openDetail(id);
+}
+
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
 
 // ── textarea 높이 기억 ────────────────────
@@ -883,6 +889,9 @@ function openMapAll() {
             '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
             (p.price?'<div class="mi-price">💰 '+p.price+'</div>':'')+
             (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
+            '<div style="margin-top:8px;text-align:center">'+
+            '<button onclick="openDetailOverMap(\''+p.id+'\')" style="background:linear-gradient(135deg,#3a7ef6,#6c47f5);color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">▶ 상세보기</button>'+
+            '</div>'+
             '</div>';
           infowindow.setContent(content);
           infowindow.open(map, marker);

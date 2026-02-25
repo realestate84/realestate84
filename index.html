@@ -133,6 +133,13 @@ th{position:relative;}
 .map-chk-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--text);user-select:none;}
 .map-chk-label input{width:14px;height:14px;cursor:pointer;}
 .map-chk-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+@media print {
+  body * { visibility: hidden !important; }
+  #printArea, #printArea * { visibility: visible !important; }
+  #printArea { position: fixed; inset: 0; background: #fff; padding: 30px; z-index: 9999; }
+  #printArea .detail-section-title { color: #000 !important; }
+  #printArea .val { color: #000 !important; }
+}
 </style>
 </head>
 <body>
@@ -305,6 +312,7 @@ th{position:relative;}
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeDetailModal()">닫기</button>
+      <button class="btn btn-outline" onclick="printDetail()">🖨 인쇄</button>
       <button class="btn btn-primary" id="detailEditBtn">수정</button>
     </div>
   </div>
@@ -758,6 +766,27 @@ function openDetail(id){
     setTimeout(function(){ tryMap(0); }, 500);
   }
 }
+function printDetail() {
+  var body = document.getElementById('detailBody').innerHTML;
+  var title = document.getElementById('detailTitle').innerHTML;
+  var old = document.getElementById('printArea');
+  if(old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'printArea';
+  div.innerHTML =
+    '<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #333;padding-bottom:12px">'+
+    '<div style="font-size:20px;font-weight:700;font-family:\'Nanum Gothic\',sans-serif;margin-bottom:6px">새롬부동산</div>'+
+    '<div style="font-size:14px;color:#555">매물 상세 정보</div>'+
+    '</div>'+
+    '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+
+    body;
+  // 사진 섹션만 제거
+  document.body.appendChild(div);
+  div.querySelectorAll('.detail-photo-grid').forEach(function(el){ el.parentElement.remove(); });
+  window.print();
+  setTimeout(function(){ div.remove(); }, 1000);
+}
+
 function closeDetailModal(){ document.getElementById('detailModal').classList.remove('active'); }
 
 // ── 삭제 ──────────────────────────────────

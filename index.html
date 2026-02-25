@@ -342,6 +342,14 @@ th{position:relative;}
           <input type="file" id="f_photos" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
           <div class="photo-preview-grid" id="photoPreviewGrid"></div>
         </div>
+        <div class="form-group full">
+          <label>문서 (PDF)</label>
+          <div id="formDocSection">
+            <div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+              📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -751,6 +759,9 @@ function openAddModal(){
   editingId=null; currentPhotos=[];
   document.getElementById('formModalTitle').textContent='매물 등록';
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
+  // 문서 섹션 - 신규등록은 안내문구
+  document.getElementById('formDocSection').innerHTML=
+    '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
   document.getElementById('formModal').classList.add('active');
 }
 function openEditModal(id){
@@ -776,6 +787,22 @@ function openEditModal(id){
   document.getElementById('f_memo').value=p.memo||'';
   currentPhotos=p.photos?p.photos.slice():[];
   renderPhotoPreview(); restoreMemoHeight();
+  // 문서 섹션 - 수정 시 업로드 버튼 표시
+  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName){
+    var url = p.docs && p.docs[docName] ? p.docs[docName] : null;
+    return '<div class="doc-row">'+
+      '<div>'+
+        '<div class="doc-row-title">📄 '+docName+'</div>'+
+        '<div class="doc-status'+(url?' uploaded':'')+'">'+( url?'✅ 업로드됨':'미등록')+'</div>'+
+      '</div>'+
+      '<div class="doc-row-actions">'+
+        (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+        (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+id+'\',\''+docName+'\')">🗑</button>':'') +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+id+'\',\''+docName+'\')"></label>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('formDocSection').innerHTML = docHtml;
   closeDetailModal();
   document.getElementById('formModal').classList.add('active');
 }
@@ -870,7 +897,7 @@ function openDetail(id){
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
-    ['건축물대장','토지대장','토지등기부등본','건물등기부등본'].map(function(docName) {
+    ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName) {
       var key = docName;
       var url = p.docs && p.docs[key] ? p.docs[key] : null;
       return '<div class="doc-row">'+
@@ -981,7 +1008,8 @@ function uploadDoc(e, propId, docName) {
     return db.collection(COLLECTION).doc(propId).update(update).then(function() {
       var p = properties.find(function(x){ return x.id === propId; });
       if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
-      openDetail(propId);
+      if(editingId === propId) openEditModal(propId);
+      else openDetail(propId);
     });
   }).catch(function(err) {
     alert('업로드 오류: ' + err.message);
@@ -1000,7 +1028,8 @@ function deleteDoc(propId, docName) {
     update['docs.' + docName] = firebase.firestore.FieldValue.delete();
     db.collection(COLLECTION).doc(propId).update(update).then(function() {
       if(p && p.docs) delete p.docs[docName];
-      openDetail(propId);
+      if(editingId === propId) openEditModal(propId);
+      else openDetail(propId);
     }).catch(function(err){ alert('삭제 오류: ' + err.message); });
   };
 

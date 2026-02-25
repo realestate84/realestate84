@@ -882,9 +882,12 @@ function openMapAll() {
     var bounds = new kakao.maps.LatLngBounds();
     var successCount = 0;
 
-    // 지도 클릭시 오버레이 닫기
+    // 지도 빈 곳 클릭시만 오버레이 닫기 (타이머로 구분)
+    window._mapClickTimer = null;
     kakao.maps.event.addListener(map, 'click', function() {
-      if(window._mapOverlay) { window._mapOverlay.setMap(null); window._mapOverlay = null; }
+      window._mapClickTimer = setTimeout(function() {
+        if(window._mapOverlay) { window._mapOverlay.setMap(null); window._mapOverlay = null; }
+      }, 200);
     });
 
     properties.forEach(function(p) {
@@ -912,7 +915,8 @@ function openMapAll() {
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
               '<div style="margin-top:8px;text-align:center;font-size:12px;color:var(--accent);font-weight:600;">▶ 클릭하면 상세보기</div>';
 
-            content.onclick = function() {
+            content.onclick = function(e) {
+              if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
               openDetail(p.id);
             };
 

@@ -582,6 +582,11 @@ function formatPhone(input) {
   else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
 }
 
+function linkifyMemo(text) {
+  var escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>');
+}
+
 function copyAddress(addr) {
   navigator.clipboard.writeText(addr).then(function() {
     var el = event.currentTarget;
@@ -772,7 +777,7 @@ function openDetail(id){
       '<div class="detail-item"><label>소유자명</label><div class="val">'+(p.ownerName||'-')+'</div></div>'+
       '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
     '</div></div>'+
-    (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+p.memo+'</div></div>':'')+
+    (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
     ['건축물대장','토지대장','토지등기부등본','건물등기부등본'].map(function(docName) {

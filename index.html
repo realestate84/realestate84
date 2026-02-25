@@ -134,7 +134,7 @@ th{position:relative;}
 <body>
 
 <header>
-  <div class="logo">새롬부동산 매물관리시스템</div>
+  <div class="logo" onclick="location.reload()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
@@ -168,7 +168,7 @@ th{position:relative;}
           <th>사진</th>
           <th onclick="sortTable('georae')" style="cursor:pointer">거래 <span id="sort_georae"></span></th>
           <th onclick="sortTable('type')" style="cursor:pointer">종류 <span id="sort_type"></span></th>
-          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:200px" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
+          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:400px" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
           <th onclick="sortTable('price')" style="cursor:pointer">가격 <span id="sort_price"></span></th>
           <th onclick="sortTable('landArea')" style="cursor:pointer">토지면적 <span id="sort_landArea"></span></th>
           <th onclick="sortTable('totalArea')" style="cursor:pointer">연면적 <span id="sort_totalArea"></span></th>

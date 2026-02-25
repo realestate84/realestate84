@@ -743,7 +743,7 @@ function openDetail(id){
       '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">토지 / 면적 정보</div><div class="detail-grid">'+
+    '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>연면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
@@ -833,7 +833,7 @@ function printDetail() {
   document.body.appendChild(div);
   div.querySelectorAll('.detail-photo-grid').forEach(function(el){ el.parentElement.remove(); });
   div.querySelectorAll('.detail-section-title').forEach(function(el){
-    if(el.textContent.indexOf('소유자') !== -1 || el.textContent.indexOf('문서') !== -1) el.closest('.detail-section').remove();
+    if(el.textContent.indexOf('소유자') !== -1 || el.textContent.indexOf('문서') !== -1 || el.textContent.indexOf('메모') !== -1) el.closest('.detail-section').remove();
   });
   div.querySelectorAll('.detail-item label').forEach(function(el){
     if(el.textContent.indexOf('등록일시') !== -1 || el.textContent.indexOf('최종수정') !== -1) {

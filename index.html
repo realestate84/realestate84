@@ -772,6 +772,7 @@ function openDetail(id){
         '<div class="doc-row-actions">'+
           (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
           (url?'<a class="btn btn-outline btn-sm" href="'+url+'" download="'+docName+'.pdf" target="_blank">⬇</a>':'') +
+          (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+p.id+'\',\''+key+'\')">🗑</button>':'') +
           '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+p.id+'\',\''+key+'\')"></label>'+
         '</div>'+
       '</div>';
@@ -881,6 +882,29 @@ function uploadDoc(e, propId, docName) {
     alert('업로드 오류: ' + err.message);
     label.childNodes[0].textContent = origText;
   });
+}
+
+// ── 문서 삭제 ────────────────────────────
+function deleteDoc(propId, docName) {
+  if(!confirm('「'+docName+'」을 삭제하시겠습니까?')) return;
+  var p = properties.find(function(x){ return x.id === propId; });
+  var url = p && p.docs ? p.docs[docName] : null;
+
+  var doDelete = function() {
+    var update = {};
+    update['docs.' + docName] = firebase.firestore.FieldValue.delete();
+    db.collection(COLLECTION).doc(propId).update(update).then(function() {
+      if(p && p.docs) delete p.docs[docName];
+      openDetail(propId);
+    }).catch(function(err){ alert('삭제 오류: ' + err.message); });
+  };
+
+  // Storage 파일도 삭제
+  if(url) {
+    try {
+      storage.refFromURL(url).delete().then(doDelete).catch(doDelete);
+    } catch(e) { doDelete(); }
+  } else { doDelete(); }
 }
 
 // ── PDF 뷰어 ──────────────────────────────

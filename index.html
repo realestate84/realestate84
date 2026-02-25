@@ -133,6 +133,12 @@ th{position:relative;}
 .map-chk-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--text);user-select:none;}
 .map-chk-label input{width:14px;height:14px;cursor:pointer;}
 .map-chk-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+/* 문서 섹션 */
+.doc-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;}
+.doc-row-title{font-size:13px;font-weight:500;color:var(--text);}
+.doc-row-actions{display:flex;gap:6px;align-items:center;}
+.doc-status{font-size:11px;color:var(--text-muted);}
+.doc-status.uploaded{color:var(--success);}
 @media print {
   body * { visibility: hidden !important; }
   #printArea, #printArea * { visibility: visible !important; }
@@ -330,7 +336,24 @@ th{position:relative;}
   <div class="lightbox-counter" id="lightboxCounter"></div>
 </div>
 
-<!-- 전체 지도 모달 -->
+<!-- PDF 뷰어 모달 -->
+<div class="modal-overlay" id="pdfModal" style="z-index:600">
+  <div class="modal" style="max-width:860px;height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div class="modal-title" id="pdfModalTitle">문서 보기</div>
+      <button class="modal-close" onclick="closePdfModal()">×</button>
+    </div>
+    <div style="flex:1;padding:12px;overflow:hidden;">
+      <iframe id="pdfFrame" style="width:100%;height:100%;border:none;border-radius:8px;"></iframe>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePdfModal()">닫기</button>
+      <a id="pdfDownloadBtn" class="btn btn-primary" download target="_blank">⬇ 다운로드</a>
+    </div>
+  </div>
+</div>
+
+
 <div id="mapAllModal" onclick="if(event.target===this)closeMapAll()">
   <div class="modal">
     <div class="modal-header">
@@ -736,6 +759,24 @@ function openDetail(id){
       '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
     '</div></div>'+
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+p.memo+'</div></div>':'')+
+    // 문서 섹션
+    '<div class="detail-section"><div class="detail-section-title">문서</div>'+
+    ['건축물대장','토지대장','등기부등본'].map(function(docName) {
+      var key = docName;
+      var url = p.docs && p.docs[key] ? p.docs[key] : null;
+      return '<div class="doc-row">'+
+        '<div>'+
+          '<div class="doc-row-title">📄 '+docName+'</div>'+
+          '<div class="doc-status'+(url?' uploaded':'')+'">'+( url ? '✅ 업로드됨' : '미등록')+'</div>'+
+        '</div>'+
+        '<div class="doc-row-actions">'+
+          (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+          (url?'<a class="btn btn-outline btn-sm" href="'+url+'" download="'+docName+'.pdf" target="_blank">⬇</a>':'') +
+          '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+p.id+'\',\''+key+'\')"></label>'+
+        '</div>'+
+      '</div>';
+    }).join('')+
+    '</div>'+
     (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div><div id="kakaoMap"></div></div>':'')+
     (p.photos&&p.photos.length>0?
       '<div class="detail-section"><div class="detail-section-title">사진 ('+p.photos.length+'장)</div><div class="detail-photo-grid">'+
@@ -816,6 +857,50 @@ function deleteProperty(id){
 }
 
 // ── 이벤트 ────────────────────────────────
+// ── 문서 업로드 ───────────────────────────
+function uploadDoc(e, propId, docName) {
+  var file = e.target.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf') { alert('PDF 파일만 업로드 가능합니다.'); return; }
+  var label = e.target.parentElement;
+  var origText = label.childNodes[0].textContent;
+  label.childNodes[0].textContent = '업로드 중...';
+
+  var ref = storage.ref('properties/' + propId + '/docs/' + docName + '.pdf');
+  ref.put(file).then(function() {
+    return ref.getDownloadURL();
+  }).then(function(url) {
+    var update = {};
+    update['docs.' + docName] = url;
+    return db.collection(COLLECTION).doc(propId).update(update).then(function() {
+      var p = properties.find(function(x){ return x.id === propId; });
+      if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
+      openDetail(propId);
+    });
+  }).catch(function(err) {
+    alert('업로드 오류: ' + err.message);
+    label.childNodes[0].textContent = origText;
+  });
+}
+
+// ── PDF 뷰어 ──────────────────────────────
+function openPdf(url, title) {
+  document.getElementById('pdfModalTitle').textContent = '📄 ' + title;
+  document.getElementById('pdfFrame').src = url;
+  document.getElementById('pdfDownloadBtn').href = url;
+  document.getElementById('pdfDownloadBtn').download = title + '.pdf';
+  document.getElementById('pdfModal').classList.add('active');
+}
+
+function closePdfModal() {
+  document.getElementById('pdfModal').classList.remove('active');
+  document.getElementById('pdfFrame').src = '';
+}
+
+document.getElementById('pdfModal').addEventListener('click', function(e) {
+  if(e.target === this) closePdfModal();
+});
+
 // 전체지도 상세보기 버튼 전역 클릭 핸들러
 document.addEventListener('click', function(e) {
   if(e.target && e.target.classList.contains('map-detail-btn')) {

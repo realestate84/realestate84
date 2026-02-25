@@ -114,6 +114,10 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 @media(max-width:768px){.container{padding:16px;}.header-actions{gap:6px;}.form-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}}
+/* 컬럼 리사이즈 */
+th{position:relative;}
+.col-resizer{position:absolute;right:0;top:0;height:100%;width:6px;cursor:col-resize;user-select:none;z-index:1;}
+.col-resizer:hover,.col-resizer.dragging{background:var(--accent);opacity:0.5;}
 /* 전체지도 */
 #mapAllModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center;padding:20px;}
 #mapAllModal.active{display:flex;}
@@ -164,7 +168,7 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
           <th>사진</th>
           <th onclick="sortTable('georae')" style="cursor:pointer">거래 <span id="sort_georae"></span></th>
           <th onclick="sortTable('type')" style="cursor:pointer">종류 <span id="sort_type"></span></th>
-          <th onclick="sortTable('address')" style="cursor:pointer">주소 <span id="sort_address"></span></th>
+          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:200px" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
           <th onclick="sortTable('price')" style="cursor:pointer">가격 <span id="sort_price"></span></th>
           <th onclick="sortTable('landArea')" style="cursor:pointer">토지면적 <span id="sort_landArea"></span></th>
           <th onclick="sortTable('totalArea')" style="cursor:pointer">연면적 <span id="sort_totalArea"></span></th>
@@ -926,6 +930,52 @@ function openMapAll() {
 function closeMapAll() {
   document.getElementById('mapAllModal').classList.remove('active');
 }
+
+// ── 주소 컬럼 리사이즈 ───────────────────
+(function(){
+  var th, resizer, startX, startW;
+  resizer = document.getElementById('addressResizer');
+  th = document.getElementById('thAddress');
+  resizer.addEventListener('mousedown', function(e) {
+    startX = e.pageX;
+    startW = th.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    function onMove(e) {
+      var w = Math.max(80, startW + (e.pageX - startX));
+      th.style.width = w + 'px';
+      th.style.minWidth = w + 'px';
+    }
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+  // 터치 지원
+  resizer.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].pageX;
+    startW = th.offsetWidth;
+    function onMove(e) {
+      var w = Math.max(80, startW + (e.touches[0].pageX - startX));
+      th.style.width = w + 'px';
+      th.style.minWidth = w + 'px';
+    }
+    function onEnd() {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+    document.addEventListener('touchmove', onMove);
+    document.addEventListener('touchend', onEnd);
+    e.preventDefault();
+  });
+})();
 
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');

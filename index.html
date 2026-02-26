@@ -45,9 +45,9 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;overflow-x:auto;}
 table{width:100%;min-width:1400px;border-collapse:collapse;font-size:13px;}
 thead{background:var(--surface2);}
-th{padding:12px 14px;text-align:left;color:var(--text-muted);font-weight:500;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border);}
+th{padding:10px 8px;text-align:left;color:var(--text-muted);font-weight:500;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border);}
 th[onclick]:hover{color:var(--accent);background:rgba(58,126,246,0.05);}
-td{padding:11px 14px;border-bottom:1px solid rgba(221,226,240,0.6);vertical-align:middle;white-space:nowrap;}
+td{padding:9px 8px;border-bottom:1px solid rgba(221,226,240,0.6);vertical-align:middle;white-space:nowrap;}
 tr:last-child td{border-bottom:none;}
 tr:hover td{background:rgba(58,126,246,0.03);}
 .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
@@ -229,7 +229,7 @@ th{position:relative;}
           <th>사진</th>
           <th onclick="sortTable('georae')" style="cursor:pointer">거래 <span id="sort_georae"></span></th>
           <th onclick="sortTable('type')" style="cursor:pointer">종류 <span id="sort_type"></span></th>
-          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:400px" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
+          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:320px" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
           <th onclick="sortTable('price')" style="cursor:pointer">가격 <span id="sort_price"></span></th>
           <th onclick="sortTable('landArea')" style="cursor:pointer">토지면적 <span id="sort_landArea"></span></th>
           <th onclick="sortTable('totalArea')" style="cursor:pointer">연면적 <span id="sort_totalArea"></span></th>

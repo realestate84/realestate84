@@ -985,6 +985,9 @@ function printDetail() {
     '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
     '<style>'+
     'body{font-family:"Noto Sans KR",sans-serif;padding:20px;color:#1a1f36;font-size:12px;}'+
+    '.print-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a1f36;padding-bottom:8px;margin-bottom:16px;}'+
+    '.print-header .company{font-size:16px;font-weight:700;}'+
+    '.print-header .phone{font-size:13px;color:#3a7ef6;font-weight:600;}'+
     '.detail-section{margin-bottom:12px;}'+
     '.detail-section-title{font-size:12px;font-weight:700;color:#3a7ef6;border-bottom:1px solid #dde2f0;padding-bottom:4px;margin-bottom:8px;}'+
     '.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;}'+
@@ -998,6 +1001,10 @@ function printDetail() {
     '#kakaoMap{height:220px !important;width:100% !important;}'+
     '@page{margin:8mm;size:A4;}'+
     '</style></head><body>'+
+    '<div class="print-header">'+
+    '<div class="company">새롬부동산공인중개사사무소</div>'+
+    '<div class="phone">☎ 032-563-3001</div>'+
+    '</div>'+
     div.innerHTML+
     '<script>window.onload=function(){window.print();window.close();}<\/script>'+
     '</body></html>'

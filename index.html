@@ -151,6 +151,7 @@ th{position:relative;}
   #printArea .val { color: #000 !important; }
   #printArea .detail-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
   #printArea .detail-item.full { grid-column: 1 / -1 !important; }
+  #printArea .no-print { display: none !important; }
   @page { margin: 10mm; size: A4; }
 }
 </style>
@@ -327,6 +328,10 @@ th{position:relative;}
         <div class="form-group full">
           <label>특이사항 / 메모</label>
           <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></label>
+          <textarea class="form-textarea" id="f_note" placeholder="내부 참고사항, 인쇄되지 않는 메모..."></textarea>
         </div>
         <div class="form-group full">
           <label>사진 (여러 장 가능)</label>
@@ -785,6 +790,7 @@ function openEditModal(id){
   document.getElementById('f_ownerName').value=p.ownerName||'';
   document.getElementById('f_ownerPhone').value=p.ownerPhone||'';
   document.getElementById('f_memo').value=p.memo||'';
+  document.getElementById('f_note').value=p.note||'';
   currentPhotos=p.photos?p.photos.slice():[];
   renderPhotoPreview(); restoreMemoHeight();
   // 문서 섹션 - 수정 시 업로드 버튼 표시
@@ -808,7 +814,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -837,6 +843,7 @@ function saveProperty(){
     ownerName:document.getElementById('f_ownerName').value.trim(),
     ownerPhone:document.getElementById('f_ownerPhone').value.trim(),
     memo:document.getElementById('f_memo').value.trim(),
+    note:document.getElementById('f_note').value.trim(),
     updatedDate:dateStr, updatedTime:timeStr,
   };
   var docId=editingId||genId();
@@ -875,7 +882,7 @@ function openDetail(id){
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
-      '<div class="detail-item"><label>가격</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
+      '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
       '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
@@ -895,6 +902,7 @@ function openDetail(id){
       '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
     '</div></div>'+
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
+    (p.note?'<div class="detail-section no-print"><div class="detail-section-title">참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.note)+'</div></div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
     ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName) {

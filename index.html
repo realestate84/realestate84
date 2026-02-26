@@ -393,20 +393,15 @@ th{position:relative;}
 </div>
 
 <!-- PDF 뷰어 모달 -->
-<div class="modal-overlay" id="pdfModal" style="z-index:600">
-  <div class="modal" style="max-width:1100px;width:98vw;height:95vh;display:flex;flex-direction:column;">
-    <div class="modal-header">
-      <div class="modal-title" id="pdfModalTitle">문서 보기</div>
-      <button class="modal-close" onclick="closePdfModal()">×</button>
-    </div>
-    <div style="flex:1;padding:12px;overflow:hidden;">
-      <iframe id="pdfFrame" style="width:100%;height:100%;border:none;border-radius:8px;"></iframe>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closePdfModal()">닫기</button>
-      <a id="pdfDownloadBtn" class="btn btn-primary" download target="_blank">⬇ 다운로드</a>
+<div id="pdfModal" style="display:none;position:fixed;inset:0;z-index:600;background:#000;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#1a1f36;">
+    <div id="pdfModalTitle" style="color:#fff;font-size:15px;font-weight:600;font-family:'Noto Sans KR',sans-serif;"></div>
+    <div style="display:flex;gap:8px;">
+      <a id="pdfDownloadBtn" class="btn btn-outline" download target="_blank" style="color:#fff;border-color:rgba(255,255,255,0.3);">⬇ 다운로드</a>
+      <button onclick="closePdfModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0 6px;">×</button>
     </div>
   </div>
+  <iframe id="pdfFrame" style="flex:1;width:100%;border:none;"></iframe>
 </div>
 
 
@@ -962,26 +957,45 @@ function openDetail(id){
 function printDetail() {
   var body = document.getElementById('detailBody').innerHTML;
   var title = document.getElementById('detailTitle').innerHTML;
-  var old = document.getElementById('printArea');
-  if(old) old.remove();
+
+  // 임시 div로 필터링
   var div = document.createElement('div');
-  div.id = 'printArea';
-  div.innerHTML =
-    '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+
-    body;
-  // 사진 섹션, 소유자 정보, 등록일시, 최종수정 제외
-  document.body.appendChild(div);
+  div.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+body;
   div.querySelectorAll('.detail-photo-grid').forEach(function(el){ el.parentElement.remove(); });
   div.querySelectorAll('.detail-section-title').forEach(function(el){
-    if(el.textContent.indexOf('소유자') !== -1 || el.textContent.indexOf('문서') !== -1 || el.textContent.indexOf('메모') !== -1) el.closest('.detail-section').remove();
+    var t = el.textContent;
+    if(t.indexOf('소유자') !== -1 || t.indexOf('문서') !== -1) el.closest('.detail-section').remove();
   });
+  div.querySelectorAll('.no-print').forEach(function(el){ el.remove(); });
   div.querySelectorAll('.detail-item label').forEach(function(el){
     if(el.textContent.indexOf('등록일시') !== -1 || el.textContent.indexOf('최종수정') !== -1) {
       el.closest('.detail-item').remove();
     }
   });
-  window.print();
-  setTimeout(function(){ div.remove(); }, 1000);
+
+  // 새 창에서 인쇄
+  var win = window.open('', '_blank', 'width=800,height=900');
+  win.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
+    '<style>'+
+    'body{font-family:"Noto Sans KR",sans-serif;padding:30px;color:#1a1f36;font-size:13px;}'+
+    '.detail-section{margin-bottom:20px;}'+
+    '.detail-section-title{font-size:13px;font-weight:700;color:#3a7ef6;border-bottom:1px solid #dde2f0;padding-bottom:6px;margin-bottom:12px;}'+
+    '.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}'+
+    '.detail-item{padding:6px 0;}'+
+    '.detail-item.full{grid-column:1/-1;}'+
+    '.detail-item label{font-size:11px;color:#7a85a8;display:block;margin-bottom:2px;}'+
+    '.val{font-size:13px;color:#1a1f36;}'+
+    'a{color:#3a7ef6;}'+
+    'pre, [style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:13px;line-height:1.8;}'+
+    '@page{margin:10mm;size:A4;}'+
+    '</style></head><body>'+
+    div.innerHTML+
+    '<script>window.onload=function(){window.print();window.close();}<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
 }
 
 function closeDetailModal(){ document.getElementById('detailModal').classList.remove('active'); }
@@ -1055,16 +1069,17 @@ function openPdf(url, title) {
   document.getElementById('pdfFrame').src = url;
   document.getElementById('pdfDownloadBtn').href = url;
   document.getElementById('pdfDownloadBtn').download = title + '.pdf';
-  document.getElementById('pdfModal').classList.add('active');
+  var modal = document.getElementById('pdfModal');
+  modal.style.display = 'flex';
 }
 
 function closePdfModal() {
-  document.getElementById('pdfModal').classList.remove('active');
+  document.getElementById('pdfModal').style.display = 'none';
   document.getElementById('pdfFrame').src = '';
 }
 
-document.getElementById('pdfModal').addEventListener('click', function(e) {
-  if(e.target === this) closePdfModal();
+document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape' && document.getElementById('pdfModal').style.display !== 'none') closePdfModal();
 });
 
 // 전체지도 상세보기 버튼 전역 클릭 핸들러

@@ -679,6 +679,33 @@ function formatPhone(input) {
   else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
 }
 
+// ── 상세보기에서 직접 사진 업로드 ──────────
+function uploadDetailPhotos(e, propId) {
+  var files = Array.from(e.target.files);
+  if(!files.length) return;
+  var label = e.target.parentElement;
+  label.textContent = '업로드 중...';
+
+  var p = properties.find(function(x){ return x.id === propId; });
+  var existingPhotos = (p && p.photos) ? p.photos.slice() : [];
+
+  var uploads = files.map(function(file) {
+    var ref = storage.ref('properties/' + propId + '/photos/' + Date.now() + '_' + file.name);
+    return ref.put(file).then(function(){ return ref.getDownloadURL(); });
+  });
+
+  Promise.all(uploads).then(function(urls) {
+    var newPhotos = existingPhotos.concat(urls);
+    return db.collection(COLLECTION).doc(propId).update({ photos: newPhotos }).then(function() {
+      if(p) p.photos = newPhotos;
+      openDetail(propId);
+    });
+  }).catch(function(err) {
+    alert('사진 업로드 오류: ' + err.message);
+    openDetail(propId);
+  });
+}
+
 function linkifyMemo(text) {
   var escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   return escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>');
@@ -917,14 +944,23 @@ function openDetail(id){
     }).join('')+
     '</div>'+
     (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div><div id="kakaoMap"></div></div>':'')+
-    (p.photos&&p.photos.length>0?
-      '<div class="detail-section"><div class="detail-section-title">사진 ('+p.photos.length+'장)</div><div class="detail-photo-grid">'+
-      p.photos.map(function(src,i){
-        return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
-          '<img src="'+src+'" onclick="openLightbox(window._dp,'+i+')" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">'+
-          '<a href="'+src+'" download="사진_'+(i+1)+'.jpg" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>'+
-        '</div>';
-      }).join('')+'</div></div>':'');
+    '<div class="detail-section">'+
+      '<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
+        '<span>사진 '+(p.photos&&p.photos.length>0?'('+p.photos.length+'장)':'')+'</span>'+
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0;font-size:12px;">📷 사진 추가'+
+          '<input type="file" accept="image/*" multiple style="display:none" onchange="uploadDetailPhotos(event,\''+id+'\')">'+
+        '</label>'+
+      '</div>'+
+      (p.photos&&p.photos.length>0?
+        '<div class="detail-photo-grid">'+
+        p.photos.map(function(src,i){
+          return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+            '<img src="'+src+'" onclick="openLightbox(window._dp,'+i+')" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">'+
+            '<a href="'+src+'" download="사진_'+(i+1)+'.jpg" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>'+
+          '</div>';
+        }).join('')+'</div>':
+        '<div style="font-size:12px;color:var(--text-muted);padding:10px 0;">등록된 사진이 없어요.</div>')+
+    '</div>';
 
   window._dp=p.photos||[];
   document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };

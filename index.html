@@ -513,16 +513,15 @@ function doResetPw() {
 // ── Firebase CRUD ─────────────────────────
 function load() {
   showLoading();
-  db.collection(COLLECTION).orderBy('createdDate','desc').get()
-    .then(function(snap) {
-      properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-      renderTable();
-    })
-    .catch(function(e){
-      console.error(e);
-      properties = [];
-      renderTable();
-    });
+  // 실시간 리스너 - 다른 기기에서 변경시 자동 반영
+  db.collection(COLLECTION).orderBy('createdDate','desc').onSnapshot(function(snap) {
+    properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    renderTable();
+  }, function(e){
+    console.error(e);
+    properties = [];
+    renderTable();
+  });
 }
 
 function saveNew(data, callback) {

@@ -876,7 +876,7 @@ function openDetail(id){
 
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
-      '<div class="detail-item"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
+      '<div class="detail-item"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
       '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
       '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
@@ -992,6 +992,7 @@ function printDetail() {
     '.detail-item.full{grid-column:1/-1;}'+
     '.detail-item label{font-size:10px;color:#7a85a8;display:block;margin-bottom:1px;}'+
     '.val{font-size:12px;color:#1a1f36;}'+
+    '.copy-badge{display:none !important;}'+
     'a{color:#3a7ef6;}'+
     '[style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:12px;line-height:1.6;}'+
     '#kakaoMap{height:220px !important;width:100% !important;}'+

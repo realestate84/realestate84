@@ -1096,7 +1096,7 @@ function openEditModal(id){
   currentPhotos=p.photos?p.photos.slice():[];
   renderPhotoPreview(); restoreMemoHeight();
   // 문서 섹션 - 수정 시 업로드 버튼 표시
-  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName){
+  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName){
     var url = p.docs && p.docs[docName] ? p.docs[docName] : null;
     return '<div class="doc-row">'+
       '<div>'+
@@ -1104,9 +1104,9 @@ function openEditModal(id){
         '<div class="doc-status'+(url?' uploaded':'')+'">'+( url?'✅ 업로드됨':'미등록')+'</div>'+
       '</div>'+
       '<div class="doc-row-actions">'+
-        (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+        (url?'<button class="btn btn-outline btn-sm" onclick="openDoc(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
         (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+id+'\',\''+docName+'\')">🗑</button>':'') +
-        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+id+'\',\''+docName+'\')"></label>'+
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="'+(docName==='배치도'?'image/*,application/pdf':'application/pdf')+'" style="display:none" onchange="uploadDoc(event,\''+id+'\',\''+docName+'\')"></label>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -1208,7 +1208,7 @@ function openDetail(id){
     (p.naver?'<div class="detail-section no-print"><div class="detail-section-title">네이버 광고문구 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.naver)+'</div></div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
-    ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName) {
+    ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName) {
       var key = docName;
       var url = p.docs && p.docs[key] ? p.docs[key] : null;
       return '<div class="doc-row">'+
@@ -1217,10 +1217,10 @@ function openDetail(id){
           '<div class="doc-status'+(url?' uploaded':'')+'">'+( url ? '✅ 업로드됨' : '미등록')+'</div>'+
         '</div>'+
         '<div class="doc-row-actions">'+
-          (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+          (url?'<button class="btn btn-outline btn-sm" onclick="openDoc(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
           (url?'<a class="btn btn-outline btn-sm" href="'+url+'" download="'+docName+'.pdf" target="_blank">⬇</a>':'') +
           (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+p.id+'\',\''+key+'\')">🗑</button>':'') +
-          '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+p.id+'\',\''+key+'\')"></label>'+
+          '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="'+(docName==='배치도'?'image/*,application/pdf':'application/pdf')+'" style="display:none" onchange="uploadDoc(event,\''+p.id+'\',\''+key+'\')"></label>'+
         '</div>'+
       '</div>';
     }).join('')+
@@ -1347,7 +1347,7 @@ function deleteProperty(id){
 function refreshFormDocSection(propId) {
   var p = properties.find(function(x){ return x.id === propId; });
   if(!p) return;
-  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName){
+  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName){
     var url = p.docs && p.docs[docName] ? p.docs[docName] : null;
     return '<div class="doc-row">'+
       '<div>'+
@@ -1355,9 +1355,9 @@ function refreshFormDocSection(propId) {
         '<div class="doc-status'+(url?' uploaded':'')+'">'+( url?'✅ 업로드됨':'미등록')+'</div>'+
       '</div>'+
       '<div class="doc-row-actions">'+
-        (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+        (url?'<button class="btn btn-outline btn-sm" onclick="openDoc(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
         (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+propId+'\',\''+docName+'\')">🗑</button>':'') +
-        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+propId+'\',\''+docName+'\')"></label>'+
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="'+(docName==='배치도'?'image/*,application/pdf':'application/pdf')+'" style="display:none" onchange="uploadDoc(event,\''+propId+'\',\''+docName+'\')"></label>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -1369,7 +1369,8 @@ function refreshFormDocSection(propId) {
 function uploadDoc(e, propId, docName) {
   var file = e.target.files[0];
   if(!file) return;
-  if(file.type !== 'application/pdf') { alert('PDF 파일만 업로드 가능합니다.'); return; }
+  if(docName !== '배치도' && file.type !== 'application/pdf') { alert('PDF 파일만 업로드 가능합니다.'); return; }
+  if(docName === '배치도' && !file.type.match(/^(application\/pdf|image\/.+)$/)) { alert('PDF 또는 이미지 파일만 업로드 가능합니다.'); return; }
   var label = e.target.parentElement;
   var origText = label.childNodes[0].textContent;
   label.childNodes[0].textContent = '업로드 중...';
@@ -1417,6 +1418,15 @@ function deleteDoc(propId, docName) {
 }
 
 // ── PDF 뷰어 ──────────────────────────────
+function openDoc(url, title) {
+  // 이미지 확장자 또는 이미지 URL이면 이미지뷰어로
+  if(/\.(jpg|jpeg|png|gif|webp|bmp)/i.test(url) || url.includes('image')) {
+    openLightbox([url], 0);
+  } else {
+    openPdf(url, title);
+  }
+}
+
 function openPdf(url, title) {
   document.getElementById('pdfModalTitle').textContent = '📄 ' + title;
   document.getElementById('pdfFrame').src = url;

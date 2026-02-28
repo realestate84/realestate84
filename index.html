@@ -1061,6 +1061,28 @@ function deleteProperty(id){
 }
 
 // ── 이벤트 ────────────────────────────────
+// ── 수정모달 문서섹션만 새로고침 (폼 내용 유지) ──
+function refreshFormDocSection(propId) {
+  var p = properties.find(function(x){ return x.id === propId; });
+  if(!p) return;
+  var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획'].map(function(docName){
+    var url = p.docs && p.docs[docName] ? p.docs[docName] : null;
+    return '<div class="doc-row">'+
+      '<div>'+
+        '<div class="doc-row-title">📄 '+docName+'</div>'+
+        '<div class="doc-status'+(url?' uploaded':'')+'">'+( url?'✅ 업로드됨':'미등록')+'</div>'+
+      '</div>'+
+      '<div class="doc-row-actions">'+
+        (url?'<button class="btn btn-outline btn-sm" onclick="openPdf(\''+url+'\',\''+docName+'\')">👁 보기</button>':'') +
+        (url?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+propId+'\',\''+docName+'\')">🗑</button>':'') +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="application/pdf" style="display:none" onchange="uploadDoc(event,\''+propId+'\',\''+docName+'\')"></label>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  var sec = document.getElementById('formDocSection');
+  if(sec) sec.innerHTML = docHtml;
+}
+
 // ── 문서 업로드 ───────────────────────────
 function uploadDoc(e, propId, docName) {
   var file = e.target.files[0];
@@ -1079,7 +1101,7 @@ function uploadDoc(e, propId, docName) {
     return db.collection(COLLECTION).doc(propId).update(update).then(function() {
       var p = properties.find(function(x){ return x.id === propId; });
       if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
-      if(editingId === propId) openEditModal(propId);
+      if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
       else openDetail(propId);
     });
   }).catch(function(err) {
@@ -1099,7 +1121,7 @@ function deleteDoc(propId, docName) {
     update['docs.' + docName] = firebase.firestore.FieldValue.delete();
     db.collection(COLLECTION).doc(propId).update(update).then(function() {
       if(p && p.docs) delete p.docs[docName];
-      if(editingId === propId) openEditModal(propId);
+      if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
       else openDetail(propId);
     }).catch(function(err){ alert('삭제 오류: ' + err.message); });
   };

@@ -91,7 +91,7 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 /* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.active{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:modalIn 0.22s ease;-webkit-overflow-scrolling:touch;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:860px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:modalIn 0.22s ease;-webkit-overflow-scrolling:touch;}
 @keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(0.97)}to{opacity:1;transform:none}}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .modal-title{font-size:16px;font-weight:700;}
@@ -526,11 +526,11 @@ th{position:relative;}
     <div class="modal-header">
       <div class="modal-title" id="detailTitle"></div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
-        <button class="btn btn-outline" id="detailDepBtn" style="border-color:transparent;">⚫ 출발불가</button>
-        <button class="btn btn-primary" id="detailEditBtn">수정</button>
-        <button class="btn btn-outline" id="detailCopyBtn">📋 복사</button>
-        <button class="btn btn-outline" onclick="printDetail()">🖨 인쇄</button>
+        <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;font-size:11px;padding:5px 8px;">🟢 광고시작</button>
+        <button class="btn btn-outline" id="detailDepBtn" style="border-color:transparent;font-size:11px;padding:5px 8px;">⚫ 출발불가</button>
+        <button class="btn btn-primary" id="detailEditBtn" style="font-size:11px;padding:5px 10px;">수정</button>
+        <button class="btn btn-outline" id="detailCopyBtn" style="font-size:11px;padding:5px 10px;">📋 복사</button>
+        <button class="btn btn-outline" onclick="printDetail()" style="font-size:11px;padding:5px 10px;">🖨 인쇄</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
     </div>
@@ -1684,7 +1684,7 @@ function updateDepBtn(p) {
   var btn = document.getElementById('detailDepBtn');
   if(!btn) return;
   if(p.departure !== false) {
-    btn.textContent = '🔵 출발가능';
+    btn.textContent = '🔵 출발';
     btn.style.color = '#3a7ef6';
   } else {
     btn.textContent = '⚫ 출발불가';
@@ -1827,10 +1827,10 @@ function updateAdBtn(p) {
   if(isOn) {
     // 켜진 상태
     if(left === 1) {
-      btn.textContent = '⚠️ 만료 1일 전 (끄기)';
+      btn.textContent = '⚠️ 1일 전 (끄기)';
       btn.style.color = '#ef4444';
     } else {
-      btn.textContent = '🟢 광고중 ' + left + '일 남음 (끄기)';
+      btn.textContent = '🟢 ' + left + '일 (끄기)';
       btn.style.color = '#22c55e';
     }
     btn.style.background = 'rgba(34,197,94,0.08)';
@@ -1838,14 +1838,14 @@ function updateAdBtn(p) {
     btn.dataset.state = 'on';
   } else if(p.adEnd) {
     // 수동 종료
-    btn.textContent = '⚫ 광고종료 (다시시작)';
+    btn.textContent = '⚫ 광고종료 (재시작)';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'ended';
   } else if(p.adStart && left <= 0) {
     // 30일 만료 자동 종료
-    btn.textContent = '⚫ 광고만료 (다시시작)';
+    btn.textContent = '⚫ 광고만료 (재시작)';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';

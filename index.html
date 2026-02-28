@@ -1268,10 +1268,10 @@ function openDetail(id){
       '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
       '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>'+
       '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>'+
-      '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric||'-')+'</div></div>'+
+      '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric ? p.electric+'kw' : '-')+'</div></div>'+
       '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>'+
       '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>'+
-      '<div class="detail-item"><label>층고</label><div class="val">'+(p.height||'-')+'</div></div>'+
+      '<div class="detail-item"><label>층고</label><div class="val">'+(p.height ? p.height+'m' : '-')+'</div></div>'+
       '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+

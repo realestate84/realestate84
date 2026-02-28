@@ -1293,10 +1293,14 @@ function openDetail(id){
     '</div>'+
     '<div id="historyList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:180px;overflow-y:auto;">'+
       (p.history && p.history.length > 0 ?
-        p.history.slice().reverse().map(function(h){
-          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
+        p.history.slice().reverse().map(function(h, ri){
+          var i = p.history.length - 1 - ri;
+          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+            '<div>'+
             '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
-            '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>';
+            '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>'+
+            '<button onclick="deleteHistory(\''+id+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0;padding:0 4px;" title="삭제">✕</button>'+
+            '</div>';
         }).join('') :
         '<div style="padding:8px 0;color:var(--text-muted);">등록된 히스토리가 없어요.</div>'
       )+
@@ -1616,6 +1620,24 @@ function updateDepBtn(p) {
   btn.style.borderColor = 'transparent';
 }
 
+function renderHistoryList(id, history) {
+  var list = document.getElementById('historyList');
+  if(!list) return;
+  if(history.length === 0) {
+    list.innerHTML = '<div style="padding:8px 0;color:var(--text-muted);">등록된 히스토리가 없어요.</div>';
+    return;
+  }
+  list.innerHTML = history.slice().reverse().map(function(h, ri){
+    var i = history.length - 1 - ri;
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+      '<div>'+
+      '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
+      '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>'+
+      '<button onclick="deleteHistory(\''+id+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0;padding:0 4px;" title="삭제">✕</button>'+
+      '</div>';
+  }).join('');
+}
+
 function addHistory(id) {
   var input = document.getElementById('historyInput');
   var text = input.value.trim();
@@ -1630,15 +1652,19 @@ function addHistory(id) {
   db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
     p.history = history;
     input.value = '';
-    // 히스토리 목록 갱신
-    var list = document.getElementById('historyList');
-    if(list) {
-      list.innerHTML = history.slice().reverse().map(function(h){
-        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
-          '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
-          '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>';
-      }).join('');
-    }
+    renderHistoryList(id, history);
+  });
+}
+
+function deleteHistory(id, index) {
+  if(!confirm('이 히스토리를 삭제하시겠습니까?')) return;
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var history = p.history ? p.history.slice() : [];
+  history.splice(index, 1);
+  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+    p.history = history;
+    renderHistoryList(id, history);
   });
 }
 

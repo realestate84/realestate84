@@ -523,6 +523,7 @@ th{position:relative;}
         <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
         <button class="btn btn-outline" id="detailDepBtn" style="border-color:transparent;">⚫ 출발불가</button>
         <button class="btn btn-primary" id="detailEditBtn">수정</button>
+        <button class="btn btn-outline" id="detailCopyBtn">📋 복사</button>
         <button class="btn btn-outline" onclick="printDetail()">🖨 인쇄</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
@@ -1428,6 +1429,7 @@ function openDetail(id){
   document.getElementById('detailDeleteBtn').onclick=function(){ deleteProperty(id); };
   document.getElementById('detailAdBtn').onclick=function(){ toggleAd(id); };
   document.getElementById('detailDepBtn').onclick=function(){ toggleDeparture(id); };
+  document.getElementById('detailCopyBtn').onclick=function(){ copyProperty(id); };
   updateAdBtn(p);
   updateDepBtn(p);
   document.getElementById('detailModal').classList.add('active');
@@ -1680,6 +1682,54 @@ function updateDepBtn(p) {
     btn.style.color = '#7a85a8';
   }
   btn.style.borderColor = 'transparent';
+}
+
+function copyProperty(id) {
+  if(!confirm('이 매물을 복사하시겠습니까?\n(사진, 문서, 히스토리, 광고정보는 복사되지 않아요)')) return;
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var now = new Date();
+  var dateStr = now.toISOString().slice(0,10);
+  var timeStr = now.toTimeString().slice(0,8);
+  var newData = {
+    georae:p.georae||'', type:p.type||'', address:p.address||'',
+    price:p.price||'', maintenance:p.maintenance||'',
+    landArea:p.landArea||'', totalArea:p.totalArea||'',
+    supplyArea:p.supplyArea||'', exclusiveArea:p.exclusiveArea||'',
+    tempArea:p.tempArea||'', roadArea:p.roadArea||'',
+    useZone:p.useZone||'', jimok:p.jimok||'',
+    buildingUse:p.buildingUse||'', approvalDate:p.approvalDate||'',
+    floors:p.floors||'', electric:p.electric||'', hoist:p.hoist||'',
+    direction:p.direction||'', height:p.height||'',
+    parking:p.parking||'', toilet:p.toilet||'',
+    factoryReg:p.factoryReg||'', access:p.access||'',
+    regOwnerName:p.regOwnerName||'', ownerName:p.ownerName||'',
+    ownerPhone:p.ownerPhone||'', memo:p.memo||'', note:p.note||'',
+    naver:p.naver||'', video:p.video||'',
+    departure: p.departure !== false,
+    createdDate:dateStr, createdTime:timeStr,
+    updatedDate:dateStr, updatedTime:timeStr,
+  };
+  db.collection(COLLECTION).add(newData).then(function(ref) {
+    var maxNo = properties.reduce(function(m,x){ return Math.max(m, parseInt(x.propNo)||0); }, 0);
+    return db.collection(COLLECTION).doc(ref.id).update({ propNo: String(maxNo+1) });
+  }).then(function() {
+    closeDetailModal();
+    showToast('✅ 매물이 복사됐어요!');
+  });
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity = '0'; }, 2500);
 }
 
 function renderHistoryList(id, history) {

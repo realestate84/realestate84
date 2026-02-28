@@ -281,11 +281,11 @@ th{position:relative;}
         <input class="form-input" type="number" id="adv_landMax" placeholder="예) 1000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
       </div>
       <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">연면적 최소 (평)</label>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최소 (평)</label>
         <input class="form-input" type="number" id="adv_areaMin" placeholder="예) 50" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
       </div>
       <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">연면적 최대 (평)</label>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최대 (평)</label>
         <input class="form-input" type="number" id="adv_areaMax" placeholder="예) 500" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
       </div>
       <div>
@@ -313,7 +313,7 @@ th{position:relative;}
           <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:240px;position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
           <th onclick="sortTable('price')" style="cursor:pointer;width:90px">가격 <span id="sort_price"></span></th>
           <th onclick="sortTable('landArea')" style="cursor:pointer;width:75px">토지면적 <span id="sort_landArea"></span></th>
-          <th onclick="sortTable('totalArea')" style="cursor:pointer;width:60px">연면적 <span id="sort_totalArea"></span></th>
+          <th onclick="sortTable('totalArea')" style="cursor:pointer;width:60px">건축면적 <span id="sort_totalArea"></span></th>
           <th onclick="sortTable('useZone')" style="cursor:pointer;width:90px">용도지역 <span id="sort_useZone"></span></th>
           <th onclick="sortTable('jimok')" style="cursor:pointer;width:50px">지목 <span id="sort_jimok"></span></th>
           <th onclick="sortTable('ownerName')" style="cursor:pointer;width:80px">소유자 <span id="sort_ownerName"></span></th>
@@ -367,8 +367,12 @@ th{position:relative;}
           <input class="form-input" type="text" id="f_landArea" placeholder="예) 100">
         </div>
         <div class="form-group">
-          <label>연면적 (평)</label>
+          <label>건축면적 (평)</label>
           <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+        </div>
+        <div class="form-group">
+          <label>가설면적 (평)</label>
+          <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
         </div>
         <div class="form-group">
           <label>도로부지면적 (평)</label>
@@ -1084,6 +1088,7 @@ function openEditModal(id){
   document.getElementById('f_price').value=p.price||'';
   document.getElementById('f_landArea').value=p.landArea||'';
   document.getElementById('f_totalArea').value=p.totalArea||'';
+  document.getElementById('f_tempArea').value=p.tempArea||'';
   document.getElementById('f_roadArea').value=p.roadArea||'';
   document.getElementById('f_useZone').value=p.useZone||'';
   document.getElementById('f_jimok').value=p.jimok||'';
@@ -1120,7 +1125,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1139,6 +1144,7 @@ function saveProperty(){
     price:document.getElementById('f_price').value.trim(),
     landArea:document.getElementById('f_landArea').value.trim(),
     totalArea:document.getElementById('f_totalArea').value.trim(),
+    tempArea:document.getElementById('f_tempArea').value.trim(),
     roadArea:document.getElementById('f_roadArea').value.trim(),
     useZone:document.getElementById('f_useZone').value.trim(),
     jimok:document.getElementById('f_jimok').value.trim(),
@@ -1195,7 +1201,8 @@ function openDetail(id){
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>연면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>'+
       '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
@@ -1499,7 +1506,7 @@ document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
 // ── 엑셀 다운로드 ─────────────────────────
 function downloadExcel(){
   if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
-  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','연면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','전기(kw)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
+  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','건축면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','전기(kw)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
   var rows=properties.map(function(p){
     return [p.propNo||'',p.georae||'',p.type||'',p.address||'',p.price||'',p.landArea||'',p.totalArea||'',p.roadArea||'',p.useZone||'',p.jimok||'',p.buildingUse||'',p.approvalDate||'',p.electric||'',p.access||'',p.ownerName||'',p.ownerPhone||'',p.memo||'',p.createdDate||'',p.createdTime||'',p.updatedDate||'',p.updatedTime||''];
   });
@@ -1526,7 +1533,7 @@ function uploadExcel(e){
     var ci={
       georae:headers.indexOf('거래유형'), type:headers.indexOf('매물종류'),
       address:headers.indexOf('주소'), price:headers.indexOf('가격'),
-      landArea:headers.indexOf('토지면적(평)'), totalArea:headers.indexOf('연면적(평)'),
+      landArea:headers.indexOf('토지면적(평)'), totalArea:headers.indexOf('건축면적(평)'),
       roadArea:headers.indexOf('도로부지면적(평)'), useZone:headers.indexOf('용도지역'),
       jimok:headers.indexOf('지목'), buildingUse:headers.indexOf('건축물용도'),
       approvalDate:headers.indexOf('사용승인일'), electric:headers.indexOf('전기(kw)'),

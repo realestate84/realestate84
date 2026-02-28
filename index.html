@@ -267,6 +267,7 @@ th{position:relative;}
       <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option>
     </select>
     <button class="btn btn-outline btn-sm" id="advSearchBtn" onclick="toggleAdvSearch()">🔎 상세검색 ▾</button>
+    <button class="btn btn-outline btn-sm" id="depFilterBtn" onclick="toggleDepFilter()" style="color:#7a85a8;">🔵 출발가능만</button>
   </div>
 
   <!-- 상세검색 패널 -->
@@ -857,6 +858,8 @@ function renderTable() {
     if(jimok && !(p.jimok||'').toLowerCase().includes(jimok)) return false;
     // 지역
     if(region && !(p.address||'').toLowerCase().includes(region)) return false;
+    // 출발가능만 보기
+    if(window._depFilterOn && p.departure === false) return false;
     return true;
   });
   // 정렬
@@ -912,7 +915,7 @@ function renderTable() {
         '<td class="muted">'+(p.ownerName||'-')+'</td>'+
         '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
         '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>'+
-        '<td style="text-align:center"><span class="dep-light '+(p.departure?'on':'')+'"></span></td>'+
+        '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>'+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
@@ -1036,6 +1039,10 @@ function resetFilters(){
   ['adv_priceMin','adv_priceMax','adv_landMin','adv_landMax','adv_areaMin','adv_areaMax','adv_useZone','adv_jimok','adv_region'].forEach(function(id){
     document.getElementById(id).value='';
   });
+  // 출발가능 필터 초기화
+  window._depFilterOn = false;
+  var btn = document.getElementById('depFilterBtn');
+  if(btn){ btn.style.color='#7a85a8'; btn.style.borderColor=''; btn.style.fontWeight=''; }
   renderTable();
 }
 
@@ -1204,6 +1211,7 @@ function saveProperty(){
       });
     } else {
       data.createdDate=dateStr; data.createdTime=timeStr; data.updatedDate=''; data.updatedTime='';
+      data.departure = true;
       saveNew(data, function(err, newId){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
@@ -1530,10 +1538,26 @@ function deleteDoc(propId, docName) {
 
 // ── PDF 뷰어 ──────────────────────────────
 // ── 네이버 광고 ───────────────────────────
+window._depFilterOn = false;
+function toggleDepFilter() {
+  window._depFilterOn = !window._depFilterOn;
+  var btn = document.getElementById('depFilterBtn');
+  if(window._depFilterOn) {
+    btn.style.color = '#3a7ef6';
+    btn.style.borderColor = '#3a7ef6';
+    btn.style.fontWeight = '700';
+  } else {
+    btn.style.color = '#7a85a8';
+    btn.style.borderColor = '';
+    btn.style.fontWeight = '';
+  }
+  renderTable();
+}
+
 function updateDepBtn(p) {
   var btn = document.getElementById('detailDepBtn');
   if(!btn) return;
-  if(p.departure) {
+  if(p.departure !== false) {
     btn.textContent = '🔵 출발가능';
     btn.style.color = '#3a7ef6';
   } else {
@@ -1546,7 +1570,7 @@ function updateDepBtn(p) {
 function toggleDeparture(id) {
   var p = properties.find(function(x){ return x.id===id; });
   if(!p) return;
-  var newVal = !p.departure;
+  var newVal = (p.departure === false) ? true : false;
   db.collection(COLLECTION).doc(id).update({ departure: newVal }).then(function() {
     p.departure = newVal;
     updateDepBtn(p);

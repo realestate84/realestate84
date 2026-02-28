@@ -217,7 +217,7 @@ th{position:relative;}
 <div id="mainScreen" style="display:none">
 
 <header>
-  <div class="logo" onclick="location.reload()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
+  <div class="logo" onclick="refreshApp()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
@@ -956,6 +956,18 @@ function toggleMobileMenu() {
 function closeMobileMenu() {
   document.getElementById('mobileDrawer').classList.remove('open');
   document.getElementById('mobileOverlay').classList.remove('open');
+}
+
+function refreshApp() {
+  if (!/Mobi|Android/i.test(navigator.userAgent)) {
+    location.reload();
+  } else {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterGeorae').value = '';
+    document.getElementById('filterType').value = '';
+    renderTable();
+    window.scrollTo(0, 0);
+  }
 }
 
 function linkifyMemo(text) {

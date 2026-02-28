@@ -427,6 +427,10 @@ th{position:relative;}
           <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
         </div>
         <div class="form-group">
+          <label>등기부상 소유자명</label>
+          <input class="form-input" type="text" id="f_regOwnerName" placeholder="등기부등본상 소유자명">
+        </div>
+        <div class="form-group">
           <label>소유자명</label>
           <input class="form-input" type="text" id="f_ownerName" placeholder="소유자 이름">
         </div>
@@ -1152,6 +1156,7 @@ function openEditModal(id){
   document.getElementById('f_direction').value=p.direction||'';
   document.getElementById('f_height').value=p.height||'';
   document.getElementById('f_access').value=p.access||'';
+  document.getElementById('f_regOwnerName').value=p.regOwnerName||'';
   document.getElementById('f_ownerName').value=p.ownerName||'';
   document.getElementById('f_ownerPhone').value=p.ownerPhone||'';
   document.getElementById('f_memo').value=p.memo||'';
@@ -1181,7 +1186,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1211,6 +1216,7 @@ function saveProperty(){
     direction:document.getElementById('f_direction').value.trim(),
     height:document.getElementById('f_height').value.trim(),
     access:document.getElementById('f_access').value.trim(),
+    regOwnerName:document.getElementById('f_regOwnerName').value.trim(),
     ownerName:document.getElementById('f_ownerName').value.trim(),
     ownerPhone:document.getElementById('f_ownerPhone').value.trim(),
     memo:document.getElementById('f_memo').value.trim(),
@@ -1275,6 +1281,7 @@ function openDetail(id){
       '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
+      '<div class="detail-item"><label>등기부상 소유자명</label><div class="val">'+(p.regOwnerName||'-')+'</div></div>'+
       '<div class="detail-item"><label>소유자명</label><div class="val">'+(p.ownerName||'-')+'</div></div>'+
       '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
     '</div></div>'+

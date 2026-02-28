@@ -221,7 +221,50 @@ th{position:relative;}
       <option>토지</option><option>공장창고</option><option>상가/사무실</option>
       <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option>
     </select>
+    <button class="btn btn-outline btn-sm" id="advSearchBtn" onclick="toggleAdvSearch()">🔎 상세검색 ▾</button>
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
+  </div>
+
+  <!-- 상세검색 패널 -->
+  <div id="advSearchPanel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;flex-shrink:0;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최소 (만원)</label>
+        <input class="form-input" type="number" id="adv_priceMin" placeholder="예) 10000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최대 (만원)</label>
+        <input class="form-input" type="number" id="adv_priceMax" placeholder="예) 50000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최소 (평)</label>
+        <input class="form-input" type="number" id="adv_landMin" placeholder="예) 100" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최대 (평)</label>
+        <input class="form-input" type="number" id="adv_landMax" placeholder="예) 1000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">연면적 최소 (평)</label>
+        <input class="form-input" type="number" id="adv_areaMin" placeholder="예) 50" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">연면적 최대 (평)</label>
+        <input class="form-input" type="number" id="adv_areaMax" placeholder="예) 500" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">용도지역</label>
+        <input class="form-input" type="text" id="adv_useZone" placeholder="예) 계획관리" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지목</label>
+        <input class="form-input" type="text" id="adv_jimok" placeholder="예) 대, 전, 답" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지역 (주소 포함)</label>
+        <input class="form-input" type="text" id="adv_region" placeholder="예) 강화군, 서구" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
+      </div>
+    </div>
   </div>
   <div class="table-wrap">
     <table>
@@ -725,10 +768,39 @@ function renderTable() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   var fg = document.getElementById('filterGeorae').value;
   var ft = document.getElementById('filterType').value;
+  // 상세검색
+  var priceMin = parseFloat(document.getElementById('adv_priceMin').value) || null;
+  var priceMax = parseFloat(document.getElementById('adv_priceMax').value) || null;
+  var landMin  = parseFloat(document.getElementById('adv_landMin').value)  || null;
+  var landMax  = parseFloat(document.getElementById('adv_landMax').value)  || null;
+  var areaMin  = parseFloat(document.getElementById('adv_areaMin').value)  || null;
+  var areaMax  = parseFloat(document.getElementById('adv_areaMax').value)  || null;
+  var useZone  = document.getElementById('adv_useZone').value.trim().toLowerCase();
+  var jimok    = document.getElementById('adv_jimok').value.trim().toLowerCase();
+  var region   = document.getElementById('adv_region').value.trim().toLowerCase();
+
   var list = properties.filter(function(p){
     if(fg && p.georae!==fg) return false;
     if(ft && p.type!==ft) return false;
     if(q){var hay=[p.address,p.memo,p.ownerName,p.ownerPhone,p.useZone,p.jimok].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    // 가격 범위
+    var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
+    if(priceMin && price < priceMin) return false;
+    if(priceMax && price > priceMax) return false;
+    // 토지면적
+    var land = parseFloat(p.landArea) || 0;
+    if(landMin && land < landMin) return false;
+    if(landMax && land > landMax) return false;
+    // 연면적
+    var area = parseFloat(p.totalArea) || 0;
+    if(areaMin && area < areaMin) return false;
+    if(areaMax && area > areaMax) return false;
+    // 용도지역
+    if(useZone && !(p.useZone||'').toLowerCase().includes(useZone)) return false;
+    // 지목
+    if(jimok && !(p.jimok||'').toLowerCase().includes(jimok)) return false;
+    // 지역
+    if(region && !(p.address||'').toLowerCase().includes(region)) return false;
     return true;
   });
   // 정렬
@@ -854,10 +926,21 @@ function copyAddress(addr, e) {
   });
 }
 
+function toggleAdvSearch() {
+  var panel = document.getElementById('advSearchPanel');
+  var btn = document.getElementById('advSearchBtn');
+  var isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '🔎 상세검색 ▾' : '🔎 상세검색 ▴';
+}
+
 function resetFilters(){
   document.getElementById('searchInput').value='';
   document.getElementById('filterGeorae').value='';
   document.getElementById('filterType').value='';
+  ['adv_priceMin','adv_priceMax','adv_landMin','adv_landMax','adv_areaMin','adv_areaMax','adv_useZone','adv_jimok','adv_region'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
   renderTable();
 }
 

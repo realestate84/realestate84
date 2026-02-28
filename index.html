@@ -880,10 +880,12 @@ function saveProperty(){
     if(err){ alert('사진 업로드 오류: '+err.message); btn.textContent='저장'; btn.disabled=false; return; }
     data.photos=urls;
     if(editingId){
+      var savedId = editingId;
       saveEdit(editingId, data, function(err){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
         closeFormModal();
+        openDetail(savedId);
       });
     } else {
       data.createdDate=dateStr; data.createdTime=timeStr; data.updatedDate=''; data.updatedTime='';

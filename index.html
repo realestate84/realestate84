@@ -120,7 +120,7 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 .photo-thumb-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .detail-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:4px;}
 /* Lightbox */
-.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:500;align-items:center;justify-content:center;flex-direction:column;}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;flex-direction:column;}
 .lightbox.active{display:flex;}
 .lightbox img{max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain;}
 .lightbox-close{position:absolute;top:18px;right:22px;background:none;border:none;color:#fff;font-size:32px;cursor:pointer;}
@@ -1058,7 +1058,13 @@ function renderPhotoPreview(){
 function removePhoto(i){ currentPhotos.splice(i,1); renderPhotoPreview(); }
 
 // ── 라이트박스 ────────────────────────────
-function openLightbox(photos,idx){ lightboxPhotos=photos; lightboxIndex=idx; updateLightbox(); document.getElementById('lightbox').classList.add('active'); }
+function openLightbox(photos,idx){ 
+  if(!photos||photos.length===0) return;
+  lightboxPhotos=photos; 
+  lightboxIndex=idx; 
+  updateLightbox(); 
+  document.getElementById('lightbox').classList.add('active'); 
+}
 function updateLightbox(){
   var src=lightboxPhotos[lightboxIndex];
   document.getElementById('lightboxImg').src=src;
@@ -1354,7 +1360,11 @@ function printDetail() {
   win.document.close();
 }
 
-function closeDetailModal(){ document.getElementById('detailModal').classList.remove('active'); }
+function closeDetailModal(){ 
+  document.getElementById('detailModal').classList.remove('active'); 
+  closeLightbox();
+  window._dp=[];
+}
 
 // ── 삭제 ──────────────────────────────────
 function deleteProperty(id){

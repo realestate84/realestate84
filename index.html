@@ -891,34 +891,36 @@ function renderTable() {
     return true;
   });
   // 정렬
-  list.sort(function(a, b) {
-    // 광고 상태 정렬
-    if(sortKey === 'adStatus') {
-      var la = getAdDaysLeft(a.adStart, a.adEnd) || 0;
-      var lb = getAdDaysLeft(b.adStart, b.adEnd) || 0;
-      if(la < 0) la = 0;
-      if(lb < 0) lb = 0;
-      return sortDir === 'asc' ? la - lb : lb - la;
-    }
-    if(sortKey === 'departure') {
-      var da = a.departure ? 1 : 0;
-      var db = b.departure ? 1 : 0;
-      return sortDir === 'asc' ? da - db : db - da;
-    }
-    var va = a[sortKey] || '';
-    var vb = b[sortKey] || '';
-    // 숫자 필드
-    if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea') {
-      va = parseFloat(va) || 0;
-      vb = parseFloat(vb) || 0;
-      return sortDir === 'asc' ? va - vb : vb - va;
-    }
-    va = String(va).toLowerCase();
-    vb = String(vb).toLowerCase();
-    if(va < vb) return sortDir === 'asc' ? -1 : 1;
-    if(va > vb) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
+  if(sortKey) {
+    list.sort(function(a, b) {
+      // 광고 상태 정렬
+      if(sortKey === 'adStatus') {
+        var la = getAdDaysLeft(a.adStart, a.adEnd) || 0;
+        var lb = getAdDaysLeft(b.adStart, b.adEnd) || 0;
+        if(la < 0) la = 0;
+        if(lb < 0) lb = 0;
+        return sortDir === 'asc' ? la - lb : lb - la;
+      }
+      if(sortKey === 'departure') {
+        var da = a.departure !== false ? 1 : 0;
+        var db = b.departure !== false ? 1 : 0;
+        return sortDir === 'asc' ? da - db : db - da;
+      }
+      var va = a[sortKey] || '';
+      var vb = b[sortKey] || '';
+      // 숫자 필드
+      if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea') {
+        va = parseFloat(va) || 0;
+        vb = parseFloat(vb) || 0;
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      va = String(va).toLowerCase();
+      vb = String(vb).toLowerCase();
+      if(va < vb) return sortDir === 'asc' ? -1 : 1;
+      if(va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
 
   var tbody = document.getElementById('tableBody');
   var empty = document.getElementById('emptyState');
@@ -958,19 +960,28 @@ var sortDir = 'desc';
 
 function sortTable(key) {
   if(sortKey === key) {
-    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    if(sortDir === 'asc') {
+      sortDir = 'desc';
+    } else if(sortDir === 'desc') {
+      sortKey = null;
+      sortDir = null;
+    } else {
+      sortDir = 'asc';
+    }
   } else {
     sortKey = key;
     sortDir = 'asc';
   }
   // 모든 정렬 아이콘 초기화
-  ['propNo','georae','type','address','price','landArea','totalArea','useZone','jimok','ownerName','createdDate'].forEach(function(k){
+  ['propNo','georae','type','address','price','landArea','totalArea','useZone','jimok','ownerName','createdDate','adStatus','departure'].forEach(function(k){
     var el = document.getElementById('sort_'+k);
     if(el) el.textContent = '';
   });
   // 현재 정렬 아이콘 표시
-  var el = document.getElementById('sort_'+key);
-  if(el) el.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
+  if(sortKey) {
+    var el = document.getElementById('sort_'+sortKey);
+    if(el) el.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
+  }
   renderTable();
 }
 

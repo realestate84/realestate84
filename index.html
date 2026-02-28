@@ -324,7 +324,7 @@ th{position:relative;}
           <th onclick="sortTable('jimok')" style="cursor:pointer;width:50px">지목 <span id="sort_jimok"></span></th>
           <th onclick="sortTable('ownerName')" style="cursor:pointer;width:80px">소유자 <span id="sort_ownerName"></span></th>
           <th onclick="sortTable('createdDate')" style="cursor:pointer;width:70px">등록일시 <span id="sort_createdDate"></span></th>
-          <th style="width:24px" title="네이버광고">광고</th>
+          <th onclick="sortTable('adStatus')" style="cursor:pointer;width:24px" title="네이버광고">광고 <span id="sort_adStatus"></span></th>
           <th style="width:80px">관리</th>
         </tr>
       </thead>
@@ -860,6 +860,14 @@ function renderTable() {
   });
   // 정렬
   list.sort(function(a, b) {
+    // 광고 상태 정렬
+    if(sortKey === 'adStatus') {
+      var la = getAdDaysLeft(a.adStart, a.adEnd) || 0;
+      var lb = getAdDaysLeft(b.adStart, b.adEnd) || 0;
+      if(la < 0) la = 0;
+      if(lb < 0) lb = 0;
+      return sortDir === 'asc' ? la - lb : lb - la;
+    }
     var va = a[sortKey] || '';
     var vb = b[sortKey] || '';
     // 숫자 필드

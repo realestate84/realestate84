@@ -184,6 +184,8 @@ th{position:relative;}
   #printArea .detail-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
   #printArea .detail-item.full { grid-column: 1 / -1 !important; }
   #printArea .no-print { display: none !important; }
+  #printArea .detail-section { break-inside: avoid; }
+  #kakaoMap { break-inside: avoid; break-before: auto; }
   @page { margin: 10mm; size: A4; }
 }
 </style>
@@ -1399,7 +1401,7 @@ function openDetail(id){
       '</div>';
     }).join('')+
     '</div>'+
-    (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div>'+
+    (p.address?'<div class="detail-section" style="break-inside:avoid;page-break-inside:avoid;"><div class="detail-section-title">위치</div>'+
       '<div style="position:relative;">'+
         '<div id="kakaoMap"></div>'+
         '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+

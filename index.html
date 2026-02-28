@@ -82,6 +82,7 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .ad-light.dim2{background:#fde68a;box-shadow:none;}
 .ad-light.warn{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.7);animation:blink 1s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+@keyframes spin{to{transform:rotate(360deg);}}
 .action-btns{display:flex;gap:5px;}
 .muted{color:var(--text-muted);}
 .address-text{max-width:180px;overflow:hidden;text-overflow:ellipsis;}
@@ -406,8 +407,12 @@ th{position:relative;}
           <input class="form-input" type="date" id="f_approvalDate">
         </div>
         <div class="form-group">
-          <label>전기 (kw)</label>
+          <label>동력 (kw)</label>
           <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
+        </div>
+        <div class="form-group">
+          <label>호이스트 (t)</label>
+          <input class="form-input" type="text" id="f_hoist" placeholder="예) 3t, 5t">
         </div>
         <div class="form-group">
           <label>진출입로</label>
@@ -1135,6 +1140,7 @@ function openEditModal(id){
   document.getElementById('f_buildingUse').value=p.buildingUse||'';
   document.getElementById('f_approvalDate').value=p.approvalDate||'';
   document.getElementById('f_electric').value=p.electric||'';
+  document.getElementById('f_hoist').value=p.hoist||'';
   document.getElementById('f_access').value=p.access||'';
   document.getElementById('f_ownerName').value=p.ownerName||'';
   document.getElementById('f_ownerPhone').value=p.ownerPhone||'';
@@ -1165,7 +1171,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1191,6 +1197,7 @@ function saveProperty(){
     buildingUse:document.getElementById('f_buildingUse').value.trim(),
     approvalDate:document.getElementById('f_approvalDate').value,
     electric:document.getElementById('f_electric').value.trim(),
+    hoist:document.getElementById('f_hoist').value.trim(),
     access:document.getElementById('f_access').value.trim(),
     ownerName:document.getElementById('f_ownerName').value.trim(),
     ownerPhone:document.getElementById('f_ownerPhone').value.trim(),
@@ -1249,7 +1256,8 @@ function openDetail(id){
       '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
       '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>'+
       '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>'+
-      '<div class="detail-item"><label>전기</label><div class="val">'+(p.electric||'-')+'</div></div>'+
+      '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric||'-')+'</div></div>'+
+      '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>'+
       '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
@@ -1743,9 +1751,9 @@ document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
 // ── 엑셀 다운로드 ─────────────────────────
 function downloadExcel(){
   if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
-  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','건축면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','전기(kw)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
+  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','건축면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','동력(kw)','호이스트(t)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
   var rows=properties.map(function(p){
-    return [p.propNo||'',p.georae||'',p.type||'',p.address||'',p.price||'',p.landArea||'',p.totalArea||'',p.roadArea||'',p.useZone||'',p.jimok||'',p.buildingUse||'',p.approvalDate||'',p.electric||'',p.access||'',p.ownerName||'',p.ownerPhone||'',p.memo||'',p.createdDate||'',p.createdTime||'',p.updatedDate||'',p.updatedTime||''];
+    return [p.propNo||'',p.georae||'',p.type||'',p.address||'',p.price||'',p.landArea||'',p.totalArea||'',p.roadArea||'',p.useZone||'',p.jimok||'',p.buildingUse||'',p.approvalDate||'',p.electric||'',p.hoist||'',p.access||'',p.ownerName||'',p.ownerPhone||'',p.memo||'',p.createdDate||'',p.createdTime||'',p.updatedDate||'',p.updatedTime||''];
   });
   var BOM='\uFEFF';
   var csv=BOM+[headers].concat(rows).map(function(row){
@@ -1773,8 +1781,8 @@ function uploadExcel(e){
       landArea:headers.indexOf('토지면적(평)'), totalArea:headers.indexOf('건축면적(평)'),
       roadArea:headers.indexOf('도로부지면적(평)'), useZone:headers.indexOf('용도지역'),
       jimok:headers.indexOf('지목'), buildingUse:headers.indexOf('건축물용도'),
-      approvalDate:headers.indexOf('사용승인일'), electric:headers.indexOf('전기(kw)'),
-      access:headers.indexOf('진출입로'), ownerName:headers.indexOf('소유자명'),
+      approvalDate:headers.indexOf('사용승인일'), electric:headers.indexOf('동력(kw)'),
+      hoist:headers.indexOf('호이스트(t)'), access:headers.indexOf('진출입로'), ownerName:headers.indexOf('소유자명'),
       ownerPhone:headers.indexOf('소유자연락처'), memo:headers.indexOf('특이사항/메모'),
     };
     if(ci.address===-1){ alert('올바른 양식이 아닙니다.\n엑셀 다운로드 후 양식에 맞게 입력해주세요.'); return; }
@@ -1795,7 +1803,7 @@ function uploadExcel(e){
         georae:g('georae'), type:g('type'), address:addr, price:g('price'),
         landArea:g('landArea'), totalArea:g('totalArea'), roadArea:g('roadArea'),
         useZone:g('useZone'), jimok:g('jimok'), buildingUse:g('buildingUse'),
-        approvalDate:g('approvalDate'), electric:g('electric'), access:g('access'),
+        approvalDate:g('approvalDate'), electric:g('electric'), hoist:g('hoist'), access:g('access'),
         ownerName:g('ownerName'), ownerPhone:g('ownerPhone'), memo:g('memo'),
         photos:[], propNo:maxNo+success+1,
         createdDate:dateStr, createdTime:timeStr, updatedDate:'', updatedTime:'',

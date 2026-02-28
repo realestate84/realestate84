@@ -370,13 +370,15 @@ th{position:relative;}
           <label>주소 *</label>
           <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
         </div>
-        <div class="form-group">
-          <label>가격</label>
-          <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
-        </div>
-        <div class="form-group">
-          <label>관리비</label>
-          <input class="form-input" type="text" id="f_maintenance" placeholder="예) 20만원, 없음">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label>가격</label>
+            <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
+          </div>
+          <div class="form-group">
+            <label>관리비</label>
+            <input class="form-input" type="text" id="f_maintenance" placeholder="예) 20만원, 없음">
+          </div>
         </div>
         <div class="form-group">
           <label>토지면적 (평)</label>
@@ -385,6 +387,10 @@ th{position:relative;}
         <div class="form-group">
           <label>건축면적 (평)</label>
           <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+        </div>
+        <div class="form-group">
+          <label>임대면적 (평)</label>
+          <input class="form-input" type="text" id="f_rentArea" placeholder="예) 30">
         </div>
         <div class="form-group">
           <label>가설면적 (평)</label>
@@ -429,6 +435,10 @@ th{position:relative;}
         <div class="form-group">
           <label>주차가능여부</label>
           <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
+        </div>
+        <div class="form-group">
+          <label>화장실</label>
+          <input class="form-input" type="text" id="f_toilet" placeholder="예) 1개, 남녀구분, 없음">
         </div>
         <div class="form-group">
           <label>공장등록 가능여부</label>
@@ -1169,6 +1179,7 @@ function openEditModal(id){
   document.getElementById('f_maintenance').value=p.maintenance||'';
   document.getElementById('f_landArea').value=p.landArea||'';
   document.getElementById('f_totalArea').value=p.totalArea||'';
+  document.getElementById('f_rentArea').value=p.rentArea||'';
   document.getElementById('f_tempArea').value=p.tempArea||'';
   document.getElementById('f_roadArea').value=p.roadArea||'';
   document.getElementById('f_useZone').value=p.useZone||'';
@@ -1180,6 +1191,7 @@ function openEditModal(id){
   document.getElementById('f_direction').value=p.direction||'';
   document.getElementById('f_height').value=p.height||'';
   document.getElementById('f_parking').value=p.parking||'';
+  document.getElementById('f_toilet').value=p.toilet||'';
   document.getElementById('f_factoryReg').value=p.factoryReg||'';
   document.getElementById('f_access').value=p.access||'';
   document.getElementById('f_regOwnerName').value=p.regOwnerName||'';
@@ -1212,7 +1224,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_parking','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_rentArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1232,6 +1244,7 @@ function saveProperty(){
     maintenance:document.getElementById('f_maintenance').value.trim(),
     landArea:document.getElementById('f_landArea').value.trim(),
     totalArea:document.getElementById('f_totalArea').value.trim(),
+    rentArea:document.getElementById('f_rentArea').value.trim(),
     tempArea:document.getElementById('f_tempArea').value.trim(),
     roadArea:document.getElementById('f_roadArea').value.trim(),
     useZone:document.getElementById('f_useZone').value.trim(),
@@ -1243,6 +1256,7 @@ function saveProperty(){
     direction:document.getElementById('f_direction').value.trim(),
     height:document.getElementById('f_height').value.trim(),
     parking:document.getElementById('f_parking').value.trim(),
+    toilet:document.getElementById('f_toilet').value.trim(),
     factoryReg:document.getElementById('f_factoryReg').value.trim(),
     access:document.getElementById('f_access').value.trim(),
     regOwnerName:document.getElementById('f_regOwnerName').value.trim(),
@@ -1290,14 +1304,15 @@ function openDetail(id){
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
-      '<div class="detail-item full"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
-      '<div class="detail-item full"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>'+
+      '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
+      '<div class="detail-item"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>'+
       '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>임대면적</label><div class="val">'+(p.rentArea?p.rentArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>'+
@@ -1309,6 +1324,7 @@ function openDetail(id){
       '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>'+
       '<div class="detail-item"><label>층고</label><div class="val">'+(p.height ? p.height+'m' : '-')+'</div></div>'+
       '<div class="detail-item"><label>주차가능여부</label><div class="val">'+(p.parking||'-')+'</div></div>'+
+      '<div class="detail-item"><label>화장실</label><div class="val">'+(p.toilet||'-')+'</div></div>'+
       '<div class="detail-item"><label>공장등록 가능여부</label><div class="val">'+(p.factoryReg||'-')+'</div></div>'+
       '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
     '</div></div>'+

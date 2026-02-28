@@ -427,6 +427,10 @@ th{position:relative;}
           <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
         </div>
         <div class="form-group">
+          <label>공장등록 가능여부</label>
+          <input class="form-input" type="text" id="f_factoryReg" placeholder="예) 가능, 불가, 조건부가능">
+        </div>
+        <div class="form-group">
           <label>진출입로</label>
           <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
         </div>
@@ -1160,6 +1164,7 @@ function openEditModal(id){
   document.getElementById('f_direction').value=p.direction||'';
   document.getElementById('f_height').value=p.height||'';
   document.getElementById('f_parking').value=p.parking||'';
+  document.getElementById('f_factoryReg').value=p.factoryReg||'';
   document.getElementById('f_access').value=p.access||'';
   document.getElementById('f_regOwnerName').value=p.regOwnerName||'';
   document.getElementById('f_ownerName').value=p.ownerName||'';
@@ -1191,7 +1196,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_parking','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_parking','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1221,6 +1226,7 @@ function saveProperty(){
     direction:document.getElementById('f_direction').value.trim(),
     height:document.getElementById('f_height').value.trim(),
     parking:document.getElementById('f_parking').value.trim(),
+    factoryReg:document.getElementById('f_factoryReg').value.trim(),
     access:document.getElementById('f_access').value.trim(),
     regOwnerName:document.getElementById('f_regOwnerName').value.trim(),
     ownerName:document.getElementById('f_ownerName').value.trim(),
@@ -1285,6 +1291,7 @@ function openDetail(id){
       '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>'+
       '<div class="detail-item"><label>층고</label><div class="val">'+(p.height ? p.height+'m' : '-')+'</div></div>'+
       '<div class="detail-item"><label>주차가능여부</label><div class="val">'+(p.parking||'-')+'</div></div>'+
+      '<div class="detail-item"><label>공장등록 가능여부</label><div class="val">'+(p.factoryReg||'-')+'</div></div>'+
       '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+

@@ -1363,20 +1363,7 @@ function openDetail(id){
     '<div class="detail-section no-print"><div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
       '<span>📋 히스토리</span>'+
     '</div>'+
-    '<div id="historyList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:180px;overflow-y:auto;">'+
-      (p.history && p.history.length > 0 ?
-        p.history.slice().reverse().map(function(h, ri){
-          var i = p.history.length - 1 - ri;
-          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
-            '<div>'+
-            '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
-            '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>'+
-            '<button onclick="deleteHistory(\''+id+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0;padding:0 4px;" title="삭제">✕</button>'+
-            '</div>';
-        }).join('') :
-        '<div style="padding:8px 0;color:var(--text-muted);">등록된 히스토리가 없어요.</div>'
-      )+
-    '</div>'+
+    '<div id="historyList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:180px;overflow-y:auto;"></div>'+
     '<div style="display:flex;gap:8px;">'+
       '<textarea id="historyInput" class="form-textarea" placeholder="히스토리 내용 입력..." style="flex:1;min-height:60px;font-size:13px;resize:vertical;"></textarea>'+
       '<button class="btn btn-primary btn-sm" onclick="addHistory(\''+id+'\')" style="align-self:flex-end;white-space:nowrap;">추가</button>'+
@@ -1443,6 +1430,7 @@ function openDetail(id){
   updateDepBtn(p);
   document.getElementById('detailModal').classList.add('active');
   document.getElementById('detailBody').scrollTop = 0;
+  renderHistoryList(id, p.history || []);
 
   if(p.address){
     var tryMap = function(attempt) {
@@ -1751,13 +1739,50 @@ function renderHistoryList(id, history) {
   }
   list.innerHTML = history.slice().reverse().map(function(h, ri){
     var i = history.length - 1 - ri;
-    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
-      '<div>'+
-      '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
-      '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>'+
-      '<button onclick="deleteHistory(\''+id+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;flex-shrink:0;padding:0 4px;" title="삭제">✕</button>'+
-      '</div>';
+    return '<div id="historyItem_'+i+'" style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+        '<div style="flex:1;">'+
+          '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
+          '<div id="historyText_'+i+'" style="white-space:pre-wrap;margin-top:2px;font-size:13px;">'+h.text+'</div>'+
+          '<div id="historyEdit_'+i+'" style="display:none;margin-top:4px;">'+
+            '<textarea id="historyEditInput_'+i+'" style="width:100%;min-height:60px;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:6px;resize:vertical;font-family:inherit;">'+h.text+'</textarea>'+
+            '<div style="display:flex;gap:6px;margin-top:4px;">'+
+              '<button onclick="saveHistoryEdit(\''+id+'\','+i+')" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;">저장</button>'+
+              '<button onclick="cancelHistoryEdit('+i+')" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;">취소</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:2px;flex-shrink:0;">'+
+          '<button onclick="startHistoryEdit('+i+')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:0 4px;" title="수정">✏️</button>'+
+          '<button onclick="deleteHistory(\''+id+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 4px;" title="삭제">✕</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
+}
+
+function startHistoryEdit(i) {
+  document.getElementById('historyText_'+i).style.display = 'none';
+  document.getElementById('historyEdit_'+i).style.display = 'block';
+}
+
+function cancelHistoryEdit(i) {
+  document.getElementById('historyText_'+i).style.display = 'block';
+  document.getElementById('historyEdit_'+i).style.display = 'none';
+}
+
+function saveHistoryEdit(id, index) {
+  var input = document.getElementById('historyEditInput_'+index);
+  var newText = input.value.trim();
+  if(!newText) return;
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var history = p.history ? p.history.slice() : [];
+  history[index].text = newText;
+  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+    p.history = history;
+    renderHistoryList(id, history);
+  });
 }
 
 function addHistory(id) {

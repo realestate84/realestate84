@@ -1262,12 +1262,15 @@ function openDetail(id){
     }).join('')+
     '</div>'+
     (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div>'+
-      '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
-        '<button class="btn btn-sm" id="tabMap" onclick="switchMapTab(\'map\')" style="background:var(--accent);color:#fff;border:none;">🗺 지도</button>'+
-        '<button class="btn btn-sm btn-outline" id="tabRoadview" onclick="switchMapTab(\'roadview\')">🚶 로드뷰</button>'+
+      '<div style="position:relative;">'+
+        '<div id="kakaoMap"></div>'+
+        '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+
+        '<div id="mapViewBtns" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
+          '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
+          '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
+          '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
+        '</div>'+
       '</div>'+
-      '<div id="kakaoMap"></div>'+
-      '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);margin-top:4px;"></div>'+
     '</div>':'')+
     '<div class="detail-section">'+
       '<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
@@ -1309,7 +1312,6 @@ function openDetail(id){
           var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
           new kakao.maps.Marker({map: mapObj, position: coords});
           mapObj.setCenter(coords);
-          // 로드뷰 좌표 저장
           window._mapCoords = coords;
         } else {
           container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
@@ -1321,31 +1323,31 @@ function openDetail(id){
   }
 }
 
-function switchMapTab(tab) {
+function switchMapView(mode) {
   var mapEl = document.getElementById('kakaoMap');
   var rvEl = document.getElementById('kakaoRoadview');
-  var tabMap = document.getElementById('tabMap');
-  var tabRv = document.getElementById('tabRoadview');
+  var btnMap = document.getElementById('btnMapView');
+  var btnSky = document.getElementById('btnSkyView');
+  var btnRv = document.getElementById('btnRvView');
   if(!mapEl || !rvEl) return;
 
-  if(tab === 'map') {
+  // 버튼 스타일 초기화
+  [btnMap, btnSky, btnRv].forEach(function(b){ if(b){ b.style.background='#fff'; b.style.color='#333'; b.style.fontWeight='normal'; }});
+
+  if(mode === 'map') {
     mapEl.style.display = '';
     rvEl.style.display = 'none';
-    tabMap.style.background = 'var(--accent)';
-    tabMap.style.color = '#fff';
-    tabMap.className = 'btn btn-sm';
-    tabRv.style.background = '';
-    tabRv.style.color = '';
-    tabRv.className = 'btn btn-sm btn-outline';
-  } else {
+    if(window._kakaoMapObj) window._kakaoMapObj.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+    if(btnMap){ btnMap.style.background='var(--accent)'; btnMap.style.color='#fff'; btnMap.style.fontWeight='bold'; }
+  } else if(mode === 'sky') {
+    mapEl.style.display = '';
+    rvEl.style.display = 'none';
+    if(window._kakaoMapObj) window._kakaoMapObj.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+    if(btnSky){ btnSky.style.background='var(--accent)'; btnSky.style.color='#fff'; btnSky.style.fontWeight='bold'; }
+  } else if(mode === 'roadview') {
     mapEl.style.display = 'none';
     rvEl.style.display = '';
-    tabMap.className = 'btn btn-sm btn-outline';
-    tabMap.style.background = '';
-    tabMap.style.color = '';
-    tabRv.style.background = 'var(--accent)';
-    tabRv.style.color = '#fff';
-    tabRv.className = 'btn btn-sm';
+    if(btnRv){ btnRv.style.background='var(--accent)'; btnRv.style.color='#fff'; btnRv.style.fontWeight='bold'; }
     // 로드뷰 초기화 (최초 1회만)
     if(!window._rvInitialized && window._mapCoords) {
       var rvClient = new kakao.maps.RoadviewClient();

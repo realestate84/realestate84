@@ -26,9 +26,13 @@
   --accent:#3a7ef6; --accent2:#6c47f5; --text:#1a1f36; --text-muted:#7a85a8;
   --danger:#e04a5a;
 }
+body.dark {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3250;
+  --text:#e2e6f0; --text-muted:#6b7499; --danger:#e04a5a;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;height:100vh;overflow:hidden;}
-header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
 .logo{font-family:'Nanum Gothic',sans-serif;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
@@ -54,8 +58,8 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 table{width:100%;min-width:1200px;border-collapse:collapse;font-size:12px;}
 th:first-child, td:first-child{position:sticky;left:0;z-index:5;background:var(--surface);}
 thead th:first-child{z-index:15;background:var(--surface2);}
-tr:hover td:first-child{background:rgba(58,126,246,0.03);}
-thead tr{position:sticky;top:0;z-index:10;background:var(--surface);}
+tr:hover td{background:rgba(58,126,246,0.05);}
+tr:hover td:first-child{background:var(--surface);filter:brightness(0.97);}thead tr{position:sticky;top:0;z-index:10;background:var(--surface);}
 thead{background:var(--surface2);}
 th{padding:8px 6px;text-align:left;color:var(--text-muted);font-weight:500;font-size:11px;white-space:nowrap;border-bottom:1px solid var(--border);}
 th[onclick]:hover{color:var(--accent);background:rgba(58,126,246,0.05);}
@@ -233,6 +237,7 @@ th{position:relative;}
 <header>
   <div class="logo" onclick="refreshApp()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
+    <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
@@ -252,6 +257,7 @@ th{position:relative;}
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
+  <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
   <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
@@ -2068,6 +2074,26 @@ function parseCSV(row){
   }
   result.push(cur.trim()); return result;
 }
+
+// ── 다크모드 ───────────────────────────
+function toggleDarkMode() {
+  var isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('darkMode', isDark ? '1' : '0');
+  updateDarkModeBtn(isDark);
+}
+function updateDarkModeBtn(isDark) {
+  var btn = document.getElementById('darkModeBtn');
+  var btnM = document.getElementById('darkModeBtnMobile');
+  if(btn) btn.textContent = isDark ? '☀️ 라이트' : '🌙 다크';
+  if(btnM) btnM.textContent = isDark ? '☀️ 라이트' : '🌙 다크';
+}
+// 저장된 다크모드 복원
+(function(){
+  if(localStorage.getItem('darkMode') === '1') {
+    document.body.classList.add('dark');
+    updateDarkModeBtn(true);
+  }
+})();
 
 // ── PC버전 보기 ───────────────────────────
 function togglePCView() {

@@ -27,9 +27,18 @@
   --danger:#e04a5a;
 }
 body.dark {
-  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3250;
-  --text:#e2e6f0; --text-muted:#6b7499; --danger:#e04a5a;
+  --bg:#1c1e26; --surface:#252832; --surface2:#2e3140; --border:#3a3f55;
+  --text:#d4d8e8; --text-muted:#7a82a8; --danger:#e06070;
 }
+body.dark .mobile-drawer { background:var(--surface) !important; }
+body.dark .login-card { background:var(--surface) !important; color:var(--text) !important; }
+body.dark .btn-outline { background:transparent; color:var(--text-muted); border-color:var(--border); }
+body.dark .tag { opacity:0.85; }
+body.dark .form-input, body.dark .form-textarea, body.dark .form-select { background:var(--bg); color:var(--text); border-color:var(--border); }
+body.dark .search-input, body.dark .filter-select { background:var(--bg); color:var(--text); }
+body.dark thead { background:var(--surface2); }
+body.dark .detail-section { border-color:var(--border); }
+body.dark .doc-row { background:var(--bg); }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;height:100vh;overflow:hidden;}
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
@@ -201,7 +210,7 @@ th{position:relative;}
 
 <!-- 로그인 화면 -->
 <div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);">
-  <div style="background:#fff;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.1);">
+  <div class="login-card" style="background:#fff;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.1);">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="font-family:'Nanum Gothic',sans-serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;">새롬부동산</div>
       <div style="font-size:13px;color:var(--text-muted);">매물관리시스템</div>

@@ -433,6 +433,9 @@ th{position:relative;}
           <div class="photo-preview-grid" id="photoPreviewGrid"></div>
         </div>
         <div class="form-group full">
+          <label>동영상 링크 <span style="font-size:11px;color:var(--text-muted)">(유튜브 / 네이버TV)</span></label>
+          <input class="form-input" type="url" id="f_video" placeholder="https://www.youtube.com/watch?v=..."></div>
+        <div class="form-group full">
           <label>문서 (PDF)</label>
           <div id="formDocSection">
             <div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
@@ -1093,6 +1096,7 @@ function openEditModal(id){
   document.getElementById('f_memo').value=p.memo||'';
   document.getElementById('f_note').value=p.note||'';
   document.getElementById('f_naver').value=p.naver||'';
+  document.getElementById('f_video').value=p.video||'';
   currentPhotos=p.photos?p.photos.slice():[];
   renderPhotoPreview(); restoreMemoHeight();
   // 문서 섹션 - 수정 시 업로드 버튼 표시
@@ -1116,7 +1120,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_landArea','f_totalArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_access','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1147,6 +1151,7 @@ function saveProperty(){
     memo:document.getElementById('f_memo').value.trim(),
     note:document.getElementById('f_note').value.trim(),
     naver:document.getElementById('f_naver').value.trim(),
+    video:document.getElementById('f_video').value.trim(),
     updatedDate:dateStr, updatedTime:timeStr,
   };
   var docId=editingId||genId();
@@ -1206,6 +1211,7 @@ function openDetail(id){
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
     (p.note?'<div class="detail-section no-print"><div class="detail-section-title">참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.note)+'</div></div>':'')+
     (p.naver?'<div class="detail-section no-print"><div class="detail-section-title">네이버 광고문구 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.naver)+'</div></div>':'')+
+    (p.video?'<div class="detail-section no-print"><div class="detail-section-title">🎬 동영상</div>'+getVideoEmbed(p.video)+'</div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
     ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName) {
@@ -1418,6 +1424,26 @@ function deleteDoc(propId, docName) {
 }
 
 // ── PDF 뷰어 ──────────────────────────────
+function getVideoEmbed(url) {
+  // 유튜브
+  var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(ytMatch) {
+    return '<iframe width="100%" height="280" src="https://www.youtube.com/embed/'+ytMatch[1]+'" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>';
+  }
+  // 유튜브 shorts
+  var ytShorts = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if(ytShorts) {
+    return '<iframe width="100%" height="280" src="https://www.youtube.com/embed/'+ytShorts[1]+'" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>';
+  }
+  // 네이버TV
+  var naverMatch = url.match(/tv\.naver\.com\/v\/(\d+)/);
+  if(naverMatch) {
+    return '<iframe width="100%" height="280" src="https://tv.naver.com/embed/'+naverMatch[1]+'" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>';
+  }
+  // 기타 링크
+  return '<a href="'+url+'" target="_blank" class="btn btn-outline" style="display:inline-flex;">🎬 동영상 보기</a>';
+}
+
 function openDoc(url, title) {
   // 이미지 확장자 또는 이미지 URL이면 이미지뷰어로
   if(/\.(jpg|jpeg|png|gif|webp|bmp)/i.test(url) || url.includes('image')) {

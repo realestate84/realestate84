@@ -1712,8 +1712,8 @@ function copyProperty(id) {
   var p = properties.find(function(x){ return x.id===id; });
   if(!p) return;
   var now = new Date();
-  var dateStr = now.toISOString().slice(0,10);
-  var timeStr = now.toTimeString().slice(0,8);
+  var dateStr = now.toLocaleDateString('ko-KR');
+  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   var newData = {
     georae:p.georae||'', type:p.type||'', address:p.address||'',
     price:p.price||'', maintenance:p.maintenance||'',

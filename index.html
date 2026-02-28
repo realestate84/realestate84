@@ -91,7 +91,7 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 /* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.active{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:860px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:modalIn 0.22s ease;-webkit-overflow-scrolling:touch;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:modalIn 0.22s ease;-webkit-overflow-scrolling:touch;}
 @keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(0.97)}to{opacity:1;transform:none}}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .modal-title{font-size:16px;font-weight:700;}
@@ -565,7 +565,7 @@ th{position:relative;}
 
 <!-- 통계 모달 -->
 <div class="modal-overlay" id="statsModal">
-  <div class="modal" style="max-width:860px;">
+  <div class="modal" style="max-width:700px;">
     <div class="modal-header">
       <div class="modal-title">📊 매물 통계</div>
       <button class="modal-close" onclick="closeStats()">×</button>

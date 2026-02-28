@@ -469,14 +469,14 @@ th{position:relative;}
     <div class="modal-header">
       <div class="modal-title" id="detailTitle"></div>
       <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
         <button class="btn btn-primary" id="detailEditBtn">수정</button>
         <button class="btn btn-outline" onclick="printDetail()">🖨 인쇄</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
     </div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer" style="justify-content:space-between;">
-      <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
+    <div class="modal-footer" style="justify-content:flex-end;">
       <button class="btn btn-danger" id="detailDeleteBtn">🗑 삭제</button>
     </div>
   </div>
@@ -897,7 +897,7 @@ function renderTable() {
         '<td class="muted">'+(p.jimok||'-')+'</td>'+
         '<td class="muted">'+(p.ownerName||'-')+'</td>'+
         '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
-        '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart)+'"></span></td>'+
+        '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>'+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
@@ -1275,8 +1275,7 @@ function openDetail(id){
   window._dp=p.photos||[];
   document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };
   document.getElementById('detailDeleteBtn').onclick=function(){ deleteProperty(id); };
-  document.getElementById('detailAdBtn').onclick=function(){ startAd(id); };
-  // 광고 버튼 상태 업데이트
+  document.getElementById('detailAdBtn').onclick=function(){ toggleAd(id); };
   updateAdBtn(p);
   document.getElementById('detailModal').classList.add('active');
 
@@ -1454,53 +1453,91 @@ function deleteDoc(propId, docName) {
 
 // ── PDF 뷰어 ──────────────────────────────
 // ── 네이버 광고 ───────────────────────────
-function getAdDaysLeft(adStart) {
+function getAdDaysLeft(adStart, adEnd) {
   if(!adStart) return null;
+  if(adEnd) return 0; // 수동 종료
   var start = new Date(adStart);
   var now = new Date();
   var diff = Math.floor((now - start) / (1000*60*60*24));
-  return 30 - diff; // 남은 일수
+  return 30 - diff;
 }
 
-function getAdLightClass(adStart) {
-  var left = getAdDaysLeft(adStart);
-  if(left === null || left <= 0) return ''; // 꺼짐
-  if(left === 1) return 'warn';             // 빨간불 (1일 전)
-  if(left === 2) return 'dim2';             // 매우 흐린 녹색
-  if(left <= 4) return 'dim1';             // 흐린 녹색 (5~2일 전)
-  return 'on';                              // 밝은 녹색
+function getAdLightClass(adStart, adEnd) {
+  var left = getAdDaysLeft(adStart, adEnd);
+  if(left === null || left <= 0) return '';
+  if(left === 1) return 'warn';
+  if(left === 2) return 'dim2';
+  if(left <= 4) return 'dim1';
+  return 'on';
 }
 
 function updateAdBtn(p) {
   var btn = document.getElementById('detailAdBtn');
   if(!btn) return;
-  var left = getAdDaysLeft(p.adStart);
-  if(left !== null && left > 0) {
-    var label = left === 1 ? '⚠️ 광고 만료 1일 전!' : '🟢 광고중 ('+left+'일 남음)';
-    btn.textContent = label;
-    btn.style.color = left === 1 ? '#ef4444' : '#22c55e';
+  var left = getAdDaysLeft(p.adStart, p.adEnd);
+  var isOn = left !== null && left > 0;
+
+  if(isOn) {
+    // 켜진 상태
+    if(left === 1) {
+      btn.textContent = '⚠️ 만료 1일 전 (끄기)';
+      btn.style.color = '#ef4444';
+    } else {
+      btn.textContent = '🟢 광고중 ' + left + '일 남음 (끄기)';
+      btn.style.color = '#22c55e';
+    }
+    btn.style.background = 'rgba(34,197,94,0.08)';
     btn.style.borderColor = 'transparent';
-    btn.title = '클릭하면 광고를 30일 연장합니다';
+    btn.dataset.state = 'on';
+  } else if(p.adEnd) {
+    // 수동 종료
+    btn.textContent = '⚫ 광고종료 (다시시작)';
+    btn.style.color = '#7a85a8';
+    btn.style.background = 'transparent';
+    btn.style.borderColor = 'transparent';
+    btn.dataset.state = 'ended';
+  } else if(p.adStart && left <= 0) {
+    // 30일 만료 자동 종료
+    btn.textContent = '⚫ 광고만료 (다시시작)';
+    btn.style.color = '#7a85a8';
+    btn.style.background = 'transparent';
+    btn.style.borderColor = 'transparent';
+    btn.dataset.state = 'expired';
   } else {
-    btn.textContent = '🟢 네이버 광고시작';
-    btn.style.color = '#22c55e';
+    // 꺼진 상태 (시작 안함)
+    btn.textContent = '⚫ 광고시작';
+    btn.style.color = '#7a85a8';
+    btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
-    btn.title = '';
+    btn.dataset.state = 'off';
   }
 }
 
-function startAd(id) {
+function toggleAd(id) {
   var p = properties.find(function(x){ return x.id===id; });
-  var left = getAdDaysLeft(p && p.adStart);
-  var msg = (left !== null && left > 0)
-    ? '광고를 30일 연장하시겠습니까? ('+left+'일 남음)'
-    : '네이버 광고를 시작하시겠습니까? (30일)';
-  if(!confirm(msg)) return;
-  var today = new Date().toISOString().split('T')[0];
-  db.collection(COLLECTION).doc(id).update({ adStart: today }).then(function() {
-    if(p) p.adStart = today;
-    updateAdBtn(p);
-  });
+  if(!p) return;
+  var btn = document.getElementById('detailAdBtn');
+  var state = btn.dataset.state;
+
+  if(state === 'on') {
+    // 켜진 상태 → 끄기
+    if(!confirm('광고를 종료하시겠습니까?')) return;
+    db.collection(COLLECTION).doc(id).update({ adEnd: new Date().toISOString().split('T')[0] }).then(function() {
+      p.adEnd = new Date().toISOString().split('T')[0];
+      updateAdBtn(p);
+      renderTable();
+    });
+  } else {
+    // 꺼진/종료/만료 상태 → 켜기 (새로 30일 시작)
+    if(!confirm('네이버 광고를 시작하시겠습니까? (30일)')) return;
+    var today = new Date().toISOString().split('T')[0];
+    db.collection(COLLECTION).doc(id).update({ adStart: today, adEnd: '' }).then(function() {
+      p.adStart = today;
+      p.adEnd = '';
+      updateAdBtn(p);
+      renderTable();
+    });
+  }
 }
 
 function getVideoEmbed(url) {

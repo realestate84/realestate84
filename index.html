@@ -637,7 +637,7 @@ function renderTable() {
         '<td>'+thumb+'</td>'+
         '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>'+
         '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>'+
-        '<td class="address-text">'+(p.address||'-')+'</td>'+
+        '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>'+
         '<td style="font-weight:600">'+(p.price||'-')+'</td>'+
         '<td class="muted">'+(p.landArea?p.landArea+'평':'-')+'</td>'+
         '<td class="muted">'+(p.totalArea?p.totalArea+'평':'-')+'</td>'+
@@ -714,13 +714,18 @@ function linkifyMemo(text) {
   return escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>');
 }
 
-function copyAddress(addr) {
+function copyAddress(addr, e) {
   navigator.clipboard.writeText(addr).then(function() {
-    var el = event.currentTarget;
-    var badge = el.querySelector('span');
-    badge.textContent = '복사됨!';
-    badge.style.color = 'var(--success)';
-    setTimeout(function(){ badge.textContent = '복사'; badge.style.color = ''; }, 1500);
+    if(e && e.currentTarget) {
+      var el = e.currentTarget;
+      var orig = el.style.color;
+      el.style.color = 'var(--accent)';
+      setTimeout(function(){ el.style.color = orig; }, 1000);
+    } else if(event && event.currentTarget) {
+      var el = event.currentTarget;
+      var badge = el.querySelector('.copy-badge');
+      if(badge){ badge.textContent='복사됨!'; badge.style.color='var(--accent)'; setTimeout(function(){ badge.textContent='복사'; badge.style.color=''; },1500); }
+    }
   });
 }
 

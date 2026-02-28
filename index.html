@@ -417,6 +417,10 @@ th{position:relative;}
           <input class="form-input" type="date" id="f_approvalDate">
         </div>
         <div class="form-group">
+          <label>총층수</label>
+          <input class="form-input" type="text" id="f_floors" placeholder="예) 1층, 2층, 지하1층+지상2층">
+        </div>
+        <div class="form-group">
           <label>동력 (kw)</label>
           <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
         </div>
@@ -881,7 +885,7 @@ function renderTable() {
   var list = properties.filter(function(p){
     if(fg && p.georae!==fg) return false;
     if(ft && p.type!==ft) return false;
-    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.landArea,p.totalArea,p.rentArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.landArea,p.totalArea,p.rentArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.floors,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     // 가격 범위
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
     if(priceMin && price < priceMin) return false;
@@ -1186,6 +1190,7 @@ function openEditModal(id){
   document.getElementById('f_jimok').value=p.jimok||'';
   document.getElementById('f_buildingUse').value=p.buildingUse||'';
   document.getElementById('f_approvalDate').value=p.approvalDate||'';
+  document.getElementById('f_floors').value=p.floors||'';
   document.getElementById('f_electric').value=p.electric||'';
   document.getElementById('f_hoist').value=p.hoist||'';
   document.getElementById('f_direction').value=p.direction||'';
@@ -1224,7 +1229,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_rentArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_rentArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_floors','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1251,6 +1256,7 @@ function saveProperty(){
     jimok:document.getElementById('f_jimok').value.trim(),
     buildingUse:document.getElementById('f_buildingUse').value.trim(),
     approvalDate:document.getElementById('f_approvalDate').value,
+    floors:document.getElementById('f_floors').value.trim(),
     electric:document.getElementById('f_electric').value.trim(),
     hoist:document.getElementById('f_hoist').value.trim(),
     direction:document.getElementById('f_direction').value.trim(),
@@ -1319,6 +1325,7 @@ function openDetail(id){
       '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
       '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>'+
       '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>'+
+      '<div class="detail-item"><label>총층수</label><div class="val">'+(p.floors||'-')+'</div></div>'+
       '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric ? p.electric+'kw' : '-')+'</div></div>'+
       '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>'+
       '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>'+

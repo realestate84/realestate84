@@ -579,16 +579,19 @@ db = firebase.firestore();
 storage = firebase.storage();
 auth = firebase.auth();
 
-// ── 로그인 상태 감지 ──────────────────────
-auth.onAuthStateChanged(function(user) {
-  if(user) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainScreen').style.display = 'block';
-    load();
-  } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('mainScreen').style.display = 'none';
-  }
+// 로그인 영구 유지 설정
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
+  // 로그인 상태 감지
+  auth.onAuthStateChanged(function(user) {
+    if(user) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+      load();
+    } else {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('mainScreen').style.display = 'none';
+    }
+  });
 });
 
 function doGoogleLogin() {

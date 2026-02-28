@@ -74,6 +74,8 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .tag-빌라{background:rgba(108,71,245,0.15);color:#6c47f5;}
 .tag-원투룸{background:rgba(32,170,200,0.15);color:#20aac8;}
 .ad-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.dep-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.dep-light.on{background:#3a7ef6;box-shadow:0 0 6px rgba(58,126,246,0.7);}
 .table-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);}
 .ad-light.on{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);}
 .ad-light.dim1{background:#facc15;box-shadow:0 0 4px rgba(250,204,21,0.6);}
@@ -325,6 +327,7 @@ th{position:relative;}
           <th onclick="sortTable('ownerName')" style="cursor:pointer;width:80px">소유자 <span id="sort_ownerName"></span></th>
           <th onclick="sortTable('createdDate')" style="cursor:pointer;width:70px">등록일시 <span id="sort_createdDate"></span></th>
           <th onclick="sortTable('adStatus')" style="cursor:pointer;width:24px" title="네이버광고">광고 <span id="sort_adStatus"></span></th>
+          <th onclick="sortTable('departure')" style="cursor:pointer;width:24px" title="출발가능여부">출발 <span id="sort_departure"></span></th>
           <th style="width:80px">관리</th>
         </tr>
       </thead>
@@ -470,6 +473,7 @@ th{position:relative;}
       <div class="modal-title" id="detailTitle"></div>
       <div style="display:flex;gap:6px;align-items:center;">
         <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
+        <button class="btn btn-outline" id="detailDepBtn" style="border-color:transparent;">⚫ 출발불가</button>
         <button class="btn btn-primary" id="detailEditBtn">수정</button>
         <button class="btn btn-outline" onclick="printDetail()">🖨 인쇄</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
@@ -865,6 +869,11 @@ function renderTable() {
       if(lb < 0) lb = 0;
       return sortDir === 'asc' ? la - lb : lb - la;
     }
+    if(sortKey === 'departure') {
+      var da = a.departure ? 1 : 0;
+      var db = b.departure ? 1 : 0;
+      return sortDir === 'asc' ? da - db : db - da;
+    }
     var va = a[sortKey] || '';
     var vb = b[sortKey] || '';
     // 숫자 필드
@@ -903,6 +912,7 @@ function renderTable() {
         '<td class="muted">'+(p.ownerName||'-')+'</td>'+
         '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
         '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>'+
+        '<td style="text-align:center"><span class="dep-light '+(p.departure?'on':'')+'"></span></td>'+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
@@ -1294,7 +1304,9 @@ function openDetail(id){
   document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };
   document.getElementById('detailDeleteBtn').onclick=function(){ deleteProperty(id); };
   document.getElementById('detailAdBtn').onclick=function(){ toggleAd(id); };
+  document.getElementById('detailDepBtn').onclick=function(){ toggleDeparture(id); };
   updateAdBtn(p);
+  updateDepBtn(p);
   document.getElementById('detailModal').classList.add('active');
 
   if(p.address){
@@ -1518,6 +1530,30 @@ function deleteDoc(propId, docName) {
 
 // ── PDF 뷰어 ──────────────────────────────
 // ── 네이버 광고 ───────────────────────────
+function updateDepBtn(p) {
+  var btn = document.getElementById('detailDepBtn');
+  if(!btn) return;
+  if(p.departure) {
+    btn.textContent = '🔵 출발가능';
+    btn.style.color = '#3a7ef6';
+  } else {
+    btn.textContent = '⚫ 출발불가';
+    btn.style.color = '#7a85a8';
+  }
+  btn.style.borderColor = 'transparent';
+}
+
+function toggleDeparture(id) {
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var newVal = !p.departure;
+  db.collection(COLLECTION).doc(id).update({ departure: newVal }).then(function() {
+    p.departure = newVal;
+    updateDepBtn(p);
+    renderTable();
+  });
+}
+
 function getAdDaysLeft(adStart, adEnd) {
   if(!adStart) return null;
   if(adEnd) return 0; // 수동 종료

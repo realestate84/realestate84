@@ -877,17 +877,14 @@ function saveProperty(){
       saveEdit(editingId, data, function(err){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
-        var idx=properties.findIndex(function(p){return p.id===editingId;});
-        properties[idx]=Object.assign({},properties[idx],data);
-        renderTable(); closeFormModal();
+        closeFormModal();
       });
     } else {
       data.createdDate=dateStr; data.createdTime=timeStr; data.updatedDate=''; data.updatedTime='';
       saveNew(data, function(err, newId){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
-        properties.unshift(Object.assign({id:newId},data));
-        renderTable(); closeFormModal();
+        closeFormModal();
       });
     }
   });
@@ -1057,8 +1054,7 @@ function deleteProperty(id){
   var p=properties.find(function(x){return x.id===id;});
   deleteFromDB(id, p?p.photos:[], function(err){
     if(err){ alert('삭제 오류: '+err.message); return; }
-    properties=properties.filter(function(x){return x.id!==id;});
-    renderTable();
+    closeDetailModal();
   });
 }
 

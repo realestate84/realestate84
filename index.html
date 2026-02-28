@@ -881,7 +881,7 @@ function renderTable() {
   var list = properties.filter(function(p){
     if(fg && p.georae!==fg) return false;
     if(ft && p.type!==ft) return false;
-    if(q){var hay=[p.address,p.memo,p.ownerName,p.ownerPhone,p.useZone,p.jimok].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.landArea,p.totalArea,p.rentArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     // 가격 범위
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
     if(priceMin && price < priceMin) return false;

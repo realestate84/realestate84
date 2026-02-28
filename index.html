@@ -73,7 +73,12 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .tag-아파트{background:rgba(58,126,246,0.15);color:#3a7ef6;}
 .tag-빌라{background:rgba(108,71,245,0.15);color:#6c47f5;}
 .tag-원투룸{background:rgba(32,170,200,0.15);color:#20aac8;}
-.table-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);}
+.ad-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.ad-light.on{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);}
+.ad-light.dim1{background:#facc15;box-shadow:0 0 4px rgba(250,204,21,0.6);}
+.ad-light.dim2{background:#fde68a;box-shadow:none;}
+.ad-light.warn{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.7);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 .action-btns{display:flex;gap:5px;}
 .muted{color:var(--text-muted);}
 .address-text{max-width:180px;overflow:hidden;text-overflow:ellipsis;}
@@ -318,6 +323,7 @@ th{position:relative;}
           <th onclick="sortTable('jimok')" style="cursor:pointer;width:50px">지목 <span id="sort_jimok"></span></th>
           <th onclick="sortTable('ownerName')" style="cursor:pointer;width:80px">소유자 <span id="sort_ownerName"></span></th>
           <th onclick="sortTable('createdDate')" style="cursor:pointer;width:70px">등록일시 <span id="sort_createdDate"></span></th>
+          <th style="width:24px" title="네이버광고">광고</th>
           <th style="width:80px">관리</th>
         </tr>
       </thead>
@@ -468,7 +474,8 @@ th{position:relative;}
       </div>
     </div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer" style="justify-content:flex-end;">
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn btn-outline" id="detailAdBtn" style="color:#22c55e;border-color:transparent;">🟢 네이버 광고시작</button>
       <button class="btn btn-danger" id="detailDeleteBtn">🗑 삭제</button>
     </div>
   </div>
@@ -889,6 +896,7 @@ function renderTable() {
         '<td class="muted">'+(p.jimok||'-')+'</td>'+
         '<td class="muted">'+(p.ownerName||'-')+'</td>'+
         '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
+        '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart)+'"></span></td>'+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
@@ -1260,6 +1268,9 @@ function openDetail(id){
   window._dp=p.photos||[];
   document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };
   document.getElementById('detailDeleteBtn').onclick=function(){ deleteProperty(id); };
+  document.getElementById('detailAdBtn').onclick=function(){ startAd(id); };
+  // 광고 버튼 상태 업데이트
+  updateAdBtn(p);
   document.getElementById('detailModal').classList.add('active');
 
   if(p.address){
@@ -1431,6 +1442,56 @@ function deleteDoc(propId, docName) {
 }
 
 // ── PDF 뷰어 ──────────────────────────────
+// ── 네이버 광고 ───────────────────────────
+function getAdDaysLeft(adStart) {
+  if(!adStart) return null;
+  var start = new Date(adStart);
+  var now = new Date();
+  var diff = Math.floor((now - start) / (1000*60*60*24));
+  return 30 - diff; // 남은 일수
+}
+
+function getAdLightClass(adStart) {
+  var left = getAdDaysLeft(adStart);
+  if(left === null || left <= 0) return ''; // 꺼짐
+  if(left === 1) return 'warn';             // 빨간불 (1일 전)
+  if(left === 2) return 'dim2';             // 매우 흐린 녹색
+  if(left <= 4) return 'dim1';             // 흐린 녹색 (5~2일 전)
+  return 'on';                              // 밝은 녹색
+}
+
+function updateAdBtn(p) {
+  var btn = document.getElementById('detailAdBtn');
+  if(!btn) return;
+  var left = getAdDaysLeft(p.adStart);
+  if(left !== null && left > 0) {
+    var label = left === 1 ? '⚠️ 광고 만료 1일 전!' : '🟢 광고중 ('+left+'일 남음)';
+    btn.textContent = label;
+    btn.style.color = left === 1 ? '#ef4444' : '#22c55e';
+    btn.style.borderColor = 'transparent';
+    btn.title = '클릭하면 광고를 30일 연장합니다';
+  } else {
+    btn.textContent = '🟢 네이버 광고시작';
+    btn.style.color = '#22c55e';
+    btn.style.borderColor = 'transparent';
+    btn.title = '';
+  }
+}
+
+function startAd(id) {
+  var p = properties.find(function(x){ return x.id===id; });
+  var left = getAdDaysLeft(p && p.adStart);
+  var msg = (left !== null && left > 0)
+    ? '광고를 30일 연장하시겠습니까? ('+left+'일 남음)'
+    : '네이버 광고를 시작하시겠습니까? (30일)';
+  if(!confirm(msg)) return;
+  var today = new Date().toISOString().split('T')[0];
+  db.collection(COLLECTION).doc(id).update({ adStart: today }).then(function() {
+    if(p) p.adStart = today;
+    updateAdBtn(p);
+  });
+}
+
 function getVideoEmbed(url) {
   // 유튜브
   var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);

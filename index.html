@@ -19,7 +19,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <!-- 카카오맵 -->
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services"></script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services,roadview"></script>
 <style>
 :root {
   --bg:#f4f6fb; --surface:#fff; --surface2:#eef1f8; --border:#dde2f0;
@@ -1261,7 +1261,14 @@ function openDetail(id){
       '</div>';
     }).join('')+
     '</div>'+
-    (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div><div id="kakaoMap"></div></div>':'')+
+    (p.address?'<div class="detail-section"><div class="detail-section-title">위치</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:8px;">'+
+        '<button class="btn btn-sm" id="tabMap" onclick="switchMapTab(\'map\')" style="background:var(--accent);color:#fff;border:none;">🗺 지도</button>'+
+        '<button class="btn btn-sm btn-outline" id="tabRoadview" onclick="switchMapTab(\'roadview\')">🚶 로드뷰</button>'+
+      '</div>'+
+      '<div id="kakaoMap"></div>'+
+      '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);margin-top:4px;"></div>'+
+    '</div>':'')+
     '<div class="detail-section">'+
       '<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
         '<span>사진 '+(p.photos&&p.photos.length>0?'('+p.photos.length+'장)':'')+'</span>'+
@@ -1293,23 +1300,66 @@ function openDetail(id){
         if(attempt < 10) setTimeout(function(){ tryMap(attempt+1); }, 500);
         return;
       }
-      var container=document.getElementById('kakaoMap');
+      var container = document.getElementById('kakaoMap');
       if(!container) return;
-      var map=new kakao.maps.Map(container,{center:new kakao.maps.LatLng(37.5665,126.9780),level:4});
-      var gc=new kakao.maps.services.Geocoder();
-      gc.addressSearch(p.address,function(result,status){
-        if(status===kakao.maps.services.Status.OK){
-          var coords=new kakao.maps.LatLng(result[0].y,result[0].x);
-          new kakao.maps.Marker({map:map,position:coords});
-          map.setCenter(coords);
+      var mapObj = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4});
+      var gc = new kakao.maps.services.Geocoder();
+      gc.addressSearch(p.address, function(result, status) {
+        if(status === kakao.maps.services.Status.OK) {
+          var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+          new kakao.maps.Marker({map: mapObj, position: coords});
+          mapObj.setCenter(coords);
+          // 로드뷰 좌표 저장
+          window._mapCoords = coords;
         } else {
-          container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
+          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
         }
       });
+      window._kakaoMapObj = mapObj;
     };
     setTimeout(function(){ tryMap(0); }, 500);
   }
 }
+
+function switchMapTab(tab) {
+  var mapEl = document.getElementById('kakaoMap');
+  var rvEl = document.getElementById('kakaoRoadview');
+  var tabMap = document.getElementById('tabMap');
+  var tabRv = document.getElementById('tabRoadview');
+  if(!mapEl || !rvEl) return;
+
+  if(tab === 'map') {
+    mapEl.style.display = '';
+    rvEl.style.display = 'none';
+    tabMap.style.background = 'var(--accent)';
+    tabMap.style.color = '#fff';
+    tabMap.className = 'btn btn-sm';
+    tabRv.style.background = '';
+    tabRv.style.color = '';
+    tabRv.className = 'btn btn-sm btn-outline';
+  } else {
+    mapEl.style.display = 'none';
+    rvEl.style.display = '';
+    tabMap.className = 'btn btn-sm btn-outline';
+    tabMap.style.background = '';
+    tabMap.style.color = '';
+    tabRv.style.background = 'var(--accent)';
+    tabRv.style.color = '#fff';
+    tabRv.className = 'btn btn-sm';
+    // 로드뷰 초기화 (최초 1회만)
+    if(!window._rvInitialized && window._mapCoords) {
+      var rvClient = new kakao.maps.RoadviewClient();
+      var roadview = new kakao.maps.Roadview(rvEl);
+      rvClient.getNearestPanoId(window._mapCoords, 50, function(panoId) {
+        if(panoId) {
+          roadview.setPanoId(panoId, window._mapCoords);
+        } else {
+          rvEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">이 위치의 로드뷰를 찾을 수 없습니다</div>';
+        }
+      });
+      window._rvInitialized = true;
+    }
+  }
 function printDetail() {
   var body = document.getElementById('detailBody').innerHTML;
   var title = document.getElementById('detailTitle').innerHTML;
@@ -1372,6 +1422,9 @@ function closeDetailModal(){
   document.getElementById('detailModal').classList.remove('active'); 
   closeLightbox();
   window._dp=[];
+  window._rvInitialized = false;
+  window._mapCoords = null;
+  window._kakaoMapObj = null;
 }
 
 // ── 삭제 ──────────────────────────────────

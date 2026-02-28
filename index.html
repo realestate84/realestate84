@@ -389,8 +389,12 @@ th{position:relative;}
           <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
         </div>
         <div class="form-group">
-          <label>임대면적 (평)</label>
-          <input class="form-input" type="text" id="f_rentArea" placeholder="예) 30">
+          <label>면적(공급) (평)</label>
+          <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
+        </div>
+        <div class="form-group">
+          <label>면적(전용) (평)</label>
+          <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
         </div>
         <div class="form-group">
           <label>가설면적 (평)</label>
@@ -885,7 +889,7 @@ function renderTable() {
   var list = properties.filter(function(p){
     if(fg && p.georae!==fg) return false;
     if(ft && p.type!==ft) return false;
-    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.landArea,p.totalArea,p.rentArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.floors,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.landArea,p.totalArea,p.supplyArea,p.exclusiveArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.floors,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     // 가격 범위
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
     if(priceMin && price < priceMin) return false;
@@ -1183,7 +1187,8 @@ function openEditModal(id){
   document.getElementById('f_maintenance').value=p.maintenance||'';
   document.getElementById('f_landArea').value=p.landArea||'';
   document.getElementById('f_totalArea').value=p.totalArea||'';
-  document.getElementById('f_rentArea').value=p.rentArea||'';
+  document.getElementById('f_supplyArea').value=p.supplyArea||'';
+  document.getElementById('f_exclusiveArea').value=p.exclusiveArea||(p.rentArea||'');
   document.getElementById('f_tempArea').value=p.tempArea||'';
   document.getElementById('f_roadArea').value=p.roadArea||'';
   document.getElementById('f_useZone').value=p.useZone||'';
@@ -1229,7 +1234,7 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_rentArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_floors','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address','f_price','f_maintenance','f_landArea','f_totalArea','f_supplyArea','f_exclusiveArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_floors','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1249,7 +1254,8 @@ function saveProperty(){
     maintenance:document.getElementById('f_maintenance').value.trim(),
     landArea:document.getElementById('f_landArea').value.trim(),
     totalArea:document.getElementById('f_totalArea').value.trim(),
-    rentArea:document.getElementById('f_rentArea').value.trim(),
+    supplyArea:document.getElementById('f_supplyArea').value.trim(),
+    exclusiveArea:document.getElementById('f_exclusiveArea').value.trim(),
     tempArea:document.getElementById('f_tempArea').value.trim(),
     roadArea:document.getElementById('f_roadArea').value.trim(),
     useZone:document.getElementById('f_useZone').value.trim(),
@@ -1318,7 +1324,8 @@ function openDetail(id){
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>임대면적</label><div class="val">'+(p.rentArea?p.rentArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>면적(공급)</label><div class="val">'+(p.supplyArea?p.supplyArea+' 평':'-')+'</div></div>'+
+      '<div class="detail-item"><label>면적(전용)</label><div class="val">'+((p.exclusiveArea||(p.rentArea))?((p.exclusiveArea||p.rentArea)+' 평'):'-')+'</div></div>'+
       '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
       '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>'+

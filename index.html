@@ -1442,6 +1442,7 @@ function openDetail(id){
   updateAdBtn(p);
   updateDepBtn(p);
   document.getElementById('detailModal').classList.add('active');
+  document.getElementById('detailBody').scrollTop = 0;
 
   if(p.address){
     var tryMap = function(attempt) {

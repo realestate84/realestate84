@@ -1288,6 +1288,23 @@ function openDetail(id){
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
     (p.note?'<div class="detail-section no-print"><div class="detail-section-title">참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.note)+'</div></div>':'')+
     (p.naver?'<div class="detail-section no-print"><div class="detail-section-title">네이버 광고문구 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.naver)+'</div></div>':'')+
+    '<div class="detail-section no-print"><div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
+      '<span>📋 히스토리</span>'+
+    '</div>'+
+    '<div id="historyList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:180px;overflow-y:auto;">'+
+      (p.history && p.history.length > 0 ?
+        p.history.slice().reverse().map(function(h){
+          return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
+            '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
+            '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>';
+        }).join('') :
+        '<div style="padding:8px 0;color:var(--text-muted);">등록된 히스토리가 없어요.</div>'
+      )+
+    '</div>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<textarea id="historyInput" class="form-textarea" placeholder="히스토리 내용 입력..." style="flex:1;min-height:60px;font-size:13px;resize:vertical;"></textarea>'+
+      '<button class="btn btn-primary btn-sm" onclick="addHistory(\''+id+'\')" style="align-self:flex-end;white-space:nowrap;">추가</button>'+
+    '</div></div>'+
     (p.video?'<div class="detail-section no-print"><div class="detail-section-title">🎬 동영상</div>'+getVideoEmbed(p.video)+'</div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
@@ -1597,6 +1614,32 @@ function updateDepBtn(p) {
     btn.style.color = '#7a85a8';
   }
   btn.style.borderColor = 'transparent';
+}
+
+function addHistory(id) {
+  var input = document.getElementById('historyInput');
+  var text = input.value.trim();
+  if(!text) return;
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p) return;
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var newEntry = { date: dateStr, text: text };
+  var history = p.history ? p.history.slice() : [];
+  history.push(newEntry);
+  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+    p.history = history;
+    input.value = '';
+    // 히스토리 목록 갱신
+    var list = document.getElementById('historyList');
+    if(list) {
+      list.innerHTML = history.slice().reverse().map(function(h){
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
+          '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+h.date+'</span>'+
+          '<div style="white-space:pre-wrap;margin-top:2px;">'+h.text+'</div></div>';
+      }).join('');
+    }
+  });
 }
 
 function toggleDeparture(id) {

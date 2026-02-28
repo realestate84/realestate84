@@ -377,7 +377,9 @@ th{position:relative;}
       </div>
     </div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer" style="display:none"></div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-danger" id="detailDeleteBtn">🗑 삭제</button>
+    </div>
   </div>
 </div>
 
@@ -645,7 +647,6 @@ function renderTable() {
         '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
-          '<button class="btn btn-danger btn-sm" onclick="deleteProperty(\''+p.id+'\')">삭제</button>'+
         '</div></td>'+
       '</tr>';
     }).join('');
@@ -963,6 +964,7 @@ function openDetail(id){
 
   window._dp=p.photos||[];
   document.getElementById('detailEditBtn').onclick=function(){ openEditModal(id); };
+  document.getElementById('detailDeleteBtn').onclick=function(){ deleteProperty(id); };
   document.getElementById('detailModal').classList.add('active');
 
   if(p.address){

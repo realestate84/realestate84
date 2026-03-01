@@ -1496,13 +1496,11 @@ function updateFormFieldVisibility(type) {
     var lbl = document.getElementById('flabel_'+key);
     if(lbl) lbl.textContent = getFieldLabel(key, lbl.textContent);
   });
-  // 가격/관리비/권리금 3컬럼 그리드: 모두 숨겨지면 그리드 wrapper도 숨기기
-  var priceGrid = document.querySelector('#formModal [data-field-key="price"]');
-  if(priceGrid && priceGrid.parentNode && priceGrid.parentNode.style.display==='grid'||
-     priceGrid && priceGrid.parentNode && window.getComputedStyle(priceGrid.parentNode).display==='grid') {
-    var gridEl = priceGrid.parentNode;
-    var allHidden = Array.from(gridEl.children).every(function(c){ return c.style.display==='none'; });
-    gridEl.style.display = allHidden ? 'none' : '';
+  // 가격 그리드 wrapper: 자식이 모두 숨겨지면 wrapper도 숨기기
+  var priceGridWrapper = document.querySelector('#formModal [data-price-grid]');
+  if(priceGridWrapper) {
+    var allHidden = Array.from(priceGridWrapper.querySelectorAll('[data-field-key]')).every(function(c){ return c.style.display==='none'; });
+    priceGridWrapper.style.display = allHidden ? 'none' : '';
   }
 }
 
@@ -1545,6 +1543,11 @@ function openAddModal(){
   document.getElementById('formModalTitle').textContent='매물 등록';
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
   renderCustomFieldsInForm('', null);
+  // 매물종류 미선택 상태: 항목설정 대상 항목 전부 숨김
+  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
+    el.style.display = 'none';
+  });
+  document.querySelector('#formModal [data-price-grid]') && (document.querySelector('#formModal [data-price-grid]').style.display = 'none');
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
   document.getElementById('formModal').classList.add('active');
@@ -2883,7 +2886,8 @@ function loadFieldSettings(callback) {
           fieldOrder[t].push(key);
           orderSet[key] = true;
           if(!fieldSettings[t]) fieldSettings[t] = {};
-          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = true;
+          // 신규 추가 키는 false(OFF)로 등록 → 사용자가 항목설정에서 직접 ON
+          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = false;
           if(!fieldSections[key]) fieldSections[key] = DEFAULT_FIELDS.find(function(f){ return f.key===key; }).section;
           needsSave = true;
         }
@@ -2964,9 +2968,15 @@ function getOrderedFields(type) {
 }
 
 function isFieldVisible(type, key) {
-  if(!fieldSettings[type]) return true;
-  if(fieldSettings[type][key] === undefined) return true;
-  return fieldSettings[type][key];
+  if(!type) return true; // 매물종류 미선택 시 전체 표시
+  if(!fieldSettings[type]) return true; // 해당 타입 설정 없으면 전체 표시
+  var val = fieldSettings[type][key];
+  if(val === undefined) {
+    // fieldSettings에 없는 키 → DEFAULT_FIELDS에 있으면 ON, 없으면(커스텀) OFF
+    var inDefault = DEFAULT_FIELDS.some(function(f){ return f.key === key; });
+    return inDefault;
+  }
+  return val;
 }
 
 // 설정 임시 상태 (저장 전까지 원본 유지)

@@ -344,26 +344,23 @@ th{position:relative;}
       </div>
     </div>
   </div>
+  <div style="display:flex;justify-content:flex-end;padding:6px 2px 6px;">
+    <div style="position:relative;display:inline-block;">
+      <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()" id="colSettingBtn" style="font-size:12px;gap:4px;">⚙️ 컬럼 설정</button>
+      <div id="colSettingPopup" style="display:none;position:absolute;right:0;top:36px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:220px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">표시할 컬럼 선택</div>
+        <div id="colCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+          <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="saveListColumnSettings()">💾 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th onclick="sortTable('propNo')" style="cursor:pointer;width:40px">No. <span id="sort_propNo"></span></th>
-          <th style="width:50px">사진</th>
-          <th onclick="sortTable('georae')" style="cursor:pointer;width:55px">거래 <span id="sort_georae"></span></th>
-          <th onclick="sortTable('type')" style="cursor:pointer;width:70px">종류 <span id="sort_type"></span></th>
-          <th onclick="sortTable('address')" style="cursor:pointer;min-width:120px;width:240px;position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>
-          <th onclick="sortTable('price')" style="cursor:pointer;width:90px">가격 <span id="sort_price"></span></th>
-          <th onclick="sortTable('landArea')" style="cursor:pointer;width:75px">토지면적 <span id="sort_landArea"></span></th>
-          <th onclick="sortTable('totalArea')" style="cursor:pointer;width:60px">건축면적 <span id="sort_totalArea"></span></th>
-          <th onclick="sortTable('useZone')" style="cursor:pointer;width:90px">용도지역 <span id="sort_useZone"></span></th>
-          <th onclick="sortTable('jimok')" style="cursor:pointer;width:50px">지목 <span id="sort_jimok"></span></th>
-          <th onclick="sortTable('ownerName')" style="cursor:pointer;width:80px">소유자 <span id="sort_ownerName"></span></th>
-          <th onclick="sortTable('createdDate')" style="cursor:pointer;width:70px">등록일시 <span id="sort_createdDate"></span></th>
-          <th onclick="sortTable('adStatus')" style="cursor:pointer;width:24px" title="네이버광고">광고 <span id="sort_adStatus"></span></th>
-          <th onclick="sortTable('departure')" style="cursor:pointer;width:24px" title="출발가능여부">출발 <span id="sort_departure"></span></th>
-          <th style="width:80px">관리</th>
-        </tr>
+        <tr id="tableHeader"></tr>
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
@@ -687,6 +684,30 @@ var COLLECTION = 'properties';
 var SETTINGS_DOC = 'fieldSettings';
 
 // 매물종류 목록
+// 리스트 컬럼 정의
+var LIST_COLUMNS = [
+  {key:'propNo',    label:'No.',    sortKey:'propNo',    fixed:true},
+  {key:'photo',     label:'사진',   sortKey:null,        fixed:false},
+  {key:'georae',    label:'거래',   sortKey:'georae',    fixed:false},
+  {key:'type',      label:'종류',   sortKey:'type',      fixed:false},
+  {key:'address',   label:'주소',   sortKey:'address',   fixed:true},
+  {key:'price',     label:'가격',   sortKey:'price',     fixed:false},
+  {key:'landArea',  label:'토지면적', sortKey:'landArea', fixed:false},
+  {key:'totalArea', label:'건축면적', sortKey:'totalArea',fixed:false},
+  {key:'useZone',   label:'용도지역', sortKey:'useZone',  fixed:false},
+  {key:'jimok',     label:'지목',   sortKey:'jimok',     fixed:false},
+  {key:'ownerName', label:'소유자', sortKey:'ownerName', fixed:false},
+  {key:'createdDate',label:'등록일', sortKey:'createdDate',fixed:false},
+  {key:'adStatus',  label:'광고',   sortKey:'adStatus',  fixed:false},
+  {key:'departure', label:'출발',   sortKey:'departure', fixed:false},
+];
+// 기본 ON 컬럼
+var listColumnSettings = {
+  propNo:true, photo:true, georae:true, type:true, address:true,
+  price:true, landArea:false, totalArea:false, useZone:false, jimok:false,
+  ownerName:false, createdDate:false, adStatus:false, departure:false
+};
+
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 
 // 기본 항목 정의 (key, label, suffix)
@@ -846,7 +867,8 @@ function uploadPhotos(id, photoList, callback) {
 // ── UI 헬퍼 ──────────────────────────────
 function showLoading(msg) {
   msg = msg || '불러오는 중...';
-  document.getElementById('tableBody').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text-muted)">'+msg+'</td></tr>';
+  var colCount = LIST_COLUMNS.filter(function(c){ return listColumnSettings[c.key]!==false; }).length + 1;
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="'+colCount+'" style="text-align:center;padding:40px;color:var(--text-muted)">'+msg+'</td></tr>';
   document.getElementById('emptyState').style.display = 'none';
 }
 
@@ -1056,6 +1078,21 @@ function renderTable() {
     });
   }
 
+  // 헤더 동적 렌더링
+  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:120px;width:240px',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
+  var visibleCols = LIST_COLUMNS.filter(function(c){ return listColumnSettings[c.key]!==false; });
+  var headerHtml = visibleCols.map(function(c){
+    if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
+    if(c.key==='photo') return '<th style="width:50px">사진</th>';
+    if(!c.sortKey) return '<th style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
+    return '<th onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
+  }).join('') + '<th style="width:80px">관리</th>';
+  document.getElementById('tableHeader').innerHTML = headerHtml;
+
+  // 주소 컬럼 리사이저 재연결
+  var resizer = document.getElementById('addressResizer');
+  if(resizer) initColResizer(resizer);
+
   var tbody = document.getElementById('tableBody');
   var empty = document.getElementById('emptyState');
   if(list.length===0){ tbody.innerHTML=''; empty.style.display='block'; }
@@ -1065,21 +1102,26 @@ function renderTable() {
       var thumb = p.photos&&p.photos.length>0
         ? '<img class="table-thumb" src="'+p.photos[0]+'" alt="사진">'
         : '<span class="muted">—</span>';
-      return '<tr>'+
-        '<td style="font-weight:700;color:var(--accent)">'+(p.propNo||'-')+'</td>'+
-        '<td>'+thumb+'</td>'+
-        '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>'+
-        '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>'+
-        '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>'+
-        '<td style="font-weight:600">'+(p.price||'-')+'</td>'+
-        '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:'평'):'-')+'</td>'+
-        '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:'평'):'-')+'</td>'+
-        '<td class="muted">'+(p.useZone||'-')+'</td>'+
-        '<td class="muted">'+(p.jimok||'-')+'</td>'+
-        '<td class="muted">'+(p.ownerName||'-')+'</td>'+
-        '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>'+
-        '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>'+
-        '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>'+
+      var rowCells = visibleCols.map(function(c){
+        switch(c.key) {
+          case 'propNo':    return '<td style="font-weight:700;color:var(--accent)">'+(p.propNo||'-')+'</td>';
+          case 'photo':     return '<td>'+thumb+'</td>';
+          case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
+          case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
+          case 'address':   return '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
+          case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
+          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:'평'):'-')+'</td>';
+          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:'평'):'-')+'</td>';
+          case 'useZone':   return '<td class="muted">'+(p.useZone||'-')+'</td>';
+          case 'jimok':     return '<td class="muted">'+(p.jimok||'-')+'</td>';
+          case 'ownerName': return '<td class="muted">'+(p.ownerName||'-')+'</td>';
+          case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
+          case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
+          case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
+          default: return '<td>-</td>';
+        }
+      }).join('');
+      return '<tr>'+rowCells+
         '<td><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
@@ -2445,6 +2487,7 @@ function loadFieldSettings(callback) {
       fieldSections = data.fieldSections || {};
       fieldLabelOverrides = data.fieldLabelOverrides || {};
       fieldSuffixOverrides = data.fieldSuffixOverrides || {};
+      listColumnSettings = Object.assign({}, listColumnSettings, data.listColumnSettings || {});
     } else {
       fieldSettings = {};
       customFields = {};
@@ -2501,7 +2544,8 @@ function saveFieldSettings() {
     fieldOrder: fieldOrder,
     fieldSections: fieldSections,
     fieldLabelOverrides: fieldLabelOverrides,
-    fieldSuffixOverrides: fieldSuffixOverrides
+    fieldSuffixOverrides: fieldSuffixOverrides,
+    listColumnSettings: listColumnSettings
   });
 }
 
@@ -2600,10 +2644,46 @@ function confirmSettings() {
   showToast('✅ 설정이 저장됐어요!');
 }
 
+function toggleColumnPopup() {
+  var popup = document.getElementById('colSettingPopup');
+  if(!popup) return;
+  var isOpen = popup.style.display !== 'none';
+  if(isOpen) { popup.style.display='none'; return; }
+  // 체크박스 렌더링
+  var html = '';
+  LIST_COLUMNS.forEach(function(col) {
+    var checked = listColumnSettings[col.key] !== false;
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
+      '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+
+      col.label+(col.fixed?' <span style="font-size:10px;color:var(--text-muted)">고정</span>':'')+
+      '</label>';
+  });
+  document.getElementById('colCheckboxes').innerHTML = html;
+  popup.style.display = 'block';
+}
+
+function renderListColumnPanel() {} // 설정패널 탭 제거 - 더 이상 사용 안 함
+
+function toggleListColumn(key, val) {
+  listColumnSettings[key] = val;
+}
+
+function saveListColumnSettings() {
+  saveFieldSettings();
+  document.getElementById('colSettingPopup').style.display = 'none';
+  showToast('✅ 컬럼 설정이 저장됐어요!');
+}
+
 function renderSettingsPanel() {
   var activeType = window._settingsActiveType || '전체';
+
+  // 리스트 컬럼 탭 처리
+  if(activeType === '__list__') {
+    renderListColumnPanel();
+    return;
+  }
+
   var isAll = (activeType === '전체');
-  // '전체' 탭은 첫번째 매물종류 기준으로 순서/항목 표시
   var refType = isAll ? PROP_TYPES[0] : activeType;
 
   var tmpSettings = _tmpFieldSettings;
@@ -2955,10 +3035,15 @@ function closeMapAll() {
 }
 
 // ── 주소 컬럼 리사이즈 ───────────────────
-(function(){
-  var th, resizer, startX, startW;
-  resizer = document.getElementById('addressResizer');
-  th = document.getElementById('thAddress');
+function initColResizer(resizer) {
+  if(!resizer) return;
+  var th = document.getElementById('thAddress');
+  if(!th) return;
+  // 기존 이벤트 중복 방지
+  var newResizer = resizer.cloneNode(true);
+  resizer.parentNode.replaceChild(newResizer, resizer);
+  resizer = newResizer;
+  var startX, startW;
   resizer.addEventListener('mousedown', function(e) {
     startX = e.pageX;
     startW = th.offsetWidth;
@@ -2981,7 +3066,6 @@ function closeMapAll() {
     document.addEventListener('mouseup', onUp);
     e.preventDefault();
   });
-  // 터치 지원
   resizer.addEventListener('touchstart', function(e) {
     startX = e.touches[0].pageX;
     startW = th.offsetWidth;
@@ -2998,7 +3082,19 @@ function closeMapAll() {
     document.addEventListener('touchend', onEnd);
     e.preventDefault();
   });
-})();
+}
+initColResizer(document.getElementById('addressResizer'));
+
+// 컬럼 팝업 바깥 클릭 시 닫기
+document.addEventListener('click', function(e) {
+  var popup = document.getElementById('colSettingPopup');
+  var btn = document.getElementById('colSettingBtn');
+  if(popup && popup.style.display !== 'none') {
+    if(!popup.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      popup.style.display = 'none';
+    }
+  }
+});
 
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');

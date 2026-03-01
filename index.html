@@ -701,6 +701,8 @@ var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ...
 var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
 var fieldOrder = {};    // { '토지': ['price','landArea',...], ... }
 var fieldSections = {}; // { 'price': '기본정보', 'landArea': '상세정보', ... } - 전체 공통
+var fieldLabelOverrides = {}; // { 'price': '매매가', 'custom_xxx': '욕실수' } - 항목명 변경
+var fieldSuffixOverrides = {}; // { 'price': '만원', 'custom_xxx': '개' } - 단위 설정
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
@@ -1459,13 +1461,15 @@ function openDetail(id){
   var detailItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')!=='기본정보' && isFieldVisible(ptype,f.key); });
 
   function renderFieldVal(f) {
+    var raw = p[f.key] || '';
+    var suffix = getFieldSuffix(f.key);
     var val;
-    if(f.key==='electric') val = p.electric ? p.electric+'kw' : '-';
-    else if(f.key==='height') val = p.height ? p.height+'m' : '-';
-    else if(f.key==='exclusiveArea') val = (p.exclusiveArea||(p.rentArea)) ? (p.exclusiveArea||p.rentArea)+' 평' : '-';
-    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = p[f.key] ? p[f.key]+' 평' : '-';
-    else if(f.key==='price') return '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>';
-    else val = p[f.key] || '-';
+    if(f.key==='electric') val = raw ? raw+(suffix||'kw') : '-';
+    else if(f.key==='height') val = raw ? raw+(suffix||'m') : '-';
+    else if(f.key==='exclusiveArea') { var v=p.exclusiveArea||(p.rentArea)||''; val = v ? v+(suffix||' 평') : '-'; }
+    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = raw ? raw+(suffix||' 평') : '-';
+    else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+(raw ? raw+(suffix?' '+suffix:'') : '-')+'</div></div>';
+    else val = raw ? (raw+(suffix?' '+suffix:'')) : '-';
     return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
   }
 
@@ -2302,6 +2306,8 @@ function loadFieldSettings(callback) {
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
       fieldSections = data.fieldSections || {};
+      fieldLabelOverrides = data.fieldLabelOverrides || {};
+      fieldSuffixOverrides = data.fieldSuffixOverrides || {};
     } else {
       fieldSettings = {};
       customFields = {};
@@ -2356,8 +2362,22 @@ function saveFieldSettings() {
     fieldSettings: fieldSettings,
     customFields: customFields,
     fieldOrder: fieldOrder,
-    fieldSections: fieldSections
+    fieldSections: fieldSections,
+    fieldLabelOverrides: fieldLabelOverrides,
+    fieldSuffixOverrides: fieldSuffixOverrides
   });
+}
+
+// 항목의 실제 표시 이름 반환 (override 우선)
+function getFieldLabel(key, defaultLabel) {
+  return fieldLabelOverrides[key] || defaultLabel;
+}
+
+// 항목의 단위 반환 (override 우선, 없으면 DEFAULT suffix)
+function getFieldSuffix(key) {
+  if(fieldSuffixOverrides[key] !== undefined) return fieldSuffixOverrides[key];
+  var def = DEFAULT_FIELDS.find(function(f){ return f.key===key; });
+  return def ? (def.suffix||'') : '';
 }
 
 // 해당 타입의 전체 항목 순서대로 반환
@@ -2370,8 +2390,8 @@ function getOrderedFields(type) {
   });
   // 전체 항목 맵
   var allFields = {};
-  DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = f; });
-  customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:cf.label, section:'추가 항목', suffix:'', custom:true}; });
+  DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
+  customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:(fieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
   // order대로 반환 (존재하는 것만)
   return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
 }
@@ -2387,12 +2407,16 @@ var _tmpFieldSettings = null;
 var _tmpCustomFields = null;
 var _tmpFieldOrder = null;
 var _tmpFieldSections = null;
+var _tmpFieldLabelOverrides = null;
+var _tmpFieldSuffixOverrides = null;
 
 function openSettings() {
   _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
   _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
   _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
   _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
+  _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(fieldLabelOverrides));
+  _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(fieldSuffixOverrides));
   window._settingsActiveType = '전체';
   renderSettingsPanel();
   document.getElementById('settingsModal').classList.add('active');
@@ -2404,6 +2428,8 @@ function closeSettings() {
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
   _tmpFieldSections = null;
+  _tmpFieldLabelOverrides = null;
+  _tmpFieldSuffixOverrides = null;
   document.getElementById('settingsModal').classList.remove('active');
 }
 
@@ -2413,12 +2439,15 @@ function confirmSettings() {
   customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
   fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
   fieldSections = JSON.parse(JSON.stringify(_tmpFieldSections));
+  fieldLabelOverrides = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
+  fieldSuffixOverrides = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
   saveFieldSettings();
-  // 패널은 그대로 유지, 임시상태를 저장된 상태로 갱신
   _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
   _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
   _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
   _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
+  _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(fieldLabelOverrides));
+  _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(fieldSuffixOverrides));
   showToast('✅ 설정이 저장됐어요!');
 }
 
@@ -2443,8 +2472,8 @@ function renderSettingsPanel() {
     var customs = tmpCustoms[type] || [];
     customs.forEach(function(cf){ if(order.indexOf(cf.key)===-1) order.push(cf.key); });
     var allFields = {};
-    DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]=f; });
-    customs.forEach(function(cf){ allFields[cf.key]={key:cf.key,label:cf.label,section:'상세정보',suffix:'',custom:true}; });
+    DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
+    customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
     return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
   }
 
@@ -2495,7 +2524,12 @@ function renderSettingsPanel() {
       'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;'+cursor+'user-select:none;">'+
       (isAll ? '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>' : '<span style="width:18px;flex-shrink:0;"></span>')+
       '<input type="checkbox" '+(checked?'checked':'')+' onchange="tmpToggleField(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
-      '<span style="flex:1;">'+f.label+(isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+'</span>'+
+      '<span id="lbl_'+f.key+'" style="flex:1;">'+
+        (_tmpFieldLabelOverrides[f.key]||f.label)+
+        ((_tmpFieldSuffixOverrides[f.key]||f.suffix) ? '<span style="font-size:10px;color:var(--text-muted);margin-left:3px;">['+(_tmpFieldSuffixOverrides[f.key]!==undefined?_tmpFieldSuffixOverrides[f.key]:f.suffix)+']</span>' : '')+
+        (isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+
+      '</span>'+
+      (isAll ? '<button onclick="startLabelEdit(\''+f.key+'\',\''+(_tmpFieldLabelOverrides[f.key]||f.label)+'\',\''+(_tmpFieldSuffixOverrides[f.key]!==undefined?_tmpFieldSuffixOverrides[f.key]:(f.suffix||''))+'\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 3px;opacity:0.6;" title="이름/단위 변경">✏️</button>' : '')+
       (isAll && isCustom ? '<button onclick="tmpDeleteCustomField(\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>' : '')+
       '</div>';
   });
@@ -2568,7 +2602,53 @@ function tmpDeleteCustomField(key) {
   renderSettingsPanel();
 }
 
-// 드래그앤드롭 (전체 탭에서만, 모든 종류 동시 적용)
+// 항목명 + 단위 인라인 편집
+function startLabelEdit(key, currentLabel, currentSuffix) {
+  var span = document.getElementById('lbl_'+key);
+  if(!span) return;
+  var parent = span.parentNode;
+  parent.querySelectorAll('button').forEach(function(b){ b.style.display='none'; });
+  parent.setAttribute('draggable','false');
+  span.innerHTML =
+    '<div onclick="event.stopPropagation()" ondragstart="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;width:100%;">'+
+      '<div style="display:flex;gap:4px;align-items:center;">'+
+        '<span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">항목명</span>'+
+        '<input id="labelInput_'+key+'" type="text" value="'+currentLabel+'" '+
+        'style="flex:1;font-size:12px;padding:2px 6px;border:1px solid var(--accent);border-radius:4px;background:var(--surface);color:var(--text);outline:none;" '+
+        'onkeydown="if(event.key===\'Enter\')confirmLabelEdit(\''+key+'\');if(event.key===\'Escape\')renderSettingsPanel()">'+
+      '</div>'+
+      '<div style="display:flex;gap:4px;align-items:center;">'+
+        '<span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">단위</span>'+
+        '<input id="suffixInput_'+key+'" type="text" value="'+currentSuffix+'" placeholder="예) 만원, 평, 개, kw" '+
+        'style="flex:1;font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);outline:none;" '+
+        'onkeydown="if(event.key===\'Enter\')confirmLabelEdit(\''+key+'\');if(event.key===\'Escape\')renderSettingsPanel()">'+
+      '</div>'+
+      '<div style="display:flex;gap:4px;">'+
+        '<button onclick="confirmLabelEdit(\''+key+'\')" style="flex:1;font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">확인</button>'+
+        '<button onclick="renderSettingsPanel()" style="flex:1;font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;">취소</button>'+
+      '</div>'+
+    '</div>';
+  setTimeout(function(){ var el=document.getElementById('labelInput_'+key); if(el){el.focus();el.select();} },50);
+}
+
+function confirmLabelEdit(key) {
+  var labelInput  = document.getElementById('labelInput_'+key);
+  var suffixInput = document.getElementById('suffixInput_'+key);
+  if(!labelInput) return;
+  var newLabel  = labelInput.value.trim();
+  var newSuffix = suffixInput ? suffixInput.value.trim() : '';
+  if(!newLabel) { renderSettingsPanel(); return; }
+  _tmpFieldLabelOverrides[key]  = newLabel;
+  _tmpFieldSuffixOverrides[key] = newSuffix;
+  // 커스텀 항목 label도 동기화
+  PROP_TYPES.forEach(function(t){
+    if(_tmpCustomFields[t]) {
+      var cf = _tmpCustomFields[t].find(function(f){ return f.key===key; });
+      if(cf) cf.label = newLabel;
+    }
+  });
+  renderSettingsPanel();
+}
 var _dragSrcKey = null;
 function onFieldDragStart(e) {
   _dragSrcKey = e.currentTarget.dataset.key;

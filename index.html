@@ -2452,10 +2452,50 @@ document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
 // ── 엑셀 다운로드 ─────────────────────────
 function downloadExcel(){
   if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
-  var headers=['No.','거래유형','매물종류','주소','가격','토지면적(평)','건축면적(평)','도로부지면적(평)','용도지역','지목','건축물용도','사용승인일','동력(kw)','호이스트(t)','진출입로','소유자명','소유자연락처','특이사항/메모','등록일','등록시간','최종수정일','최종수정시간'];
-  var rows=properties.map(function(p){
-    return [p.propNo||'',p.georae||'',p.type||'',p.address||'',p.price||'',p.landArea||'',p.totalArea||'',p.roadArea||'',p.useZone||'',p.jimok||'',p.buildingUse||'',p.approvalDate||'',p.electric||'',p.hoist||'',p.access||'',p.ownerName||'',p.ownerPhone||'',p.memo||'',p.createdDate||'',p.createdTime||'',p.updatedDate||'',p.updatedTime||''];
+
+  // 항목설정 기준 동적 헤더 생성
+  var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || PROP_TYPES[0];
+  var orderedFields = getOrderedFields(refType);
+
+  // 고정 앞 컬럼
+  var fixedFront = [
+    {key:'propNo',    label:'No.'},
+    {key:'georae',    label:'거래유형'},
+    {key:'type',      label:'매물종류'},
+    {key:'address',   label:'주소'},
+  ];
+  // 고정 뒤 컬럼 (시스템)
+  var fixedBack = [
+    {key:'ownerName',  label:'소유자명'},
+    {key:'ownerPhone', label:'소유자연락처'},
+    {key:'memo',       label:'특이사항/메모'},
+    {key:'createdDate',label:'등록일'},
+    {key:'createdTime',label:'등록시간'},
+    {key:'updatedDate',label:'최종수정일'},
+    {key:'updatedTime',label:'최종수정시간'},
+  ];
+  var fixedFrontKeys = fixedFront.map(function(f){ return f.key; });
+  var fixedBackKeys  = fixedBack.map(function(f){ return f.key; });
+  var skipKeys = fixedFrontKeys.concat(fixedBackKeys);
+
+  // 중간 컬럼: 항목설정 순서 기준, 앞/뒤 고정 제외
+  var middleFields = orderedFields.filter(function(f){
+    return skipKeys.indexOf(f.key) === -1;
+  }).map(function(f){
+    var suffix = getFieldSuffix(f.key);
+    var label = f.label + (suffix ? '('+suffix+')' : '');
+    return { key: f.key, label: label };
   });
+
+  var allFields = fixedFront.concat(middleFields).concat(fixedBack);
+  var headers = allFields.map(function(f){ return f.label; });
+
+  var rows = properties.map(function(p){
+    return allFields.map(function(f){
+      return p[f.key] !== undefined ? (p[f.key]||'') : '';
+    });
+  });
+
   var BOM='\uFEFF';
   var csv=BOM+[headers].concat(rows).map(function(row){
     return row.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');

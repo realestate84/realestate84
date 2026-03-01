@@ -289,7 +289,7 @@ th{position:relative;}
 
 <div class="container">
   <div class="filter-bar">
-    <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="renderTable()">
+    <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="debouncedRender()">
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
     <select class="filter-select" id="filterGeorae" onchange="renderTable()">
       <option value="">거래유형 전체</option>
@@ -887,19 +887,14 @@ function deleteFromDB(id, photos, callback) {
 }
 
 function uploadPhotos(id, photoList, callback) {
-  var urls = [];
-  var i = 0;
-  function next() {
-    if (i >= photoList.length) { callback(null, urls); return; }
-    var src = photoList[i];
-    if (src.startsWith('https://')) { urls.push(src); i++; next(); return; }
-    var ref = storage.ref('properties/' + id + '/photo_' + Date.now() + '_' + i + '.jpg');
-    ref.putString(src, 'data_url')
-      .then(function(){ return ref.getDownloadURL(); })
-      .then(function(url){ urls.push(url); i++; next(); })
-      .catch(function(e){ callback(e); });
-  }
-  next();
+  if (!photoList || photoList.length === 0) { callback(null, []); return; }
+  var ts = Date.now();
+  var promises = photoList.map(function(src, i) {
+    if (src.startsWith('https://')) return Promise.resolve(src);
+    var ref = storage.ref('properties/' + id + '/photo_' + ts + '_' + i + '.jpg');
+    return ref.putString(src, 'data_url').then(function(){ return ref.getDownloadURL(); });
+  });
+  Promise.all(promises).then(function(urls){ callback(null, urls); }).catch(function(e){ callback(e); });
 }
 
 // ── UI 헬퍼 ──────────────────────────────
@@ -1117,20 +1112,28 @@ function renderTable() {
   }
 
   // 헤더 동적 렌더링
-  var allColDefs = buildAllColDefs();
+  var allColDefs = getColDefsCache();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; });
   var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'30px',departure:'30px'};
-  var headerHtml = visibleCols.map(function(c){
-    if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
-    if(c.key==='photo') return '<th style="width:50px">사진</th>';
-    if(!c.sortKey) return '<th style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
-    return '<th onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
-  }).join('') + '<th style="width:80px">관리</th>';
-  document.getElementById('tableHeader').innerHTML = headerHtml;
-
-  // 주소 컬럼 리사이저 재연결
-  var resizer = document.getElementById('addressResizer');
-  if(resizer) initColResizer(resizer);
+  var visColKey = visibleCols.map(function(c){ return c.key; }).join(',');
+  if(renderTable._lastColKey !== visColKey) {
+    renderTable._lastColKey = visColKey;
+    var headerHtml = visibleCols.map(function(c){
+      if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
+      if(c.key==='photo') return '<th style="width:50px">사진</th>';
+      if(!c.sortKey) return '<th style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
+      return '<th onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
+    }).join('') + '<th style="width:80px">관리</th>';
+    document.getElementById('tableHeader').innerHTML = headerHtml;
+    // 주소 컬럼 리사이저 재연결
+    var resizer = document.getElementById('addressResizer');
+    if(resizer) initColResizer(resizer);
+  }
+  // 정렬 아이콘 복원
+  if(sortKey) {
+    var si = document.getElementById('sort_'+sortKey);
+    if(si) si.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
+  }
 
   var tbody = document.getElementById('tableBody');
   var empty = document.getElementById('emptyState');
@@ -1174,7 +1177,7 @@ function renderTable() {
           case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
           default: {
-            var sv = p[c.key]||''; var ss = getFieldSuffix(c.key);
+            var sv = p[c.key]||''; var ss = getSuffixCached(c.key);
             return '<td class="muted">'+(sv ? sv+(ss?' '+ss:'') : '-')+'</td>';
           }
         }
@@ -1207,10 +1210,7 @@ function sortTable(key) {
     sortDir = 'asc';
   }
   // 모든 정렬 아이콘 초기화
-  ['propNo','georae','type','address','price','landArea','totalArea','useZone','jimok','ownerName','createdDate','adStatus','departure'].forEach(function(k){
-    var el = document.getElementById('sort_'+k);
-    if(el) el.textContent = '';
-  });
+  document.querySelectorAll('thead th span[id^="sort_"]').forEach(function(el){ el.textContent = ''; });
   // 현재 정렬 아이콘 표시
   if(sortKey) {
     var el = document.getElementById('sort_'+sortKey);
@@ -1747,8 +1747,7 @@ function openDetail(id){
         '</div>'+
         '<div class="detail-photo-grid">'+
         p.photos.map(function(src,i){
-          var p2 = properties.find(function(x){ return x.id===id; });
-          var addrBase = (p2&&p2.address ? p2.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
+          var addrBase = (p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
           var fname = addrBase+'_사진'+(i+1)+'.jpg';
           return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
             '<img src="'+src+'" onclick="openLightbox(window._dp,'+i+')" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">'+
@@ -1775,9 +1774,10 @@ function openDetail(id){
   renderHistoryList(id, p.history || []);
 
   if(p.address){
+    if(window._mapInitTimer) clearTimeout(window._mapInitTimer);
     var tryMap = function(attempt) {
       if(typeof kakao === 'undefined' || typeof kakao.maps === 'undefined') {
-        if(attempt < 10) setTimeout(function(){ tryMap(attempt+1); }, 500);
+        if(attempt < 10) window._mapInitTimer = setTimeout(function(){ tryMap(attempt+1); }, 500);
         return;
       }
       var container = document.getElementById('kakaoMap');
@@ -1796,7 +1796,7 @@ function openDetail(id){
       });
       window._kakaoMapObj = mapObj;
     };
-    setTimeout(function(){ tryMap(0); }, 500);
+    window._mapInitTimer = setTimeout(function(){ tryMap(0); }, 500);
   }
 }
 
@@ -2021,7 +2021,7 @@ function downloadAllPhotos(id) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
     showToast('✅ ZIP 다운로드 완료!');
   }).catch(function(err) {
     alert('다운로드 오류: ' + err.message);
@@ -2155,7 +2155,7 @@ function saveNotionLink(propId) {
   if(!input) return;
   var url = input.value.trim();
   if(url && !url.startsWith('http')) { showToast('❌ 올바른 URL을 입력해주세요.'); return; }
-  db.collection('properties').doc(propId).update({ notionLink: url }).then(function(){
+  db.collection(COLLECTION).doc(propId).update({ notionLink: url }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = url;
     showToast('✅ 노션 링크가 저장됐어요!');
@@ -2165,7 +2165,7 @@ function saveNotionLink(propId) {
 
 function removeNotionLink(propId) {
   if(!confirm('노션 링크를 삭제하시겠습니까?')) return;
-  db.collection('properties').doc(propId).update({ notionLink: '' }).then(function(){
+  db.collection(COLLECTION).doc(propId).update({ notionLink: '' }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = '';
     openDetail(propId);
@@ -2530,7 +2530,34 @@ function restoreMemoHeight(){
 }
 document.getElementById('f_memo').addEventListener('mouseup', saveMemoHeight);
 
-// ── 엑셀 다운로드 ─────────────────────────
+// ── 디바운스 검색 ─────────────────────────
+var _renderTimer = null;
+function debouncedRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(renderTable, 200);
+}
+
+// ── suffix 캐시 (getFieldSuffix 반복 호출 방지) ─────
+var _suffixCache = null;
+function getSuffixCached(key) {
+  if (!_suffixCache) {
+    _suffixCache = {};
+    DEFAULT_FIELDS.forEach(function(f){ _suffixCache[f.key] = f.suffix || ''; });
+  }
+  if (fieldSuffixOverrides.hasOwnProperty(key)) return fieldSuffixOverrides[key];
+  return _suffixCache[key] !== undefined ? _suffixCache[key] : '';
+}
+function invalidateSuffixCache() { _suffixCache = null; }
+
+// ── 컬럼 정의 캐시 ────────────────────────
+var _colDefsCache = null;
+function getColDefsCache() {
+  if (!_colDefsCache) _colDefsCache = buildAllColDefs();
+  return _colDefsCache;
+}
+function invalidateColDefsCache() { _colDefsCache = null; }
+
+
 function downloadExcel(){
   if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
 
@@ -2589,7 +2616,7 @@ function downloadExcel(){
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
   a.href=url; a.download='새롬부동산_매물목록.csv'; a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 
 // ── 엑셀 업로드 ───────────────────────────
@@ -2738,9 +2765,12 @@ function loadFieldSettings(callback) {
     var needsSave = false;
     PROP_TYPES.forEach(function(t){
       if(!fieldOrder[t]) fieldOrder[t] = [];
+      var orderSet = {};
+      fieldOrder[t].forEach(function(k){ orderSet[k] = true; });
       defaultKeys.forEach(function(key){
-        if(fieldOrder[t].indexOf(key) === -1) {
+        if(!orderSet[key]) {
           fieldOrder[t].push(key);
+          orderSet[key] = true;
           if(!fieldSettings[t]) fieldSettings[t] = {};
           if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = true;
           if(!fieldSections[key]) fieldSections[key] = DEFAULT_FIELDS.find(function(f){ return f.key===key; }).section;
@@ -2806,11 +2836,13 @@ function buildAllColDefs() {
 }
 
 function getOrderedFields(type) {
-  var order = fieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; });
+  var order = (fieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
   var customs = customFields[type] || [];
   // 커스텀 항목 key도 order에 없으면 끝에 추가
+  var orderSet = {};
+  order.forEach(function(k){ orderSet[k] = true; });
   customs.forEach(function(cf){
-    if(order.indexOf(cf.key) === -1) order.push(cf.key);
+    if(!orderSet[cf.key]) { order.push(cf.key); orderSet[cf.key] = true; }
   });
   // 전체 항목 맵
   var allFields = {};
@@ -2875,13 +2907,9 @@ function confirmSettings() {
   fieldSections = JSON.parse(JSON.stringify(_tmpFieldSections));
   fieldLabelOverrides = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
   fieldSuffixOverrides = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
+  invalidateSuffixCache();
+  invalidateColDefsCache();
   saveFieldSettings();
-  _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
-  _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
-  _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
-  _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
-  _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(fieldLabelOverrides));
-  _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(fieldSuffixOverrides));
   showToast('✅ 설정이 저장됐어요!');
 }
 
@@ -2897,7 +2925,7 @@ function toggleColumnPopup() {
     var checked = col.fixed || listColumnSettings[col.key]!==false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
-      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+
+      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;invalidateColDefsCache();renderTable();" style="width:14px;height:14px;">'+
       col.label+(col.fixed?' <span style="font-size:10px;color:var(--text-muted)">고정</span>':'')+
       '</label>';
   });

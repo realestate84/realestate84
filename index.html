@@ -1558,7 +1558,7 @@ function openDetail(id){
         '</div>'+
       '</div>'+
     '</div>':'')+
-    '<div class="detail-section">'+
+    '<div class="detail-section'+((!p.photos||p.photos.length===0)?' no-print':'')+'">'+
       '<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
         '<span>사진 '+(p.photos&&p.photos.length>0?'('+p.photos.length+'장)':'')+'</span>'+
         '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0;font-size:12px;">📷 사진 추가'+
@@ -1583,7 +1583,7 @@ function openDetail(id){
         }).join('')+'</div>':
         '<div style="font-size:12px;color:var(--text-muted);padding:10px 0;">등록된 사진이 없어요.</div>')+
     '</div>'+
-    '<div style="display:flex;justify-content:flex-end;padding:16px 0 4px;">'+
+    '<div class="no-print" style="display:flex;justify-content:flex-end;padding:16px 0 4px;">'+
       '<button class="btn btn-danger" id="detailDeleteBtn">🗑 삭제</button>'+
     '</div>';
 
@@ -1673,7 +1673,6 @@ function printDetail() {
   // 임시 div로 필터링
   var div = document.createElement('div');
   div.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+body;
-  div.querySelectorAll('.detail-photo-grid').forEach(function(el){ el.parentElement.remove(); });
   div.querySelectorAll('.detail-section-title').forEach(function(el){
     var t = el.textContent;
     if(t.indexOf('소유자') !== -1 || t.indexOf('문서') !== -1) el.closest('.detail-section').remove();

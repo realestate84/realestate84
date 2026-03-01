@@ -1614,11 +1614,19 @@ function openDetail(id){
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       detailItems.map(renderFieldVal).join('')+
     '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
-      '<div class="detail-item full"><label>등기부상 소유자명</label><div class="val">'+(p.regOwnerName||'-')+'</div></div>'+
-      '<div class="detail-item"><label>소유자명</label><div class="val">'+(p.ownerName||'-')+'</div></div>'+
-      '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
-    '</div></div>'+
+    '<div class="detail-section no-print">'+
+      '<div class="detail-section-title" onclick="toggleOwnerSection()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">'+
+        '<span>소유자 정보</span>'+
+        '<span id="ownerToggleIcon" style="font-size:12px;color:var(--text-muted);transition:transform 0.2s;">▶</span>'+
+      '</div>'+
+      '<div id="ownerSectionBody" style="display:none;">'+
+        '<div class="detail-grid" style="margin-top:8px;">'+
+          '<div class="detail-item full"><label>등기부상 소유자명</label><div class="val">'+(p.regOwnerName||'-')+'</div></div>'+
+          '<div class="detail-item"><label>소유자명</label><div class="val">'+(p.ownerName||'-')+'</div></div>'+
+          '<div class="detail-item"><label>연락처</label><div class="val">'+(p.ownerPhone?'<a href="tel:'+p.ownerPhone+'" style="color:var(--accent);text-decoration:none">'+p.ownerPhone+'</a>':'-')+'</div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
     (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
     (p.note?'<div class="detail-section no-print"><div class="detail-section-title">참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.note)+'</div></div>':'')+
     (p.naver?'<div class="detail-section no-print"><div class="detail-section-title">네이버 광고문구 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.naver)+'</div></div>':'')+
@@ -1946,6 +1954,15 @@ function deleteAllPhotos(id) {
     openDetail(id);
     showToast('✅ 사진이 모두 삭제됐어요!');
   });
+}
+
+function toggleOwnerSection() {
+  var body = document.getElementById('ownerSectionBody');
+  var icon = document.getElementById('ownerToggleIcon');
+  if(!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  icon.textContent = isOpen ? '▶' : '▼';
 }
 
 function deleteProperty(id){

@@ -2316,30 +2316,33 @@ function loadFieldSettings(callback) {
       DEFAULT_FIELDS.forEach(function(f){ fieldSections[f.key] = f.section; });
       saveFieldSettings();
     }
-    // 누락된 타입 초기화 - 기존 타입의 최신 설정을 복사
-    // 기준이 될 기존 타입 찾기 (이미 설정이 있는 첫 번째 타입)
+    // 누락되거나 항목이 부족한 타입은 기존 타입 최신 설정으로 자동 동기화
     var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length > 0; });
-    PROP_TYPES.forEach(function(t) {
-      var isNew = !fieldOrder[t] || !fieldSettings[t];
-      if(isNew && refType) {
-        // 기존 타입 설정 복사
-        fieldOrder[t]    = JSON.parse(JSON.stringify(fieldOrder[refType]));
-        fieldSettings[t] = JSON.parse(JSON.stringify(fieldSettings[refType]));
-        // 커스텀 항목도 복사 (기본 OFF 상태로)
-        fieldCustoms = JSON.parse(JSON.stringify(customFields[refType] || []));
-        if(!customFields[t]) {
-          customFields[t] = fieldCustoms;
-          fieldCustoms.forEach(function(cf){ fieldSettings[t][cf.key] = false; });
+    if(refType) {
+      var refOrder    = fieldOrder[refType];
+      var refCustoms  = customFields[refType] || [];
+      var refSettings = fieldSettings[refType] || {};
+      PROP_TYPES.forEach(function(t) {
+        if(t === refType) return;
+        // 항목 수가 기준 타입보다 적으면 → 최신 순서/커스텀항목 동기화
+        var curOrder = fieldOrder[t] || [];
+        if(curOrder.length < refOrder.length) {
+          // 순서 동기화 (없는 키만 추가)
+          fieldOrder[t] = refOrder.slice();
+          // 커스텀 항목 동기화 (없는 항목만 추가, 기존 ON/OFF는 유지)
+          if(!customFields[t]) customFields[t] = [];
+          refCustoms.forEach(function(cf){
+            var exists = customFields[t].find(function(f){ return f.key === cf.key; });
+            if(!exists) customFields[t].push({key:cf.key, label:cf.label});
+          });
+          if(!fieldSettings[t]) fieldSettings[t] = {};
+          // 새로 생긴 키는 OFF로 추가
+          refOrder.forEach(function(key){
+            if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = false;
+          });
         }
-      } else {
-        if(!fieldOrder[t])    fieldOrder[t]    = DEFAULT_FIELDS.map(function(f){ return f.key; });
-        if(!customFields[t])  customFields[t]  = [];
-        if(!fieldSettings[t]) {
-          fieldSettings[t] = {};
-          DEFAULT_FIELDS.forEach(function(f){ fieldSettings[t][f.key] = true; });
-        }
-      }
-    });
+      });
+    }
     // fieldSections 누락 키 채우기
     DEFAULT_FIELDS.forEach(function(f){
       if(!fieldSections[f.key]) fieldSections[f.key] = f.section;

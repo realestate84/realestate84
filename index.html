@@ -391,7 +391,7 @@ th{position:relative;}
         </div>
         <div class="form-group">
           <label>매물종류 *</label>
-          <select class="form-select" id="f_type">
+          <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)">
             <option value="">선택</option>
             <option>토지</option><option>공장창고</option><option>상가/사무실</option>
             <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option>
@@ -495,6 +495,8 @@ th{position:relative;}
           <label>진출입로</label>
           <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
         </div>
+        <!-- 커스텀 항목 자동 추가 영역 -->
+        <div id="customFieldsArea"></div>
         <div class="form-group">
           <label>등기부상 소유자명</label>
           <input class="form-input" type="text" id="f_regOwnerName" placeholder="등기부등본상 소유자명">
@@ -1256,12 +1258,40 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape') closeLightbox();
 });
 
+// ── 커스텀 항목 폼 렌더링 ────────────────
+function renderCustomFieldsInForm(type, propData) {
+  var area = document.getElementById('customFieldsArea');
+  if(!area) return;
+  var customs = customFields[type] || [];
+  if(customs.length === 0) { area.innerHTML = ''; return; }
+  var html = '';
+  customs.forEach(function(cf) {
+    var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
+    html += '<div class="form-group">'+
+      '<label>'+cf.label+'</label>'+
+      '<input class="form-input" type="text" id="fc_'+cf.key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+cf.label+' 입력...">'+
+      '</div>';
+  });
+  area.innerHTML = html;
+}
+
+// 커스텀 항목 값 수집
+function collectCustomFieldValues(type) {
+  var result = {};
+  var customs = customFields[type] || [];
+  customs.forEach(function(cf) {
+    var el = document.getElementById('fc_'+cf.key);
+    if(el) result[cf.key] = el.value.trim();
+  });
+  return result;
+}
+
 // ── 폼 모달 ──────────────────────────────
 function openAddModal(){
   editingId=null; currentPhotos=[];
   document.getElementById('formModalTitle').textContent='매물 등록';
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
-  // 문서 섹션 - 신규등록은 안내문구
+  renderCustomFieldsInForm('', null);
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
   document.getElementById('formModal').classList.add('active');
@@ -1304,6 +1334,7 @@ function openEditModal(id){
   document.getElementById('f_note').value=p.note||'';
   document.getElementById('f_naver').value=p.naver||'';
   document.getElementById('f_video').value=p.video||'';
+  renderCustomFieldsInForm(p.type||'', p);
   currentPhotos=p.photos?p.photos.slice():[];
   renderPhotoPreview(); restoreMemoHeight();
   // 문서 섹션 - 수정 시 업로드 버튼 표시
@@ -1375,6 +1406,9 @@ function saveProperty(){
     video:document.getElementById('f_video').value.trim(),
     updatedDate:dateStr, updatedTime:timeStr,
   };
+  // 커스텀 항목 값 수집
+  var customVals = collectCustomFieldValues(type);
+  Object.keys(customVals).forEach(function(k){ data[k] = customVals[k]; });
   var docId=editingId||genId();
   uploadPhotos(docId, currentPhotos, function(err, urls){
     if(err){ alert('사진 업로드 오류: '+err.message); btn.textContent='저장'; btn.disabled=false; return; }

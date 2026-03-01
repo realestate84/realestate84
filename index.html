@@ -300,6 +300,17 @@ th{position:relative;}
       <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
     </select>
     <button class="btn btn-outline btn-sm" id="advSearchBtn" onclick="toggleAdvSearch()">🔎 상세검색 ▾</button>
+    <div style="position:relative;display:inline-block;">
+      <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()" id="colSettingBtn" style="font-size:12px;">⚙️ 컬럼 설정</button>
+      <div id="colSettingPopup" style="display:none;position:absolute;left:0;top:36px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:260px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">표시할 컬럼 선택</div>
+        <div id="colCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+          <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="saveListColumnSettings()">💾 저장</button>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-outline btn-sm" id="depFilterBtn" onclick="toggleDepFilter()" style="color:#7a85a8;">🔵 출발가능만</button>
   </div>
 
@@ -341,19 +352,6 @@ th{position:relative;}
       <div>
         <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지역 (주소 포함)</label>
         <input class="form-input" type="text" id="adv_region" placeholder="예) 강화군, 서구" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-    </div>
-  </div>
-  <div style="display:flex;justify-content:flex-end;padding:6px 2px 6px;">
-    <div style="position:relative;display:inline-block;">
-      <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()" id="colSettingBtn" style="font-size:12px;gap:4px;">⚙️ 컬럼 설정</button>
-      <div id="colSettingPopup" style="display:none;position:absolute;right:0;top:36px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:220px;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">표시할 컬럼 선택</div>
-        <div id="colCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
-          <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()">닫기</button>
-          <button class="btn btn-primary btn-sm" onclick="saveListColumnSettings()">💾 저장</button>
-        </div>
       </div>
     </div>
   </div>
@@ -686,26 +684,45 @@ var SETTINGS_DOC = 'fieldSettings';
 // 매물종류 목록
 // 리스트 컬럼 정의
 var LIST_COLUMNS = [
-  {key:'propNo',    label:'No.',    sortKey:'propNo',    fixed:true},
-  {key:'photo',     label:'사진',   sortKey:null,        fixed:false},
-  {key:'georae',    label:'거래',   sortKey:'georae',    fixed:false},
-  {key:'type',      label:'종류',   sortKey:'type',      fixed:false},
-  {key:'address',   label:'주소',   sortKey:'address',   fixed:true},
-  {key:'price',     label:'가격',   sortKey:'price',     fixed:false},
-  {key:'landArea',  label:'토지면적', sortKey:'landArea', fixed:false},
-  {key:'totalArea', label:'건축면적', sortKey:'totalArea',fixed:false},
-  {key:'useZone',   label:'용도지역', sortKey:'useZone',  fixed:false},
-  {key:'jimok',     label:'지목',   sortKey:'jimok',     fixed:false},
-  {key:'ownerName', label:'소유자', sortKey:'ownerName', fixed:false},
-  {key:'createdDate',label:'등록일', sortKey:'createdDate',fixed:false},
-  {key:'adStatus',  label:'광고',   sortKey:'adStatus',  fixed:false},
-  {key:'departure', label:'출발',   sortKey:'departure', fixed:false},
+  {key:'propNo',       label:'No.',        sortKey:'propNo',       fixed:true},
+  {key:'photo',        label:'사진',        sortKey:null,           fixed:false},
+  {key:'georae',       label:'거래',        sortKey:'georae',       fixed:false},
+  {key:'type',         label:'종류',        sortKey:'type',         fixed:false},
+  {key:'address',      label:'주소',        sortKey:'address',      fixed:true},
+  {key:'price',        label:'가격',        sortKey:'price',        fixed:false},
+  {key:'landArea',     label:'토지면적',    sortKey:'landArea',     fixed:false},
+  {key:'totalArea',    label:'건축면적',    sortKey:'totalArea',    fixed:false},
+  {key:'supplyArea',   label:'면적(공급)',  sortKey:'supplyArea',   fixed:false},
+  {key:'exclusiveArea',label:'면적(전용)',  sortKey:'exclusiveArea',fixed:false},
+  {key:'tempArea',     label:'가설면적',    sortKey:'tempArea',     fixed:false},
+  {key:'roadArea',     label:'도로부지',    sortKey:'roadArea',     fixed:false},
+  {key:'useZone',      label:'용도지역',    sortKey:'useZone',      fixed:false},
+  {key:'jimok',        label:'지목',        sortKey:'jimok',        fixed:false},
+  {key:'buildingUse',  label:'건축물용도',  sortKey:'buildingUse',  fixed:false},
+  {key:'approvalDate', label:'사용승인일',  sortKey:'approvalDate', fixed:false},
+  {key:'floors',       label:'총층수',      sortKey:'floors',       fixed:false},
+  {key:'electric',     label:'동력',        sortKey:'electric',     fixed:false},
+  {key:'hoist',        label:'호이스트',    sortKey:'hoist',        fixed:false},
+  {key:'direction',    label:'방향',        sortKey:'direction',    fixed:false},
+  {key:'height',       label:'층고',        sortKey:'height',       fixed:false},
+  {key:'parking',      label:'주차',        sortKey:'parking',      fixed:false},
+  {key:'toilet',       label:'화장실',      sortKey:'toilet',       fixed:false},
+  {key:'elevator',     label:'엘리베이터',  sortKey:'elevator',     fixed:false},
+  {key:'factoryReg',   label:'공장등록',    sortKey:'factoryReg',   fixed:false},
+  {key:'access',       label:'진출입로',    sortKey:'access',       fixed:false},
+  {key:'ownerName',    label:'소유자',      sortKey:'ownerName',    fixed:false},
+  {key:'createdDate',  label:'등록일',      sortKey:'createdDate',  fixed:false},
+  {key:'adStatus',     label:'광고',        sortKey:'adStatus',     fixed:false},
+  {key:'departure',    label:'출발',        sortKey:'departure',    fixed:false},
 ];
 // 기본 ON 컬럼
 var listColumnSettings = {
   propNo:true, photo:true, georae:true, type:true, address:true,
-  price:true, landArea:false, totalArea:false, useZone:false, jimok:false,
-  ownerName:false, createdDate:false, adStatus:false, departure:false
+  price:true, landArea:false, totalArea:false, supplyArea:false, exclusiveArea:false,
+  tempArea:false, roadArea:false, useZone:false, jimok:false, buildingUse:false,
+  approvalDate:false, floors:false, electric:false, hoist:false, direction:false,
+  height:false, parking:false, toilet:false, elevator:false, factoryReg:false,
+  access:false, ownerName:false, createdDate:false, adStatus:false, departure:false
 };
 
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
@@ -1112,8 +1129,24 @@ function renderTable() {
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:'평'):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:'평'):'-')+'</td>';
+          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(fieldSuffixOverrides.hasOwnProperty('supplyArea')?fieldSuffixOverrides['supplyArea']:'평'):'-')+'</td>';
+          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(fieldSuffixOverrides.hasOwnProperty('exclusiveArea')?fieldSuffixOverrides['exclusiveArea']:'평'):'-')+'</td>';
+          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(fieldSuffixOverrides.hasOwnProperty('tempArea')?fieldSuffixOverrides['tempArea']:'평'):'-')+'</td>';
+          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(fieldSuffixOverrides.hasOwnProperty('roadArea')?fieldSuffixOverrides['roadArea']:'평'):'-')+'</td>';
           case 'useZone':   return '<td class="muted">'+(p.useZone||'-')+'</td>';
           case 'jimok':     return '<td class="muted">'+(p.jimok||'-')+'</td>';
+          case 'buildingUse':  return '<td class="muted">'+(p.buildingUse||'-')+'</td>';
+          case 'approvalDate': return '<td class="muted" style="font-size:11px">'+(p.approvalDate||'-')+'</td>';
+          case 'floors':    return '<td class="muted">'+(p.floors||'-')+'</td>';
+          case 'electric':  return '<td class="muted">'+(p.electric?p.electric+(fieldSuffixOverrides.hasOwnProperty('electric')?fieldSuffixOverrides['electric']:'kw'):'-')+'</td>';
+          case 'hoist':     return '<td class="muted">'+(p.hoist||'-')+'</td>';
+          case 'direction': return '<td class="muted">'+(p.direction||'-')+'</td>';
+          case 'height':    return '<td class="muted">'+(p.height?p.height+(fieldSuffixOverrides.hasOwnProperty('height')?fieldSuffixOverrides['height']:'m'):'-')+'</td>';
+          case 'parking':   return '<td class="muted">'+(p.parking||'-')+'</td>';
+          case 'toilet':    return '<td class="muted">'+(p.toilet||'-')+'</td>';
+          case 'elevator':  return '<td class="muted">'+(p.elevator||'-')+'</td>';
+          case 'factoryReg':return '<td class="muted">'+(p.factoryReg||'-')+'</td>';
+          case 'access':    return '<td class="muted">'+(p.access||'-')+'</td>';
           case 'ownerName': return '<td class="muted">'+(p.ownerName||'-')+'</td>';
           case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
           case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';

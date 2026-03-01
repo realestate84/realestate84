@@ -2340,34 +2340,37 @@ function renderSettingsPanel() {
 
   var ordered = getOrderedFields(activeType);
 
-  // 섹션별로 분리
-  var sectionMap = {기본정보:[], 상세정보:[], '추가 항목':[]};
-  ordered.forEach(function(f){
-    var sec = f.section || '상세정보';
-    if(!sectionMap[sec]) sectionMap[sec] = [];
-    sectionMap[sec].push(f);
+  // 기본정보 키 목록
+  var basicKeys = ['price','maintenance','premium'];
+
+  // 기본정보/상세정보 헤더를 삽입할 위치 계산
+  var firstBasicIdx = -1, firstDetailIdx = -1;
+  ordered.forEach(function(f, i){
+    if(basicKeys.indexOf(f.key) > -1 && firstBasicIdx === -1) firstBasicIdx = i;
+    if(basicKeys.indexOf(f.key) === -1 && firstDetailIdx === -1) firstDetailIdx = i;
   });
 
-  var sectionOrder = ['기본정보','상세정보','추가 항목'];
-  sectionOrder.forEach(function(sec){
-    var fields = sectionMap[sec];
-    if(!fields || fields.length === 0) return;
-    html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:14px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">'+sec+'</div>';
-    fields.forEach(function(f){
-      var checked = isFieldVisible(activeType, f.key);
-      var isCustom = !!f.custom;
-      html += '<div draggable="true" data-key="'+f.key+'" data-section="'+sec+'" '+
-        'ondragstart="onFieldDragStart(event)" '+
-        'ondragover="onFieldDragOver(event)" '+
-        'ondrop="onFieldDrop(event,\''+activeType+'\')" '+
-        'ondragend="onFieldDragEnd(event)" '+
-        'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;cursor:grab;user-select:none;">'+
-        '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>'+
-        '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
-        '<span style="flex:1;">'+f.label+(isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+'</span>'+
-        (isCustom?'<button onclick="deleteCustomField(\''+activeType+'\',\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>':'')+
-        '</div>';
-    });
+  ordered.forEach(function(f, i){
+    var isCustom = !!f.custom;
+    var checked = isFieldVisible(activeType, f.key);
+
+    // 섹션 헤더 삽입
+    if(i === firstBasicIdx)
+      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:4px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">기본정보</div>';
+    if(i === firstDetailIdx)
+      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:14px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">상세정보</div>';
+
+    html += '<div draggable="true" data-key="'+f.key+'" '+
+      'ondragstart="onFieldDragStart(event)" '+
+      'ondragover="onFieldDragOver(event)" '+
+      'ondrop="onFieldDrop(event,\''+activeType+'\')" '+
+      'ondragend="onFieldDragEnd(event)" '+
+      'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;cursor:grab;user-select:none;">'+
+      '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>'+
+      '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
+      '<span style="flex:1;">'+f.label+(isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+'</span>'+
+      (isCustom?'<button onclick="deleteCustomField(\''+activeType+'\',\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>':'')+
+      '</div>';
   });
 
   html += '</div>';

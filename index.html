@@ -72,7 +72,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .search-input:focus,.filter-select:focus{border-color:var(--accent);}
 .search-input::placeholder{color:var(--text-muted);}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:auto;flex:1;min-height:0;}
-table{width:100%;min-width:1200px;border-collapse:collapse;font-size:12px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
 th:first-child, td:first-child{position:sticky;left:0;z-index:5;background:var(--surface);}
 thead th:first-child{z-index:15;background:var(--surface2);}
 tr:hover td{background:rgba(58,126,246,0.05);}
@@ -110,7 +110,7 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 @keyframes spin{to{transform:rotate(360deg);}}
 .action-btns{display:flex;gap:5px;}
 .muted{color:var(--text-muted);}
-.address-text{max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+.address-text{white-space:nowrap;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
 .empty-icon{font-size:48px;margin-bottom:12px;}
 /* Modal */
@@ -1096,7 +1096,7 @@ function renderTable() {
   }
 
   // 헤더 동적 렌더링
-  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:120px;width:240px',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
+  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
   var visibleCols = LIST_COLUMNS.filter(function(c){ return listColumnSettings[c.key]!==false; });
   var headerHtml = visibleCols.map(function(c){
     if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';

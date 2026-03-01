@@ -1690,6 +1690,10 @@ function printDetail() {
   });
 
   // 새 창에서 인쇄
+  // 사진 수에 따라 그리드 컬럼 계산
+  var photoCount = (window._dp || []).length;
+  var photoCols = photoCount <= 1 ? 1 : photoCount <= 4 ? 2 : photoCount <= 9 ? 3 : photoCount <= 16 ? 4 : 5;
+
   var win = window.open('', '_blank', 'width=800,height=900');
   win.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
@@ -1710,6 +1714,12 @@ function printDetail() {
     'a{color:#3a7ef6;}'+
     '[style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:12px;line-height:1.6;}'+
     '#kakaoMap{height:220px !important;width:100% !important;}'+
+    // 사진 그리드: 한 페이지에 모두, 페이지 넘김 방지
+    '.detail-photo-grid{display:grid !important;grid-template-columns:repeat('+photoCols+',1fr) !important;gap:4px !important;page-break-inside:avoid;break-inside:avoid;}'+
+    '.detail-photo-grid img{width:100% !important;aspect-ratio:1 !important;object-fit:cover !important;border-radius:3px;}'+
+    '.detail-photo-grid>div{position:relative;}'+
+    // 삭제/다운로드 버튼 숨기기
+    '.detail-photo-grid button,.detail-photo-grid a[download]{display:none !important;}'+
     '@page{margin:8mm;size:A4;}'+
     '</style></head><body>'+
     '<div class="print-header">'+

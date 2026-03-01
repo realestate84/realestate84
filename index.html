@@ -688,11 +688,11 @@ var SETTINGS_DOC = 'fieldSettings';
 // 리스트 컬럼 정의
 var LIST_COLUMNS = [
   {key:'propNo',       label:'No.',        sortKey:'propNo',       fixed:true},
-  {key:'photo',        label:'사진',        sortKey:null,           fixed:false},
-  {key:'georae',       label:'거래',        sortKey:'georae',       fixed:false},
-  {key:'type',         label:'종류',        sortKey:'type',         fixed:false},
+  {key:'photo',        label:'사진',        sortKey:null,           fixed:true},
+  {key:'georae',       label:'거래',        sortKey:'georae',       fixed:true},
+  {key:'type',         label:'종류',        sortKey:'type',         fixed:true},
   {key:'address',      label:'주소',        sortKey:'address',      fixed:true},
-  {key:'price',        label:'가격',        sortKey:'price',        fixed:false},
+  {key:'price',        label:'가격',        sortKey:'price',        fixed:true},
   {key:'landArea',     label:'토지면적',    sortKey:'landArea',     fixed:false},
   {key:'totalArea',    label:'건축면적',    sortKey:'totalArea',    fixed:false},
   {key:'supplyArea',   label:'면적(공급)',  sortKey:'supplyArea',   fixed:false},
@@ -715,8 +715,8 @@ var LIST_COLUMNS = [
   {key:'access',       label:'진출입로',    sortKey:'access',       fixed:false},
   {key:'ownerName',    label:'소유자',      sortKey:'ownerName',    fixed:false},
   {key:'createdDate',  label:'등록일',      sortKey:'createdDate',  fixed:false},
-  {key:'adStatus',     label:'광고',        sortKey:'adStatus',     fixed:false},
-  {key:'departure',    label:'출발',        sortKey:'departure',    fixed:false},
+  {key:'adStatus',     label:'광고',        sortKey:'adStatus',     fixed:true},
+  {key:'departure',    label:'출발',        sortKey:'departure',    fixed:true},
 ];
 // 기본 ON 컬럼
 var listColumnSettings = {
@@ -1099,15 +1099,15 @@ function renderTable() {
   }
 
   // 헤더 동적 렌더링 - 항목설정 전체 탭 기준으로 동기화
-  var fixedKeys = ['propNo','address'];
+  var fixedKeys = LIST_COLUMNS.filter(function(c){ return c.fixed; }).map(function(c){ return c.key; });
   var dynamicCols = getOrderedFields('전체').map(function(f){
     return { key:f.key, label:f.label, sortKey:f.key, fixed: fixedKeys.indexOf(f.key)!==-1 };
   });
   var allColDefs = [
-    {key:'propNo', label:'No.',  sortKey:'propNo',  fixed:true},
-    {key:'photo',  label:'사진', sortKey:null,      fixed:false},
+    {key:'propNo', label:'No.',  sortKey:'propNo', fixed:true},
+    {key:'photo',  label:'사진', sortKey:null,     fixed:true},
   ].concat(dynamicCols.filter(function(c){ return c.key!=='propNo'; }));
-  var visibleCols = allColDefs.filter(function(c){ return listColumnSettings[c.key]!==false; });
+  var visibleCols = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; });
   var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
   var headerHtml = visibleCols.map(function(c){
     if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
@@ -2729,21 +2729,21 @@ function toggleColumnPopup() {
   var isOpen = popup.style.display !== 'none';
   if(isOpen) { popup.style.display='none'; return; }
 
-  // 고정 컬럼 (No., 주소) + 항목설정 전체 탭 기준 동적 컬럼
-  var fixedKeys = ['propNo','address'];
-  // 항목설정 전체 탭의 최신 순서로 컬럼 목록 생성
+  // LIST_COLUMNS 기준 고정 키 목록
+  var fixedKeys = LIST_COLUMNS.filter(function(c){ return c.fixed; }).map(function(c){ return c.key; });
+
+  // 항목설정 전체 탭 기준 동적 컬럼
   var dynamicCols = getOrderedFields('전체').map(function(f){
     return { key: f.key, label: f.label, fixed: fixedKeys.indexOf(f.key) !== -1 };
   });
-  // 사진 컬럼은 항목설정에 없으므로 가격 앞에 수동 추가
   var allCols = [
     { key:'propNo', label:'No.',  fixed:true },
-    { key:'photo',  label:'사진', fixed:false },
+    { key:'photo',  label:'사진', fixed:true },
   ].concat(dynamicCols.filter(function(c){ return c.key !== 'propNo'; }));
 
   var html = '';
   allCols.forEach(function(col) {
-    var checked = listColumnSettings[col.key] !== false;
+    var checked = col.fixed || listColumnSettings[col.key] !== false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
       ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+

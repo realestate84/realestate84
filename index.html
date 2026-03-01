@@ -2380,6 +2380,7 @@ function openSettings() {
 }
 
 function closeSettings() {
+  if(!confirm('변경사항을 취소하시겠습니까?\n수정한 내용이 저장되지 않아요.')) return;
   _tmpFieldSettings = null;
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
@@ -2388,16 +2389,17 @@ function closeSettings() {
 }
 
 function confirmSettings() {
+  if(!confirm('설정을 저장하시겠습니까?\n모든 매물의 상세보기에 즉시 반영돼요.')) return;
   fieldSettings = JSON.parse(JSON.stringify(_tmpFieldSettings));
   customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
   fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
   fieldSections = JSON.parse(JSON.stringify(_tmpFieldSections));
   saveFieldSettings();
-  _tmpFieldSettings = null;
-  _tmpCustomFields  = null;
-  _tmpFieldOrder    = null;
-  _tmpFieldSections = null;
-  document.getElementById('settingsModal').classList.remove('active');
+  // 패널은 그대로 유지, 임시상태를 저장된 상태로 갱신
+  _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
+  _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
+  _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
+  _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
   showToast('✅ 설정이 저장됐어요!');
 }
 

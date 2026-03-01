@@ -511,7 +511,7 @@ th{position:relative;}
         </div>
         <div class="form-group full">
           <label>특이사항 / 메모</label>
-          <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등..."></textarea>
+          <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등...&#10;링크: [표시할글자](https://주소)"></textarea>
         </div>
         <div class="form-group full">
           <label>참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></label>
@@ -1183,7 +1183,13 @@ function refreshApp() {
 
 function linkifyMemo(text) {
   var escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>');
+  // 1. [텍스트](URL) 마크다운 링크 먼저 처리
+  escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline;font-weight:500;">$1</a>');
+  // 2. 나머지 일반 URL 자동링크
+  escaped = escaped.replace(/(^|[^"=])(https?:\/\/[^\s<&]+)/g,
+    '$1<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline;">$2</a>');
+  return escaped;
 }
 
 function copyAddress(addr, e) {

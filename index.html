@@ -215,6 +215,7 @@ th{position:relative;}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -377,7 +378,7 @@ th{position:relative;}
       <button class="modal-close" onclick="closeFormModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid">
+      <div class="form-grid" id="formFieldsContainer">
         <div class="form-group">
           <label>거래유형 *</label>
           <select class="form-select" id="f_georae">
@@ -396,7 +397,7 @@ th{position:relative;}
           <label>주소 *</label>
           <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;grid-column:1/-1;">
           <div class="form-group" data-field-key="price">
             <label id="flabel_price">가격</label>
             <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
@@ -561,6 +562,7 @@ th{position:relative;}
         <button class="btn btn-primary" id="detailEditBtn" style="font-size:11px;padding:5px 10px;">수정</button>
         <button class="btn btn-outline" id="detailCopyBtn" style="font-size:11px;padding:5px 10px;">📋 복사</button>
         <button class="btn btn-outline" onclick="printDetail()" style="font-size:11px;padding:5px 10px;">🖨 인쇄</button>
+        <button class="btn btn-outline" onclick="saveDetailPdf()" style="font-size:11px;padding:5px 10px;">💾 PDF저장</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
     </div>
@@ -608,17 +610,17 @@ th{position:relative;}
 <!-- 인쇄 옵션 모달 -->
 <div class="modal-overlay" id="printModal" style="z-index:10001;">
   <div class="modal" style="max-width:340px;padding:28px 24px;">
-    <div class="modal-title" style="margin-bottom:20px;">🖨 인쇄 옵션</div>
+    <div class="modal-title" id="printModalTitle" style="margin-bottom:20px;">🖨 인쇄 옵션</div>
     <div id="printPhotoOptSection">
     <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">사진</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
       <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;background:var(--bg);">
         <input type="radio" name="printPhotoOpt" value="include" style="width:16px;height:16px;cursor:pointer;">
-        <span>📷 사진 포함해서 인쇄</span>
+        <span>📷 사진 포함</span>
       </label>
       <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;background:var(--bg);">
         <input type="radio" name="printPhotoOpt" value="exclude" checked style="width:16px;height:16px;cursor:pointer;">
-        <span>📄 사진 제외하고 인쇄</span>
+        <span>📄 사진 제외</span>
       </label>
     </div>
     </div>
@@ -626,16 +628,16 @@ th{position:relative;}
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
       <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;background:var(--bg);">
         <input type="radio" name="printAgencyOpt" value="include" checked style="width:16px;height:16px;cursor:pointer;">
-        <span>🏢 연락처 포함해서 인쇄</span>
+        <span>🏢 연락처 포함</span>
       </label>
       <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;background:var(--bg);">
         <input type="radio" name="printAgencyOpt" value="exclude" style="width:16px;height:16px;cursor:pointer;">
-        <span>🚫 연락처 제외하고 인쇄</span>
+        <span>🚫 연락처 제외</span>
       </label>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button class="btn btn-outline" onclick="closePrintModal()" style="min-width:70px;display:flex;align-items:center;justify-content:center;">취소</button>
-      <button class="btn btn-primary" onclick="executePrint()" style="min-width:70px;display:flex;align-items:center;justify-content:center;">인쇄</button>
+      <button class="btn btn-outline" onclick="closePrintModal()" style="min-width:70px;">취소</button>
+      <button class="btn btn-primary" id="printModalExecBtn" onclick="executePrint()" style="min-width:70px;">인쇄</button>
     </div>
   </div>
 </div>
@@ -1416,20 +1418,43 @@ function updateFormFieldVisibility(type) {
 function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
+
+  // 커스텀 항목 렌더링
   var customs = customFields[type] || [];
   var html = '';
   customs.forEach(function(cf) {
-    if(!isFieldVisible(type, cf.key)) return; // OFF된 커스텀 항목은 숨김
+    if(!isFieldVisible(type, cf.key)) return;
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
-    html += '<div class="form-group">'+
+    html += '<div class="form-group" data-field-key="'+cf.key+'">'+
       '<label>'+lbl+'</label>'+
       '<input class="form-input" type="text" id="fc_'+cf.key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
       '</div>';
   });
   area.innerHTML = html;
+
   // 기본 항목 표시/숨김 업데이트
   updateFormFieldVisibility(type);
+
+  // 항목설정 순서대로 폼 항목 재배치
+  if(type) {
+    var ordered = getOrderedFields(type);
+    var formFields = document.getElementById('formFieldsContainer');
+    if(!formFields) return;
+    var priceGridMoved = false;
+    var priceGrid = formFields.querySelector('[data-price-grid]');
+    ordered.forEach(function(f) {
+      if(['price','maintenance','premium'].indexOf(f.key) !== -1) {
+        if(!priceGridMoved && priceGrid && priceGrid.parentNode === formFields) {
+          formFields.appendChild(priceGrid);
+          priceGridMoved = true;
+        }
+      } else {
+        var el = formFields.querySelector('[data-field-key="'+f.key+'"]');
+        if(el && el.parentNode === formFields) formFields.appendChild(el);
+      }
+    });
+  }
 }
 
 // 커스텀 항목 값 수집
@@ -1833,10 +1858,20 @@ function switchMapView(mode) {
 }
 
 function printDetail() {
-  // 사진 옵션: 사진 있을 때만 표시
   var hasPhotos = window._dp && window._dp.length > 0;
   document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';
-  // 부동산 연락처 옵션: 항상 표시
+  document.getElementById('printModalTitle').textContent = '🖨 인쇄 옵션';
+  document.getElementById('printModalExecBtn').textContent = '인쇄';
+  document.getElementById('printModalExecBtn').onclick = function(){ executePrint('print'); };
+  document.getElementById('printModal').classList.add('active');
+}
+
+function saveDetailPdf() {
+  var hasPhotos = window._dp && window._dp.length > 0;
+  document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';
+  document.getElementById('printModalTitle').textContent = '💾 PDF 저장 옵션';
+  document.getElementById('printModalExecBtn').textContent = 'PDF 저장';
+  document.getElementById('printModalExecBtn').onclick = function(){ executePrint('pdf'); };
   document.getElementById('printModal').classList.add('active');
 }
 
@@ -1844,23 +1879,15 @@ function closePrintModal() {
   document.getElementById('printModal').classList.remove('active');
 }
 
-function executePrint() {
-  var photoSection = document.getElementById('printPhotoOptSection');
-  var includePhoto  = photoSection.style.display !== 'none' && document.querySelector('input[name="printPhotoOpt"]:checked').value === 'include';
-  var includeAgency = document.querySelector('input[name="printAgencyOpt"]:checked').value === 'include';
-  closePrintModal();
-
+function buildPrintContent(includePhoto, includeAgency) {
   var body = document.getElementById('detailBody').innerHTML;
   var title = document.getElementById('detailTitle').innerHTML;
-
   var div = document.createElement('div');
   div.innerHTML = '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+title+'</div>'+body;
 
-  // 섹션 필터링
   div.querySelectorAll('.detail-section-title').forEach(function(el){
     var t = el.textContent;
     if(t.indexOf('소유자') !== -1 || t.indexOf('문서') !== -1) el.closest('.detail-section').remove();
-    // 사진 섹션: 선택에 따라 제거
     if(t.indexOf('사진') !== -1 && !includePhoto) el.closest('.detail-section').remove();
   });
   div.querySelectorAll('.no-print').forEach(function(el){ el.remove(); });
@@ -1869,29 +1896,29 @@ function executePrint() {
       el.closest('.detail-item').remove();
   });
   div.querySelectorAll('#kakaoMap').forEach(function(el){ el.style.height='220px'; });
-
-  // 사진 포함 시 버튼 숨기기
   if(includePhoto) {
     div.querySelectorAll('.detail-photo-grid button, .detail-photo-grid a[download]').forEach(function(el){ el.remove(); });
-    // 사진 추가/전체다운로드/전체삭제 버튼 제거
     div.querySelectorAll('.detail-section-title label, .detail-section-title button').forEach(function(el){ el.remove(); });
     div.querySelectorAll('.detail-section').forEach(function(section){
-      var title = section.querySelector('.detail-section-title');
-      if(title && title.textContent.indexOf('사진') !== -1) {
-        // 다운로드/삭제 버튼 행 제거
+      var t = section.querySelector('.detail-section-title');
+      if(t && t.textContent.indexOf('사진') !== -1)
         section.querySelectorAll('div[style*="justify-content:flex-end"]').forEach(function(el){ el.remove(); });
-      }
     });
   }
+  return div;
+}
 
+function executePrint(mode) {
+  var photoSection = document.getElementById('printPhotoOptSection');
+  var includePhoto  = photoSection.style.display !== 'none' && document.querySelector('input[name="printPhotoOpt"]:checked').value === 'include';
+  var includeAgency = document.querySelector('input[name="printAgencyOpt"]:checked').value === 'include';
+  closePrintModal();
+
+  var div = buildPrintContent(includePhoto, includeAgency);
   var photoCount = includePhoto ? (window._dp||[]).length : 0;
   var photoCols = photoCount<=1?1:photoCount<=4?2:photoCount<=9?3:photoCount<=16?4:5;
 
-  var win = window.open('','_blank','width=800,height=900');
-  win.document.write(
-    '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
-    '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
-    '<style>'+
+  var css =
     'body{font-family:"Noto Sans KR",sans-serif;padding:20px;color:#1a1f36;font-size:12px;}'+
     '.print-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a1f36;padding-bottom:8px;margin-bottom:16px;}'+
     '.print-header .company{font-size:16px;font-weight:700;}'+
@@ -1908,21 +1935,53 @@ function executePrint() {
     '[style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:12px;line-height:1.6;}'+
     '#kakaoMap{height:220px !important;width:100% !important;}'+
     (includePhoto ?
-      '.detail-section:has(.detail-photo-grid){page-break-inside:avoid;break-inside:avoid;}'+
       '.detail-photo-grid{display:grid !important;grid-template-columns:repeat('+photoCols+',1fr) !important;gap:4px !important;}'+
       '.detail-photo-grid img{width:100% !important;aspect-ratio:1 !important;object-fit:cover !important;border-radius:3px;}' : '')+
-    '@page{margin:8mm;size:A4;}'+
-    '</style></head><body>'+
-    (includeAgency ?
-      '<div class="print-header">'+
-      '<div class="company">새롬부동산공인중개사사무소</div>'+
-      '<div class="phone">☎ 032-563-3001</div>'+
-      '</div>' : '')+
-    div.innerHTML+
-    '<script>window.onload=function(){window.print();window.close();}<\/script>'+
-    '</body></html>'
-  );
-  win.document.close();
+    '@page{margin:8mm;size:A4;}';
+
+  var headerHtml = includeAgency ?
+    '<div class="print-header"><div class="company">새롬부동산공인중개사사무소</div><div class="phone">☎ 032-563-3001</div></div>' : '';
+
+  if(mode === 'pdf') {
+    // PDF 저장: html2pdf.js 사용
+    var container = document.createElement('div');
+    container.style.cssText = 'font-family:sans-serif;padding:20px;color:#1a1f36;font-size:12px;width:794px;';
+    if(includeAgency) {
+      var hdr = document.createElement('div');
+      hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a1f36;padding-bottom:8px;margin-bottom:16px;';
+      hdr.innerHTML = '<span style="font-size:16px;font-weight:700;">새롬부동산공인중개사사무소</span><span style="font-size:13px;color:#3a7ef6;font-weight:600;">☎ 032-563-3001</span>';
+      container.appendChild(hdr);
+    }
+    container.appendChild(div);
+    document.body.appendChild(container);
+
+    // 주소 텍스트
+    var addrEl = document.getElementById('detailTitle');
+    var fileName = (addrEl ? addrEl.textContent.replace(/[^\w가-힣\s]/g,'').trim() : '매물') + '.pdf';
+
+    var opt = {
+      margin: [8,8,8,8],
+      filename: fileName,
+      image: { type:'jpeg', quality:0.95 },
+      html2canvas: { scale:2, useCORS:true, logging:false },
+      jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+    };
+    html2pdf().set(opt).from(container).save().then(function(){
+      document.body.removeChild(container);
+    });
+  } else {
+    // 인쇄
+    var win = window.open('','_blank','width=800,height=900');
+    win.document.write(
+      '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
+      '<style>'+css+'</style></head><body>'+
+      headerHtml+div.innerHTML+
+      '<script>window.onload=function(){window.print();window.close();}<\/script>'+
+      '</body></html>'
+    );
+    win.document.close();
+  }
 }
 
 function closeDetailModal(){ 

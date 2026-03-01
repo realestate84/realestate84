@@ -697,6 +697,7 @@ var DEFAULT_FIELDS = [
 // 설정 저장소 (Firebase에서 로드)
 var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ... }
 var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
+var fieldOrder = {};    // { '토지': ['price','landArea',...], ... }
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
@@ -1422,34 +1423,18 @@ function openDetail(id){
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
       (showField('price')       ? '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>' : '')+
       (showField('maintenance') ? '<div class="detail-item"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>' : '')+
-      (showField('premium')     ? '<div class="detail-item full"><label>권리금</label><div class="val">'+(p.premium||'-')+'</div></div>' : '')+
-      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
+      (showField('premium')     ? '<div class="detail-item full"><label>권리금</label><div class="val">'+(p.premium||'-')+'</div></div>' : '')+      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
-      (showField('landArea')    ? '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>' : '')+
-      (showField('totalArea')   ? '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>' : '')+
-      (showField('supplyArea')  ? '<div class="detail-item"><label>면적(공급)</label><div class="val">'+(p.supplyArea?p.supplyArea+' 평':'-')+'</div></div>' : '')+
-      (showField('exclusiveArea')? '<div class="detail-item"><label>면적(전용)</label><div class="val">'+((p.exclusiveArea||(p.rentArea))?((p.exclusiveArea||p.rentArea)+' 평'):'-')+'</div></div>' : '')+
-      (showField('tempArea')    ? '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>' : '')+
-      (showField('roadArea')    ? '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>' : '')+
-      (showField('useZone')     ? '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>' : '')+
-      (showField('jimok')       ? '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>' : '')+
-      (showField('buildingUse') ? '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>' : '')+
-      (showField('approvalDate')? '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>' : '')+
-      (showField('floors')      ? '<div class="detail-item"><label>총층수</label><div class="val">'+(p.floors||'-')+'</div></div>' : '')+
-      (showField('electric')    ? '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric?p.electric+'kw':'-')+'</div></div>' : '')+
-      (showField('hoist')       ? '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>' : '')+
-      (showField('direction')   ? '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>' : '')+
-      (showField('height')      ? '<div class="detail-item"><label>층고</label><div class="val">'+(p.height?p.height+'m':'-')+'</div></div>' : '')+
-      (showField('parking')     ? '<div class="detail-item"><label>주차가능여부</label><div class="val">'+(p.parking||'-')+'</div></div>' : '')+
-      (showField('toilet')      ? '<div class="detail-item"><label>화장실</label><div class="val">'+(p.toilet||'-')+'</div></div>' : '')+
-      (showField('elevator')    ? '<div class="detail-item"><label>엘리베이터</label><div class="val">'+(p.elevator||'-')+'</div></div>' : '')+
-      (showField('factoryReg')  ? '<div class="detail-item"><label>공장등록 가능여부</label><div class="val">'+(p.factoryReg||'-')+'</div></div>' : '')+
-      (showField('access')      ? '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>' : '')+
-      // 커스텀 항목
-      (customFields[ptype]||[]).filter(function(cf){ return isFieldVisible(ptype,cf.key); }).map(function(cf){
-        return '<div class="detail-item"><label>'+cf.label+'</label><div class="val">'+(p[cf.key]||'-')+'</div></div>';
+      getOrderedFields(ptype).filter(function(f){ return f.section !== '기본정보' && isFieldVisible(ptype, f.key); }).map(function(f){
+        var val;
+        if(f.key==='electric') val = p.electric ? p.electric+'kw' : '-';
+        else if(f.key==='height') val = p.height ? p.height+'m' : '-';
+        else if(f.key==='exclusiveArea') val = (p.exclusiveArea||(p.rentArea)) ? (p.exclusiveArea||p.rentArea)+' 평' : '-';
+        else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = p[f.key] ? p[f.key]+' 평' : '-';
+        else val = p[f.key] || '-';
+        return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
       }).join('')+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
@@ -2273,17 +2258,28 @@ function loadFieldSettings(callback) {
       var data = doc.data();
       fieldSettings = data.fieldSettings || {};
       customFields = data.customFields || {};
+      fieldOrder = data.fieldOrder || {};
     } else {
-      // 기본값: 모든 항목 ON
       fieldSettings = {};
       customFields = {};
+      fieldOrder = {};
       PROP_TYPES.forEach(function(t) {
         fieldSettings[t] = {};
         DEFAULT_FIELDS.forEach(function(f) { fieldSettings[t][f.key] = true; });
         customFields[t] = [];
+        fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
       });
       saveFieldSettings();
     }
+    // 누락된 타입 초기화
+    PROP_TYPES.forEach(function(t) {
+      if(!fieldOrder[t]) fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
+      if(!customFields[t]) customFields[t] = [];
+      if(!fieldSettings[t]) {
+        fieldSettings[t] = {};
+        DEFAULT_FIELDS.forEach(function(f){ fieldSettings[t][f.key] = true; });
+      }
+    });
     if(callback) callback();
   });
 }
@@ -2291,8 +2287,25 @@ function loadFieldSettings(callback) {
 function saveFieldSettings() {
   db.collection('settings').doc(SETTINGS_DOC).set({
     fieldSettings: fieldSettings,
-    customFields: customFields
+    customFields: customFields,
+    fieldOrder: fieldOrder
   });
+}
+
+// 해당 타입의 전체 항목 순서대로 반환
+function getOrderedFields(type) {
+  var order = fieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; });
+  var customs = customFields[type] || [];
+  // 커스텀 항목 key도 order에 없으면 끝에 추가
+  customs.forEach(function(cf){
+    if(order.indexOf(cf.key) === -1) order.push(cf.key);
+  });
+  // 전체 항목 맵
+  var allFields = {};
+  DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = f; });
+  customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:cf.label, section:'추가 항목', suffix:'', custom:true}; });
+  // order대로 반환 (존재하는 것만)
+  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
 }
 
 function isFieldVisible(type, key) {
@@ -2312,8 +2325,8 @@ function closeSettings() {
 
 function renderSettingsPanel() {
   var activeType = window._settingsActiveType || PROP_TYPES[0];
-  var html = '';
 
+  var html = '';
   // 탭
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">';
   PROP_TYPES.forEach(function(t) {
@@ -2322,53 +2335,66 @@ function renderSettingsPanel() {
   });
   html += '</div>';
 
-  // 현재 탭 항목
-  if(!fieldSettings[activeType]) {
-    fieldSettings[activeType] = {};
-    DEFAULT_FIELDS.forEach(function(f){ fieldSettings[activeType][f.key]=true; });
-  }
-  if(!customFields[activeType]) customFields[activeType] = [];
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">☰ 드래그로 순서 변경 &nbsp;|&nbsp; 체크박스로 표시/숨김</div>';
+  html += '<div id="fieldOrderList" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;">';
 
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">';
-
-  // 기본 섹션별 그룹
-  var sections = {};
-  DEFAULT_FIELDS.forEach(function(f){
-    if(!sections[f.section]) sections[f.section]=[];
-    sections[f.section].push(f);
+  var ordered = getOrderedFields(activeType);
+  ordered.forEach(function(f) {
+    var checked = isFieldVisible(activeType, f.key);
+    var isCustom = !!f.custom;
+    html += '<div draggable="true" data-key="'+f.key+'" '+
+      'ondragstart="onFieldDragStart(event)" '+
+      'ondragover="onFieldDragOver(event)" '+
+      'ondrop="onFieldDrop(event,\''+activeType+'\')" '+
+      'ondragend="onFieldDragEnd(event)" '+
+      'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;cursor:grab;user-select:none;">'+
+      '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>'+
+      '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
+      '<span style="flex:1;">'+f.label+(isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+'</span>'+
+      (isCustom ? '<button onclick="deleteCustomField(\''+activeType+'\',\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>' : '')+
+      '</div>';
   });
-
-  Object.keys(sections).forEach(function(sec) {
-    html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:600;margin-top:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">'+sec+'</div>';
-    sections[sec].forEach(function(f) {
-      var checked = isFieldVisible(activeType, f.key);
-      html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;">'+
-        '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" style="cursor:pointer;width:15px;height:15px;">'+
-        f.label+'</label>';
-    });
-  });
-
-  // 커스텀 항목
-  if(customFields[activeType].length > 0) {
-    html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:600;margin-top:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">추가 항목</div>';
-    customFields[activeType].forEach(function(cf) {
-      html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;">'+
-        '<input type="checkbox" '+(isFieldVisible(activeType,cf.key)?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+cf.key+'\',this.checked)" style="cursor:pointer;width:15px;height:15px;">'+
-        cf.label+
-        '<button onclick="deleteCustomField(\''+activeType+'\',\''+cf.key+'\')" style="margin-left:auto;background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;" title="삭제">✕</button>'+
-        '</label>';
-    });
-  }
 
   html += '</div>';
-
-  // 신규 항목 추가
   html += '<div style="display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--border);">'+
     '<input type="text" id="newFieldInput" class="form-input" placeholder="새 항목명 입력..." style="flex:1;font-size:13px;">'+
     '<button class="btn btn-primary btn-sm" onclick="addCustomField(\''+activeType+'\')" style="white-space:nowrap;">+ 항목 추가</button>'+
     '</div>';
 
   document.getElementById('settingsBody').innerHTML = html;
+}
+
+// 드래그앤드롭
+var _dragSrcKey = null;
+function onFieldDragStart(e) {
+  _dragSrcKey = e.currentTarget.dataset.key;
+  e.currentTarget.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onFieldDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.borderColor = 'var(--accent)';
+}
+function onFieldDragEnd(e) {
+  e.currentTarget.style.opacity = '1';
+  document.querySelectorAll('#fieldOrderList [data-key]').forEach(function(el){
+    el.style.borderColor = 'var(--border)';
+  });
+}
+function onFieldDrop(e, type) {
+  e.preventDefault();
+  var targetKey = e.currentTarget.dataset.key;
+  if(!targetKey || targetKey === _dragSrcKey) return;
+  var order = getOrderedFields(type).map(function(f){ return f.key; });
+  var fromIdx = order.indexOf(_dragSrcKey);
+  var toIdx = order.indexOf(targetKey);
+  if(fromIdx === -1 || toIdx === -1) return;
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, _dragSrcKey);
+  fieldOrder[type] = order;
+  saveFieldSettings();
+  renderSettingsPanel();
 }
 
 function switchSettingsTab(type) {

@@ -562,7 +562,7 @@ th{position:relative;}
         <button class="btn btn-primary" id="detailEditBtn" style="font-size:11px;padding:5px 10px;">수정</button>
         <button class="btn btn-outline" id="detailCopyBtn" style="font-size:11px;padding:5px 10px;">📋 복사</button>
         <button class="btn btn-outline" onclick="printDetail()" style="font-size:11px;padding:5px 10px;">🖨 인쇄</button>
-        <button class="btn btn-outline" onclick="saveDetailPdf()" style="font-size:11px;padding:5px 10px;">💾 PDF저장</button>
+        <button class="btn btn-outline" onclick="saveDetailPdf()" style="font-size:11px;padding:5px 10px;">PDF</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
     </div>
@@ -1617,6 +1617,7 @@ function saveProperty(){
 
 // ── 상세 모달 ─────────────────────────────
 function openDetail(id){
+  window._currentDetailId = id;
   var p=properties.find(function(x){return x.id===id;});
   if(!p) return;
   document.getElementById('detailTitle').innerHTML=
@@ -1952,18 +1953,41 @@ function executePrint(mode) {
       hdr.innerHTML = '<span style="font-size:16px;font-weight:700;">새롬부동산공인중개사사무소</span><span style="font-size:13px;color:#3a7ef6;font-weight:600;">☎ 032-563-3001</span>';
       container.appendChild(hdr);
     }
+
+    // 복사 버튼 제거
+    div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
+
+    // 지도: 카카오맵 정적 이미지로 교체
+    var mapEl = div.querySelector('#kakaoMap');
+    if(mapEl && window._mapCoords) {
+      var lat = window._mapCoords.getLat ? window._mapCoords.getLat() : window._mapCoords.lat;
+      var lng = window._mapCoords.getLng ? window._mapCoords.getLng() : window._mapCoords.lng;
+      var staticMapUrl = 'https://map.kakaocdn.net/api/staticmap?appkey=f08b63af7ea30749c5105b52cb8828f7&center='+lng+','+lat+'&level=4&w=760&h=280&marker='+lng+','+lat;
+      var mapImg = document.createElement('img');
+      mapImg.src = staticMapUrl;
+      mapImg.style.cssText = 'width:100%;height:280px;object-fit:cover;border-radius:8px;';
+      mapEl.parentNode.replaceChild(mapImg, mapEl);
+    } else if(mapEl) {
+      mapEl.style.cssText = 'height:280px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:8px;';
+      mapEl.innerHTML = '<span style="color:#999;font-size:13px;">지도 미리보기</span>';
+    }
+
     container.appendChild(div);
     document.body.appendChild(container);
 
-    // 주소 텍스트
-    var addrEl = document.getElementById('detailTitle');
-    var fileName = (addrEl ? addrEl.textContent.replace(/[^\w가-힣\s]/g,'').trim() : '매물') + '.pdf';
+    // 파일명: 매물종류_거래유형_주소.pdf
+    var curProp = properties.find(function(p){ return p.id === (editingId || (window._currentDetailId)); }) ||
+                  properties.find(function(p){ return p.address && document.getElementById('detailTitle') && document.getElementById('detailTitle').textContent.indexOf(p.address) !== -1; });
+    var pType   = curProp ? (curProp.type||'') : '';
+    var pGeorae = curProp ? (curProp.georae||'') : '';
+    var pAddr   = curProp ? (curProp.address||'') : (document.getElementById('detailTitle') ? document.getElementById('detailTitle').textContent.trim() : '매물');
+    var fileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'') + '.pdf';
 
     var opt = {
       margin: [8,8,8,8],
       filename: fileName,
       image: { type:'jpeg', quality:0.95 },
-      html2canvas: { scale:2, useCORS:true, logging:false },
+      html2canvas: { scale:2, useCORS:true, allowTaint:true, logging:false },
       jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
     };
     html2pdf().set(opt).from(container).save().then(function(){

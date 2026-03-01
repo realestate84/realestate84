@@ -296,7 +296,7 @@ th{position:relative;}
     <select class="filter-select" id="filterType" onchange="renderTable()">
       <option value="">매물종류 전체</option>
       <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-      <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option>
+      <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
     </select>
     <button class="btn btn-outline btn-sm" id="advSearchBtn" onclick="toggleAdvSearch()">🔎 상세검색 ▾</button>
     <button class="btn btn-outline btn-sm" id="depFilterBtn" onclick="toggleDepFilter()" style="color:#7a85a8;">🔵 출발가능만</button>
@@ -394,7 +394,7 @@ th{position:relative;}
           <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)">
             <option value="">선택</option>
             <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-            <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option>
+            <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
           </select>
         </div>
         <div class="form-group full">
@@ -666,7 +666,7 @@ var COLLECTION = 'properties';
 var SETTINGS_DOC = 'fieldSettings';
 
 // 매물종류 목록
-var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션'];
+var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 
 // 기본 항목 정의 (key, label, suffix)
 var DEFAULT_FIELDS = [

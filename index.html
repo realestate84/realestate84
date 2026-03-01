@@ -1131,31 +1131,34 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
-          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:'평'):'-')+'</td>';
-          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:'평'):'-')+'</td>';
-          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(fieldSuffixOverrides.hasOwnProperty('supplyArea')?fieldSuffixOverrides['supplyArea']:'평'):'-')+'</td>';
-          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(fieldSuffixOverrides.hasOwnProperty('exclusiveArea')?fieldSuffixOverrides['exclusiveArea']:'평'):'-')+'</td>';
-          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(fieldSuffixOverrides.hasOwnProperty('tempArea')?fieldSuffixOverrides['tempArea']:'평'):'-')+'</td>';
-          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(fieldSuffixOverrides.hasOwnProperty('roadArea')?fieldSuffixOverrides['roadArea']:'평'):'-')+'</td>';
-          case 'useZone':   return '<td class="muted">'+(p.useZone||'-')+'</td>';
-          case 'jimok':     return '<td class="muted">'+(p.jimok||'-')+'</td>';
-          case 'buildingUse':  return '<td class="muted">'+(p.buildingUse||'-')+'</td>';
-          case 'approvalDate': return '<td class="muted" style="font-size:11px">'+(p.approvalDate||'-')+'</td>';
-          case 'floors':    return '<td class="muted">'+(p.floors||'-')+'</td>';
+          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:' 평'):'-')+'</td>';
+          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:' 평'):'-')+'</td>';
+          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(fieldSuffixOverrides.hasOwnProperty('supplyArea')?fieldSuffixOverrides['supplyArea']:' 평'):'-')+'</td>';
+          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(fieldSuffixOverrides.hasOwnProperty('exclusiveArea')?fieldSuffixOverrides['exclusiveArea']:' 평'):'-')+'</td>';
+          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(fieldSuffixOverrides.hasOwnProperty('tempArea')?fieldSuffixOverrides['tempArea']:' 평'):'-')+'</td>';
+          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(fieldSuffixOverrides.hasOwnProperty('roadArea')?fieldSuffixOverrides['roadArea']:' 평'):'-')+'</td>';
           case 'electric':  return '<td class="muted">'+(p.electric?p.electric+(fieldSuffixOverrides.hasOwnProperty('electric')?fieldSuffixOverrides['electric']:'kw'):'-')+'</td>';
-          case 'hoist':     return '<td class="muted">'+(p.hoist||'-')+'</td>';
-          case 'direction': return '<td class="muted">'+(p.direction||'-')+'</td>';
           case 'height':    return '<td class="muted">'+(p.height?p.height+(fieldSuffixOverrides.hasOwnProperty('height')?fieldSuffixOverrides['height']:'m'):'-')+'</td>';
-          case 'parking':   return '<td class="muted">'+(p.parking||'-')+'</td>';
-          case 'toilet':    return '<td class="muted">'+(p.toilet||'-')+'</td>';
-          case 'elevator':  return '<td class="muted">'+(p.elevator||'-')+'</td>';
-          case 'factoryReg':return '<td class="muted">'+(p.factoryReg||'-')+'</td>';
-          case 'access':    return '<td class="muted">'+(p.access||'-')+'</td>';
+          case 'useZone':   return '<td class="muted">'+(p.useZone?(p.useZone+(getFieldSuffix('useZone')?' '+getFieldSuffix('useZone'):'')):'-')+'</td>';
+          case 'jimok':     return '<td class="muted">'+(p.jimok?(p.jimok+(getFieldSuffix('jimok')?' '+getFieldSuffix('jimok'):'')):'-')+'</td>';
+          case 'buildingUse':  return '<td class="muted">'+(p.buildingUse?(p.buildingUse+(getFieldSuffix('buildingUse')?' '+getFieldSuffix('buildingUse'):'')):'-')+'</td>';
+          case 'approvalDate': return '<td class="muted" style="font-size:11px">'+(p.approvalDate||'-')+'</td>';
+          case 'floors':    return '<td class="muted">'+(p.floors?(p.floors+(getFieldSuffix('floors')?' '+getFieldSuffix('floors'):'')):'-')+'</td>';
+          case 'hoist':     return '<td class="muted">'+(p.hoist?(p.hoist+(getFieldSuffix('hoist')?' '+getFieldSuffix('hoist'):'')):'-')+'</td>';
+          case 'direction': return '<td class="muted">'+(p.direction?(p.direction+(getFieldSuffix('direction')?' '+getFieldSuffix('direction'):'')):'-')+'</td>';
+          case 'parking':   return '<td class="muted">'+(p.parking?(p.parking+(getFieldSuffix('parking')?' '+getFieldSuffix('parking'):'')):'-')+'</td>';
+          case 'toilet':    return '<td class="muted">'+(p.toilet?(p.toilet+(getFieldSuffix('toilet')?' '+getFieldSuffix('toilet'):'')):'-')+'</td>';
+          case 'elevator':  return '<td class="muted">'+(p.elevator?(p.elevator+(getFieldSuffix('elevator')?' '+getFieldSuffix('elevator'):'')):'-')+'</td>';
+          case 'factoryReg':return '<td class="muted">'+(p.factoryReg?(p.factoryReg+(getFieldSuffix('factoryReg')?' '+getFieldSuffix('factoryReg'):'')):'-')+'</td>';
+          case 'access':    return '<td class="muted">'+(p.access?(p.access+(getFieldSuffix('access')?' '+getFieldSuffix('access'):'')):'-')+'</td>';
           case 'ownerName': return '<td class="muted">'+(p.ownerName||'-')+'</td>';
           case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
           case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
-          default: return '<td class="muted">'+(p[c.key]||'-')+'</td>';
+          default: {
+            var sv = p[c.key]||''; var ss = getFieldSuffix(c.key);
+            return '<td class="muted">'+(sv ? sv+(ss?' '+ss:'') : '-')+'</td>';
+          }
         }
       }).join('');
       return '<tr>'+rowCells+

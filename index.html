@@ -1728,6 +1728,15 @@ function executePrint() {
   // 사진 포함 시 버튼 숨기기
   if(includePhoto) {
     div.querySelectorAll('.detail-photo-grid button, .detail-photo-grid a[download]').forEach(function(el){ el.remove(); });
+    // 사진 추가/전체다운로드/전체삭제 버튼 제거
+    div.querySelectorAll('.detail-section-title label, .detail-section-title button').forEach(function(el){ el.remove(); });
+    div.querySelectorAll('.detail-section').forEach(function(section){
+      var title = section.querySelector('.detail-section-title');
+      if(title && title.textContent.indexOf('사진') !== -1) {
+        // 다운로드/삭제 버튼 행 제거
+        section.querySelectorAll('div[style*="justify-content:flex-end"]').forEach(function(el){ el.remove(); });
+      }
+    });
   }
 
   var photoCount = includePhoto ? (window._dp||[]).length : 0;
@@ -1754,7 +1763,8 @@ function executePrint() {
     '[style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:12px;line-height:1.6;}'+
     '#kakaoMap{height:220px !important;width:100% !important;}'+
     (includePhoto ?
-      '.detail-photo-grid{display:grid !important;grid-template-columns:repeat('+photoCols+',1fr) !important;gap:4px !important;page-break-inside:avoid;break-inside:avoid;}'+
+      '.detail-section:has(.detail-photo-grid){page-break-inside:avoid;break-inside:avoid;}'+
+      '.detail-photo-grid{display:grid !important;grid-template-columns:repeat('+photoCols+',1fr) !important;gap:4px !important;}'+
       '.detail-photo-grid img{width:100% !important;aspect-ratio:1 !important;object-fit:cover !important;border-radius:3px;}' : '')+
     '@page{margin:8mm;size:A4;}'+
     '</style></head><body>'+

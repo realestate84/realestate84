@@ -697,6 +697,7 @@ var DEFAULT_FIELDS = [
 var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ... }
 var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
 var fieldOrder = {};    // { '토지': ['price','landArea',...], ... }
+var fieldSections = {}; // { 'price': '기본정보', 'landArea': '상세정보', ... } - 전체 공통
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
@@ -1417,24 +1418,31 @@ function openDetail(id){
     return '<div class="detail-item"><label>'+key+'</label><div class="val">'+v+'</div></div>';
   }
 
+  // fieldSections 기준으로 기본정보/상세정보 분리
+  var allOrdered = getOrderedFields(ptype);
+  var basicItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='기본정보' && isFieldVisible(ptype,f.key); });
+  var detailItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')!=='기본정보' && isFieldVisible(ptype,f.key); });
+
+  function renderFieldVal(f) {
+    var val;
+    if(f.key==='electric') val = p.electric ? p.electric+'kw' : '-';
+    else if(f.key==='height') val = p.height ? p.height+'m' : '-';
+    else if(f.key==='exclusiveArea') val = (p.exclusiveArea||(p.rentArea)) ? (p.exclusiveArea||p.rentArea)+' 평' : '-';
+    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = p[f.key] ? p[f.key]+' 평' : '-';
+    else if(f.key==='price') return '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>';
+    else val = p[f.key] || '-';
+    return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
+  }
+
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
-      (showField('price')       ? '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>' : '')+
-      (showField('maintenance') ? '<div class="detail-item"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>' : '')+
-      (showField('premium')     ? '<div class="detail-item full"><label>권리금</label><div class="val">'+(p.premium||'-')+'</div></div>' : '')+      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
+      basicItems.map(renderFieldVal).join('')+
+      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
-      getOrderedFields(ptype).filter(function(f){ return f.section !== '기본정보' && isFieldVisible(ptype, f.key); }).map(function(f){
-        var val;
-        if(f.key==='electric') val = p.electric ? p.electric+'kw' : '-';
-        else if(f.key==='height') val = p.height ? p.height+'m' : '-';
-        else if(f.key==='exclusiveArea') val = (p.exclusiveArea||(p.rentArea)) ? (p.exclusiveArea||p.rentArea)+' 평' : '-';
-        else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = p[f.key] ? p[f.key]+' 평' : '-';
-        else val = p[f.key] || '-';
-        return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
-      }).join('')+
+      detailItems.map(renderFieldVal).join('')+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>등기부상 소유자명</label><div class="val">'+(p.regOwnerName||'-')+'</div></div>'+
@@ -2258,16 +2266,19 @@ function loadFieldSettings(callback) {
       fieldSettings = data.fieldSettings || {};
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
+      fieldSections = data.fieldSections || {};
     } else {
       fieldSettings = {};
       customFields = {};
       fieldOrder = {};
+      fieldSections = {};
       PROP_TYPES.forEach(function(t) {
         fieldSettings[t] = {};
         DEFAULT_FIELDS.forEach(function(f) { fieldSettings[t][f.key] = true; });
         customFields[t] = [];
         fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
       });
+      DEFAULT_FIELDS.forEach(function(f){ fieldSections[f.key] = f.section; });
       saveFieldSettings();
     }
     // 누락된 타입 초기화
@@ -2279,6 +2290,10 @@ function loadFieldSettings(callback) {
         DEFAULT_FIELDS.forEach(function(f){ fieldSettings[t][f.key] = true; });
       }
     });
+    // fieldSections 누락 키 채우기
+    DEFAULT_FIELDS.forEach(function(f){
+      if(!fieldSections[f.key]) fieldSections[f.key] = f.section;
+    });
     if(callback) callback();
   });
 }
@@ -2287,7 +2302,8 @@ function saveFieldSettings() {
   db.collection('settings').doc(SETTINGS_DOC).set({
     fieldSettings: fieldSettings,
     customFields: customFields,
-    fieldOrder: fieldOrder
+    fieldOrder: fieldOrder,
+    fieldSections: fieldSections
   });
 }
 
@@ -2317,11 +2333,13 @@ function isFieldVisible(type, key) {
 var _tmpFieldSettings = null;
 var _tmpCustomFields = null;
 var _tmpFieldOrder = null;
+var _tmpFieldSections = null;
 
 function openSettings() {
   _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
   _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
   _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
+  _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
   window._settingsActiveType = '전체';
   renderSettingsPanel();
   document.getElementById('settingsModal').classList.add('active');
@@ -2331,6 +2349,7 @@ function closeSettings() {
   _tmpFieldSettings = null;
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
+  _tmpFieldSections = null;
   document.getElementById('settingsModal').classList.remove('active');
 }
 
@@ -2338,10 +2357,12 @@ function confirmSettings() {
   fieldSettings = JSON.parse(JSON.stringify(_tmpFieldSettings));
   customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
   fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
+  fieldSections = JSON.parse(JSON.stringify(_tmpFieldSections));
   saveFieldSettings();
   _tmpFieldSettings = null;
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
+  _tmpFieldSections = null;
   document.getElementById('settingsModal').classList.remove('active');
   showToast('✅ 설정이 저장됐어요!');
 }
@@ -2393,24 +2414,22 @@ function renderSettingsPanel() {
   html += '<div id="fieldOrderList" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;">';
 
   var ordered = tmpGetOrderedFields(refType);
-  var basicKeys = ['price','maintenance','premium'];
-  var firstBasicIdx = -1, firstDetailIdx = -1;
-  ordered.forEach(function(f,i){
-    if(basicKeys.indexOf(f.key)>-1 && firstBasicIdx===-1) firstBasicIdx=i;
-    if(basicKeys.indexOf(f.key)===-1 && firstDetailIdx===-1) firstDetailIdx=i;
-  });
+  var lastSection = null;
 
   ordered.forEach(function(f,i){
     var isCustom = !!f.custom;
-    // '전체' 탭: 모든 타입이 다 켜져있으면 체크, 하나라도 꺼져있으면 미체크
     var checked = isAll
       ? PROP_TYPES.every(function(t){ return tmpIsVisible(t, f.key); })
       : tmpIsVisible(activeType, f.key);
 
-    if(i===firstBasicIdx)
-      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:4px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">기본정보</div>';
-    if(i===firstDetailIdx)
-      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:14px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">상세정보</div>';
+    // 섹션 헤더: _tmpFieldSections 기준
+    var sec = (_tmpFieldSections && _tmpFieldSections[f.key]) || '상세정보';
+    if(sec !== lastSection) {
+      if(lastSection !== null)
+        html += '<div style="grid-column:1/-1;"></div>'; // 간격
+      html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:'+(lastSection?'10px':'4px')+';margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">'+sec+'</div>';
+      lastSection = sec;
+    }
 
     var dragAttrs = isAll
       ? 'draggable="true" ondragstart="onFieldDragStart(event)" ondragover="onFieldDragOver(event)" ondrop="onFieldDrop(event)" ondragend="onFieldDragEnd(event)"'
@@ -2516,6 +2535,12 @@ function onFieldDrop(e) {
   e.preventDefault();
   var targetKey = e.currentTarget.dataset.key;
   if(!targetKey || targetKey === _dragSrcKey) return;
+
+  // 섹션 이동: 드래그한 항목을 타겟의 섹션으로 변경
+  var targetSection = _tmpFieldSections[targetKey] || '상세정보';
+  _tmpFieldSections[_dragSrcKey] = targetSection;
+
+  // 모든 타입 순서 업데이트
   PROP_TYPES.forEach(function(t) {
     var tOrder = (_tmpFieldOrder[t] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
     var fi = tOrder.indexOf(_dragSrcKey);

@@ -2496,7 +2496,22 @@ function onFieldDrop(e, type) {
   if(fromIdx===-1||toIdx===-1) return;
   order.splice(fromIdx,1);
   order.splice(toIdx,0,_dragSrcKey);
-  _tmpFieldOrder[type] = order;
+
+  // 모든 매물종류에 동일 순서 적용
+  PROP_TYPES.forEach(function(t) {
+    var tOrder = (_tmpFieldOrder[t] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
+    var fi = tOrder.indexOf(_dragSrcKey);
+    var ti = tOrder.indexOf(targetKey);
+    if(fi!==-1 && ti!==-1) {
+      tOrder.splice(fi,1);
+      tOrder.splice(ti,0,_dragSrcKey);
+      _tmpFieldOrder[t] = tOrder;
+    } else {
+      // 해당 타입에 없는 키면 현재 타입 순서 그대로 적용
+      _tmpFieldOrder[t] = order.slice();
+    }
+  });
+
   renderSettingsPanel();
 }
 

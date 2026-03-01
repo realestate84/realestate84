@@ -755,6 +755,9 @@ var DEFAULT_FIELDS = [
   {key:'elevator', label:'엘리베이터',   section:'상세정보', suffix:''},
   {key:'factoryReg',label:'공장등록 가능여부',section:'상세정보',suffix:''},
   {key:'access',   label:'진출입로',     section:'상세정보', suffix:''},
+  {key:'regOwnerName',label:'등기부상 소유자명',section:'소유자정보',suffix:''},
+  {key:'ownerName',label:'소유자명',      section:'소유자정보',suffix:''},
+  {key:'ownerPhone',label:'소유자연락처', section:'소유자정보',suffix:''},
 ];
 
 // 설정 저장소 (Firebase에서 로드)
@@ -2466,13 +2469,17 @@ function downloadExcel(){
   ];
   // 고정 뒤 컬럼 (시스템)
   var fixedBack = [
-    {key:'ownerName',  label:'소유자명'},
-    {key:'ownerPhone', label:'소유자연락처'},
-    {key:'memo',       label:'특이사항/메모'},
-    {key:'createdDate',label:'등록일'},
-    {key:'createdTime',label:'등록시간'},
-    {key:'updatedDate',label:'최종수정일'},
-    {key:'updatedTime',label:'최종수정시간'},
+    {key:'memo',        label:'특이사항/메모'},
+    {key:'note',        label:'참고사항'},
+    {key:'naver',       label:'네이버 광고문구'},
+    {key:'video',       label:'동영상 링크'},
+    {key:'notionLink',  label:'노션 링크'},
+    {key:'adStart',     label:'광고시작일'},
+    {key:'adEnd',       label:'광고종료일'},
+    {key:'createdDate', label:'등록일'},
+    {key:'createdTime', label:'등록시간'},
+    {key:'updatedDate', label:'최종수정일'},
+    {key:'updatedTime', label:'최종수정시간'},
   ];
   var fixedFrontKeys = fixedFront.map(function(f){ return f.key; });
   var fixedBackKeys  = fixedBack.map(function(f){ return f.key; });

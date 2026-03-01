@@ -609,6 +609,7 @@ th{position:relative;}
 <div class="modal-overlay" id="printModal" style="z-index:10001;">
   <div class="modal" style="max-width:340px;padding:28px 24px;">
     <div class="modal-title" style="margin-bottom:20px;">🖨 인쇄 옵션</div>
+    <div id="printPhotoOptSection">
     <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">사진</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
       <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;background:var(--bg);">
@@ -619,6 +620,7 @@ th{position:relative;}
         <input type="radio" name="printPhotoOpt" value="exclude" checked style="width:16px;height:16px;cursor:pointer;">
         <span>📄 사진 제외하고 인쇄</span>
       </label>
+    </div>
     </div>
     <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">부동산 연락처</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
@@ -1831,12 +1833,11 @@ function switchMapView(mode) {
 }
 
 function printDetail() {
-  // 사진 있을 때만 선택 모달, 없으면 바로 인쇄
-  if(window._dp && window._dp.length > 0) {
-    document.getElementById('printModal').classList.add('active');
-  } else {
-    executePrint(false);
-  }
+  // 사진 옵션: 사진 있을 때만 표시
+  var hasPhotos = window._dp && window._dp.length > 0;
+  document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';
+  // 부동산 연락처 옵션: 항상 표시
+  document.getElementById('printModal').classList.add('active');
 }
 
 function closePrintModal() {
@@ -1844,7 +1845,8 @@ function closePrintModal() {
 }
 
 function executePrint() {
-  var includePhoto  = document.querySelector('input[name="printPhotoOpt"]:checked').value === 'include';
+  var photoSection = document.getElementById('printPhotoOptSection');
+  var includePhoto  = photoSection.style.display !== 'none' && document.querySelector('input[name="printPhotoOpt"]:checked').value === 'include';
   var includeAgency = document.querySelector('input[name="printAgencyOpt"]:checked').value === 'include';
   closePrintModal();
 

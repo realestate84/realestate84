@@ -635,7 +635,7 @@ th{position:relative;}
   <div class="modal" style="max-width:960px;">
     <div class="modal-header">
       <div class="modal-title">⚙️ 항목 설정</div>
-      <button class="modal-close" onclick="closeSettings()">×</button>    </div>
+      <button class="modal-close" onclick="forceCloseSettings()">×</button>    </div>
     <div class="modal-body" id="settingsBody" style="padding:20px;"></div>
   </div>
 </div>
@@ -2319,7 +2319,7 @@ function openDetailOverMap(id) {
 }
 
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
-document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) closeSettings(); });
+document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) forceCloseSettings(); });
 
 // ── textarea 높이 기억 ────────────────────
 function saveMemoHeight(){
@@ -2559,6 +2559,16 @@ function openSettings() {
   window._settingsActiveType = '전체';
   renderSettingsPanel();
   document.getElementById('settingsModal').classList.add('active');
+}
+
+function forceCloseSettings() {
+  _tmpFieldSettings = null;
+  _tmpCustomFields  = null;
+  _tmpFieldOrder    = null;
+  _tmpFieldSections = null;
+  _tmpFieldLabelOverrides = null;
+  _tmpFieldSuffixOverrides = null;
+  document.getElementById('settingsModal').classList.remove('active');
 }
 
 function closeSettings() {

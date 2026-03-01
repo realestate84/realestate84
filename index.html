@@ -1098,17 +1098,10 @@ function renderTable() {
     });
   }
 
-  // 헤더 동적 렌더링 - 항목설정 전체 탭 기준으로 동기화
-  var fixedKeys = LIST_COLUMNS.filter(function(c){ return c.fixed; }).map(function(c){ return c.key; });
-  var dynamicCols = getOrderedFields('전체').map(function(f){
-    return { key:f.key, label:f.label, sortKey:f.key, fixed: fixedKeys.indexOf(f.key)!==-1 };
-  });
-  var allColDefs = [
-    {key:'propNo', label:'No.',  sortKey:'propNo', fixed:true},
-    {key:'photo',  label:'사진', sortKey:null,     fixed:true},
-  ].concat(dynamicCols.filter(function(c){ return c.key!=='propNo'; }));
+  // 헤더 동적 렌더링
+  var allColDefs = buildAllColDefs();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; });
-  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
+  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'30px',departure:'30px'};
   var headerHtml = visibleCols.map(function(c){
     if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
     if(c.key==='photo') return '<th style="width:50px">사진</th>';
@@ -2643,6 +2636,31 @@ function getFieldSuffix(key) {
 }
 
 // 해당 타입의 전체 항목 순서대로 반환
+// 리스트 컬럼 전체 목록 생성 (고정 + 동적)
+function buildAllColDefs() {
+  // 고정 컬럼 키
+  var FIXED_KEYS = ['propNo','photo','georae','type','address','price','adStatus','departure'];
+  // 항목설정 기준 선택 컬럼 (DEFAULT_FIELDS + 커스텀, PROP_TYPES[0] 기준)
+  var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || PROP_TYPES[0];
+  var ordered = getOrderedFields(refType);
+  // 고정 컬럼 제외한 선택 컬럼
+  var selectableCols = ordered
+    .filter(function(f){ return FIXED_KEYS.indexOf(f.key)===-1; })
+    .map(function(f){ return {key:f.key, label:f.label, sortKey:f.key, fixed:false}; });
+
+  return [
+    {key:'propNo',   label:'No.',      sortKey:'propNo',   fixed:true},
+    {key:'photo',    label:'사진',     sortKey:null,       fixed:true},
+    {key:'georae',   label:'거래유형', sortKey:'georae',   fixed:true},
+    {key:'type',     label:'매물종류', sortKey:'type',     fixed:true},
+    {key:'address',  label:'주소',     sortKey:'address',  fixed:true},
+    {key:'price',    label:'가격',     sortKey:'price',    fixed:true},
+  ].concat(selectableCols).concat([
+    {key:'adStatus', label:'광고',     sortKey:'adStatus', fixed:true},
+    {key:'departure',label:'출발',     sortKey:'departure',fixed:true},
+  ]);
+}
+
 function getOrderedFields(type) {
   var order = fieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; });
   var customs = customFields[type] || [];
@@ -2729,21 +2747,10 @@ function toggleColumnPopup() {
   var isOpen = popup.style.display !== 'none';
   if(isOpen) { popup.style.display='none'; return; }
 
-  // LIST_COLUMNS 기준 고정 키 목록
-  var fixedKeys = LIST_COLUMNS.filter(function(c){ return c.fixed; }).map(function(c){ return c.key; });
-
-  // 항목설정 전체 탭 기준 동적 컬럼
-  var dynamicCols = getOrderedFields('전체').map(function(f){
-    return { key: f.key, label: f.label, fixed: fixedKeys.indexOf(f.key) !== -1 };
-  });
-  var allCols = [
-    { key:'propNo', label:'No.',  fixed:true },
-    { key:'photo',  label:'사진', fixed:true },
-  ].concat(dynamicCols.filter(function(c){ return c.key !== 'propNo'; }));
-
+  var allCols = buildAllColDefs();
   var html = '';
   allCols.forEach(function(col) {
-    var checked = col.fixed || listColumnSettings[col.key] !== false;
+    var checked = col.fixed || listColumnSettings[col.key]!==false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
       ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+

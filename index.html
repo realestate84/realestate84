@@ -1051,8 +1051,8 @@ function renderTable() {
         '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>'+
         '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>'+
         '<td style="font-weight:600">'+(p.price||'-')+'</td>'+
-        '<td class="muted">'+(p.landArea?p.landArea+'평':'-')+'</td>'+
-        '<td class="muted">'+(p.totalArea?p.totalArea+'평':'-')+'</td>'+
+        '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:'평'):'-')+'</td>'+
+        '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:'평'):'-')+'</td>'+
         '<td class="muted">'+(p.useZone||'-')+'</td>'+
         '<td class="muted">'+(p.jimok||'-')+'</td>'+
         '<td class="muted">'+(p.ownerName||'-')+'</td>'+
@@ -1491,11 +1491,12 @@ function openDetail(id){
   function renderFieldVal(f) {
     var raw = p[f.key] || '';
     var suffix = getFieldSuffix(f.key);
+    var hasSuffixOverride = fieldSuffixOverrides.hasOwnProperty(f.key);
     var val;
-    if(f.key==='electric') val = raw ? raw+(suffix||'kw') : '-';
-    else if(f.key==='height') val = raw ? raw+(suffix||'m') : '-';
-    else if(f.key==='exclusiveArea') { var v=p.exclusiveArea||(p.rentArea)||''; val = v ? v+(suffix||' 평') : '-'; }
-    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = raw ? raw+(suffix||' 평') : '-';
+    if(f.key==='electric') val = raw ? raw+(hasSuffixOverride ? suffix : 'kw') : '-';
+    else if(f.key==='height') val = raw ? raw+(hasSuffixOverride ? suffix : 'm') : '-';
+    else if(f.key==='exclusiveArea') { var v=p.exclusiveArea||(p.rentArea)||''; val = v ? v+(hasSuffixOverride ? suffix : ' 평') : '-'; }
+    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
     else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+(raw ? raw+(suffix?' '+suffix:'') : '-')+'</div></div>';
     else val = raw ? (raw+(suffix?' '+suffix:'')) : '-';
     return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
@@ -2412,7 +2413,9 @@ function getFieldLabel(key, defaultLabel) {
 
 // 항목의 단위 반환 (override 우선, 없으면 DEFAULT suffix)
 function getFieldSuffix(key) {
-  if(fieldSuffixOverrides[key] !== undefined) return fieldSuffixOverrides[key];
+  // override가 설정된 경우 (빈 문자열 포함) override 값 사용
+  if(fieldSuffixOverrides.hasOwnProperty(key)) return fieldSuffixOverrides[key];
+  // 없으면 DEFAULT_FIELDS의 suffix 사용
   var def = DEFAULT_FIELDS.find(function(f){ return f.key===key; });
   return def ? (def.suffix||'') : '';
 }

@@ -2413,31 +2413,49 @@ function addCustomField(type) {
   var label = input.value.trim();
   if(!label) return;
   var key = 'custom_' + Date.now();
-  if(!customFields[type]) customFields[type] = [];
-  if(!fieldSettings[type]) fieldSettings[type] = {};
-  customFields[type].push({key:key, label:label});
-  fieldSettings[type][key] = true;
+
+  // 모든 매물종류에 추가 (추가한 종류만 ON, 나머지는 OFF)
+  PROP_TYPES.forEach(function(t) {
+    if(!customFields[t]) customFields[t] = [];
+    if(!fieldSettings[t]) fieldSettings[t] = {};
+    // 같은 key가 없을 때만 추가
+    if(!customFields[t].find(function(f){ return f.key === key; })) {
+      customFields[t].push({key:key, label:label});
+    }
+    // 추가한 타입은 ON, 나머지는 OFF
+    fieldSettings[t][key] = (t === type);
+    // fieldOrder에도 추가
+    if(!fieldOrder[t]) fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
+    if(fieldOrder[t].indexOf(key) === -1) fieldOrder[t].push(key);
+  });
+
   saveFieldSettings();
   input.value = '';
   renderSettingsPanel();
-  showToast('✅ 항목이 추가됐어요!');
+  showToast('✅ 항목이 모든 매물종류에 추가됐어요!');
 }
 
 function deleteCustomField(type, key) {
-  // 해당 항목에 데이터가 있는 매물 찾기
+  // 해당 항목에 데이터가 있는 매물 찾기 (전체 매물종류 대상)
   var affected = properties.filter(function(p) {
-    return p.type === type && p[key] && String(p[key]).trim() !== '';
+    return p[key] && String(p[key]).trim() !== '';
   });
 
-  var msg = '이 항목을 삭제하시겠습니까?';
+  var msg = '이 항목을 모든 매물종류에서 삭제하시겠습니까?';
   if(affected.length > 0) {
     var nums = affected.map(function(p){ return 'No.'+p.propNo; }).join(', ');
-    msg = '⚠️ ' + nums + ' 매물에 입력된 내용이 있습니다.\n그래도 삭제하시겠습니까?';
+    msg = '⚠️ ' + nums + ' 매물에 입력된 내용이 있습니다.\n그래도 모든 매물종류에서 삭제하시겠습니까?';
   }
 
   if(!confirm(msg)) return;
-  customFields[type] = customFields[type].filter(function(f){ return f.key !== key; });
-  delete fieldSettings[type][key];
+
+  // 모든 타입에서 삭제
+  PROP_TYPES.forEach(function(t) {
+    if(customFields[t]) customFields[t] = customFields[t].filter(function(f){ return f.key !== key; });
+    if(fieldSettings[t]) delete fieldSettings[t][key];
+    if(fieldOrder[t]) fieldOrder[t] = fieldOrder[t].filter(function(k){ return k !== key; });
+  });
+
   saveFieldSettings();
   renderSettingsPanel();
   showToast('항목이 삭제됐어요.');

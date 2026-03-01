@@ -612,8 +612,7 @@ th{position:relative;}
   <div class="modal" style="max-width:960px;">
     <div class="modal-header">
       <div class="modal-title">⚙️ 항목 설정</div>
-      <button class="modal-close" onclick="closeSettings()">×</button>
-    </div>
+      <button class="modal-close" onclick="closeSettings()">×</button>    </div>
     <div class="modal-body" id="settingsBody" style="padding:20px;"></div>
   </div>
 </div>
@@ -2314,17 +2313,64 @@ function isFieldVisible(type, key) {
   return fieldSettings[type][key];
 }
 
+// 설정 임시 상태 (저장 전까지 원본 유지)
+var _tmpFieldSettings = null;
+var _tmpCustomFields = null;
+var _tmpFieldOrder = null;
+
 function openSettings() {
+  // 현재 설정 깊은 복사해서 임시저장
+  _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
+  _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
+  _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
+  window._settingsActiveType = PROP_TYPES[0];
   renderSettingsPanel();
   document.getElementById('settingsModal').classList.add('active');
 }
 
 function closeSettings() {
+  // 취소: 임시 상태 버리고 원본 복원
+  _tmpFieldSettings = null;
+  _tmpCustomFields  = null;
+  _tmpFieldOrder    = null;
   document.getElementById('settingsModal').classList.remove('active');
+}
+
+function confirmSettings() {
+  // 저장: 임시 상태를 실제 상태에 반영하고 Firebase 저장
+  fieldSettings = JSON.parse(JSON.stringify(_tmpFieldSettings));
+  customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
+  fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
+  saveFieldSettings();
+  _tmpFieldSettings = null;
+  _tmpCustomFields  = null;
+  _tmpFieldOrder    = null;
+  document.getElementById('settingsModal').classList.remove('active');
+  showToast('✅ 설정이 저장됐어요!');
 }
 
 function renderSettingsPanel() {
   var activeType = window._settingsActiveType || PROP_TYPES[0];
+  // 임시 상태 기준으로 렌더링
+  var tmpSettings = _tmpFieldSettings;
+  var tmpCustoms  = _tmpCustomFields;
+  var tmpOrder    = _tmpFieldOrder;
+
+  function tmpIsVisible(type, key) {
+    if(!tmpSettings[type]) return true;
+    if(tmpSettings[type][key] === undefined) return true;
+    return tmpSettings[type][key];
+  }
+
+  function tmpGetOrderedFields(type) {
+    var order = (tmpOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
+    var customs = tmpCustoms[type] || [];
+    customs.forEach(function(cf){ if(order.indexOf(cf.key)===-1) order.push(cf.key); });
+    var allFields = {};
+    DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]=f; });
+    customs.forEach(function(cf){ allFields[cf.key]={key:cf.key,label:cf.label,section:'상세정보',suffix:'',custom:true}; });
+    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
+  }
 
   var html = '';
   // 탭
@@ -2338,28 +2384,21 @@ function renderSettingsPanel() {
   html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">☰ 드래그로 순서 변경 &nbsp;|&nbsp; 체크박스로 표시/숨김</div>';
   html += '<div id="fieldOrderList" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;">';
 
-  var ordered = getOrderedFields(activeType);
-
-  // 기본정보 키 목록
+  var ordered = tmpGetOrderedFields(activeType);
   var basicKeys = ['price','maintenance','premium'];
-
-  // 기본정보/상세정보 헤더를 삽입할 위치 계산
   var firstBasicIdx = -1, firstDetailIdx = -1;
-  ordered.forEach(function(f, i){
-    if(basicKeys.indexOf(f.key) > -1 && firstBasicIdx === -1) firstBasicIdx = i;
-    if(basicKeys.indexOf(f.key) === -1 && firstDetailIdx === -1) firstDetailIdx = i;
+  ordered.forEach(function(f,i){
+    if(basicKeys.indexOf(f.key)>-1 && firstBasicIdx===-1) firstBasicIdx=i;
+    if(basicKeys.indexOf(f.key)===-1 && firstDetailIdx===-1) firstDetailIdx=i;
   });
 
-  ordered.forEach(function(f, i){
+  ordered.forEach(function(f,i){
     var isCustom = !!f.custom;
-    var checked = isFieldVisible(activeType, f.key);
-
-    // 섹션 헤더 삽입
-    if(i === firstBasicIdx)
+    var checked = tmpIsVisible(activeType, f.key);
+    if(i===firstBasicIdx)
       html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:4px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">기본정보</div>';
-    if(i === firstDetailIdx)
+    if(i===firstDetailIdx)
       html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:700;margin-top:14px;margin-bottom:4px;padding-bottom:6px;border-bottom:2px solid var(--border);">상세정보</div>';
-
     html += '<div draggable="true" data-key="'+f.key+'" '+
       'ondragstart="onFieldDragStart(event)" '+
       'ondragover="onFieldDragOver(event)" '+
@@ -2367,22 +2406,69 @@ function renderSettingsPanel() {
       'ondragend="onFieldDragEnd(event)" '+
       'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;cursor:grab;user-select:none;">'+
       '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>'+
-      '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
+      '<input type="checkbox" '+(checked?'checked':'')+' onchange="tmpToggleField(\''+activeType+'\',\''+f.key+'\',this.checked)" onclick="event.stopPropagation()" style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">'+
       '<span style="flex:1;">'+f.label+(isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+'</span>'+
-      (isCustom?'<button onclick="deleteCustomField(\''+activeType+'\',\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>':'')+
+      (isCustom?'<button onclick="tmpDeleteCustomField(\''+activeType+'\',\''+f.key+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;" title="삭제">✕</button>':'')+
       '</div>';
   });
 
   html += '</div>';
-  html += '<div style="display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--border);">'+
+  // 항목 추가
+  html += '<div style="display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--border);margin-bottom:16px;">'+
     '<input type="text" id="newFieldInput" class="form-input" placeholder="새 항목명 입력..." style="flex:1;font-size:13px;">'+
-    '<button class="btn btn-primary btn-sm" onclick="addCustomField(\''+activeType+'\')" style="white-space:nowrap;">+ 항목 추가</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="tmpAddCustomField(\''+activeType+'\')" style="white-space:nowrap;">+ 항목 추가</button>'+
+    '</div>';
+  // 저장/취소 버튼
+  html += '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:12px;border-top:2px solid var(--border);">'+
+    '<button class="btn btn-outline" onclick="closeSettings()" style="min-width:80px;">취소</button>'+
+    '<button class="btn btn-primary" onclick="confirmSettings()" style="min-width:80px;">💾 저장</button>'+
     '</div>';
 
   document.getElementById('settingsBody').innerHTML = html;
 }
 
-// 드래그앤드롭
+// 임시 상태 변경 함수들
+function tmpToggleField(type, key, val) {
+  if(!_tmpFieldSettings[type]) _tmpFieldSettings[type] = {};
+  _tmpFieldSettings[type][key] = val;
+}
+
+function tmpAddCustomField(type) {
+  var input = document.getElementById('newFieldInput');
+  var label = input.value.trim();
+  if(!label) return;
+  var key = 'custom_' + Date.now();
+  PROP_TYPES.forEach(function(t) {
+    if(!_tmpCustomFields[t]) _tmpCustomFields[t] = [];
+    if(!_tmpFieldSettings[t]) _tmpFieldSettings[t] = {};
+    if(!_tmpCustomFields[t].find(function(f){ return f.key===key; }))
+      _tmpCustomFields[t].push({key:key, label:label});
+    _tmpFieldSettings[t][key] = (t === type);
+    if(!_tmpFieldOrder[t]) _tmpFieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
+    if(_tmpFieldOrder[t].indexOf(key)===-1) _tmpFieldOrder[t].push(key);
+  });
+  input.value = '';
+  renderSettingsPanel();
+  showToast('항목이 추가됐어요. 저장 버튼을 눌러야 적용돼요!');
+}
+
+function tmpDeleteCustomField(type, key) {
+  var affected = properties.filter(function(p){ return p[key] && String(p[key]).trim()!==''; });
+  var msg = '이 항목을 모든 매물종류에서 삭제하시겠습니까?';
+  if(affected.length>0) {
+    var nums = affected.map(function(p){ return 'No.'+p.propNo; }).join(', ');
+    msg = '⚠️ '+nums+' 매물에 입력된 내용이 있습니다.\n그래도 삭제하시겠습니까?';
+  }
+  if(!confirm(msg)) return;
+  PROP_TYPES.forEach(function(t) {
+    if(_tmpCustomFields[t]) _tmpCustomFields[t] = _tmpCustomFields[t].filter(function(f){ return f.key!==key; });
+    if(_tmpFieldSettings[t]) delete _tmpFieldSettings[t][key];
+    if(_tmpFieldOrder[t]) _tmpFieldOrder[t] = _tmpFieldOrder[t].filter(function(k){ return k!==key; });
+  });
+  renderSettingsPanel();
+}
+
+// 드래그앤드롭 (임시 상태에 반영)
 var _dragSrcKey = null;
 function onFieldDragStart(e) {
   _dragSrcKey = e.currentTarget.dataset.key;
@@ -2404,14 +2490,13 @@ function onFieldDrop(e, type) {
   e.preventDefault();
   var targetKey = e.currentTarget.dataset.key;
   if(!targetKey || targetKey === _dragSrcKey) return;
-  var order = getOrderedFields(type).map(function(f){ return f.key; });
+  var order = (_tmpFieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
   var fromIdx = order.indexOf(_dragSrcKey);
-  var toIdx = order.indexOf(targetKey);
-  if(fromIdx === -1 || toIdx === -1) return;
-  order.splice(fromIdx, 1);
-  order.splice(toIdx, 0, _dragSrcKey);
-  fieldOrder[type] = order;
-  saveFieldSettings();
+  var toIdx   = order.indexOf(targetKey);
+  if(fromIdx===-1||toIdx===-1) return;
+  order.splice(fromIdx,1);
+  order.splice(toIdx,0,_dragSrcKey);
+  _tmpFieldOrder[type] = order;
   renderSettingsPanel();
 }
 
@@ -2431,22 +2516,16 @@ function addCustomField(type) {
   var label = input.value.trim();
   if(!label) return;
   var key = 'custom_' + Date.now();
-
-  // 모든 매물종류에 추가 (추가한 종류만 ON, 나머지는 OFF)
   PROP_TYPES.forEach(function(t) {
     if(!customFields[t]) customFields[t] = [];
     if(!fieldSettings[t]) fieldSettings[t] = {};
-    // 같은 key가 없을 때만 추가
     if(!customFields[t].find(function(f){ return f.key === key; })) {
       customFields[t].push({key:key, label:label});
     }
-    // 추가한 타입은 ON, 나머지는 OFF
     fieldSettings[t][key] = (t === type);
-    // fieldOrder에도 추가
     if(!fieldOrder[t]) fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
     if(fieldOrder[t].indexOf(key) === -1) fieldOrder[t].push(key);
   });
-
   saveFieldSettings();
   input.value = '';
   renderSettingsPanel();
@@ -2454,26 +2533,20 @@ function addCustomField(type) {
 }
 
 function deleteCustomField(type, key) {
-  // 해당 항목에 데이터가 있는 매물 찾기 (전체 매물종류 대상)
   var affected = properties.filter(function(p) {
     return p[key] && String(p[key]).trim() !== '';
   });
-
   var msg = '이 항목을 모든 매물종류에서 삭제하시겠습니까?';
   if(affected.length > 0) {
     var nums = affected.map(function(p){ return 'No.'+p.propNo; }).join(', ');
     msg = '⚠️ ' + nums + ' 매물에 입력된 내용이 있습니다.\n그래도 모든 매물종류에서 삭제하시겠습니까?';
   }
-
   if(!confirm(msg)) return;
-
-  // 모든 타입에서 삭제
   PROP_TYPES.forEach(function(t) {
     if(customFields[t]) customFields[t] = customFields[t].filter(function(f){ return f.key !== key; });
     if(fieldSettings[t]) delete fieldSettings[t][key];
     if(fieldOrder[t]) fieldOrder[t] = fieldOrder[t].filter(function(k){ return k !== key; });
   });
-
   saveFieldSettings();
   renderSettingsPanel();
   showToast('항목이 삭제됐어요.');

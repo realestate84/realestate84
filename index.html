@@ -1437,15 +1437,19 @@ function openDetail(id){
         '</label>'+
       '</div>'+
       (p.photos&&p.photos.length>0?
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;">'+
-          '<button class="btn btn-outline btn-sm" onclick="deleteAllPhotos(\''+id+'\')" style="font-size:11px;padding:4px 10px;color:var(--danger);border-color:var(--danger);">🗑 사진 전체삭제</button>'+
+        '<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;">'+
+          '<button class="btn btn-outline btn-sm" onclick="downloadAllPhotos(\''+id+'\')" style="font-size:11px;padding:4px 10px;">⬇ 전체 다운로드</button>'+
+          '<button class="btn btn-outline btn-sm" onclick="deleteAllPhotos(\''+id+'\')" style="font-size:11px;padding:4px 10px;color:var(--danger);border-color:var(--danger);">🗑 전체삭제</button>'+
         '</div>'+
         '<div class="detail-photo-grid">'+
         p.photos.map(function(src,i){
+          var p2 = properties.find(function(x){ return x.id===id; });
+          var addrBase = (p2&&p2.address ? p2.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
+          var fname = addrBase+'_사진'+(i+1)+'.jpg';
           return '<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
             '<img src="'+src+'" onclick="openLightbox(window._dp,'+i+')" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block">'+
             '<button onclick="deleteOnePhoto(\''+id+'\','+i+')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>'+
-            '<a href="'+src+'" download="사진_'+(i+1)+'.jpg" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>'+
+            '<a href="'+src+'" download="'+fname+'" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:14px;text-decoration:none">⬇</a>'+
           '</div>';
         }).join('')+'</div>':
         '<div style="font-size:12px;color:var(--text-muted);padding:10px 0;">등록된 사진이 없어요.</div>')+
@@ -1601,6 +1605,24 @@ function closeDetailModal(){
 }
 
 // ── 삭제 ──────────────────────────────────
+function downloadAllPhotos(id) {
+  var p = properties.find(function(x){ return x.id===id; });
+  if(!p || !p.photos || p.photos.length===0) return;
+  var addrBase = (p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
+  p.photos.forEach(function(url, i) {
+    setTimeout(function() {
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = addrBase + '_사진' + (i+1) + '.jpg';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }, i * 500);
+  });
+  showToast('⬇ ' + p.photos.length + '장 다운로드 시작!');
+}
+
 function deleteOnePhoto(id, index) {
   if(!confirm('이 사진을 삭제하시겠습니까?')) return;
   var p = properties.find(function(x){ return x.id===id; });

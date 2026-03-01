@@ -665,7 +665,10 @@ th{position:relative;}
         </div>
       </div>
       <div id="mapAll"></div>
-      <div id="mapAllInfo" style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <div id="mapAllInfo" style="font-size:12px;color:var(--text-muted);"></div>
+        <button onclick="toggleCadastral('all')" id="btnCadastralAll" class="btn btn-outline btn-sm" style="font-size:11px;">지적도</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1095,9 +1098,17 @@ function renderTable() {
     });
   }
 
-  // 헤더 동적 렌더링
+  // 헤더 동적 렌더링 - 항목설정 전체 탭 기준으로 동기화
+  var fixedKeys = ['propNo','address'];
+  var dynamicCols = getOrderedFields('전체').map(function(f){
+    return { key:f.key, label:f.label, sortKey:f.key, fixed: fixedKeys.indexOf(f.key)!==-1 };
+  });
+  var allColDefs = [
+    {key:'propNo', label:'No.',  sortKey:'propNo',  fixed:true},
+    {key:'photo',  label:'사진', sortKey:null,      fixed:false},
+  ].concat(dynamicCols.filter(function(c){ return c.key!=='propNo'; }));
+  var visibleCols = allColDefs.filter(function(c){ return listColumnSettings[c.key]!==false; });
   var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'24px',departure:'24px'};
-  var visibleCols = LIST_COLUMNS.filter(function(c){ return listColumnSettings[c.key]!==false; });
   var headerHtml = visibleCols.map(function(c){
     if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
     if(c.key==='photo') return '<th style="width:50px">사진</th>';
@@ -1151,7 +1162,7 @@ function renderTable() {
           case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
           case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
-          default: return '<td>-</td>';
+          default: return '<td class="muted">'+(p[c.key]||'-')+'</td>';
         }
       }).join('');
       return '<tr>'+rowCells+
@@ -1679,6 +1690,7 @@ function openDetail(id){
           '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
           '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
           '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
+          '<button onclick="toggleCadastral(\'detail\')" id="btnCadastral" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지적도</button>'+
         '</div>'+
       '</div>'+
     '</div>':'')+
@@ -1746,6 +1758,22 @@ function openDetail(id){
       window._kakaoMapObj = mapObj;
     };
     setTimeout(function(){ tryMap(0); }, 500);
+  }
+}
+
+// 지적도 토글
+var _cadastralOn = { detail: false, all: false };
+function toggleCadastral(target) {
+  var mapObj = target === 'all' ? window._mapObj : window._kakaoMapObj;
+  var btn = document.getElementById(target === 'all' ? 'btnCadastralAll' : 'btnCadastral');
+  if(!mapObj || !kakao) return;
+  _cadastralOn[target] = !_cadastralOn[target];
+  if(_cadastralOn[target]) {
+    mapObj.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+    if(btn){ btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.fontWeight='bold'; btn.style.borderColor='var(--accent)'; }
+  } else {
+    mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+    if(btn){ btn.style.background=''; btn.style.color=''; btn.style.fontWeight=''; btn.style.borderColor=''; }
   }
 }
 
@@ -1888,6 +1916,7 @@ function closeDetailModal(){
   window._rvInitialized = false;
   window._mapCoords = null;
   window._kakaoMapObj = null;
+  _cadastralOn.detail = false;
 }
 
 // ── 삭제 ──────────────────────────────────
@@ -2699,12 +2728,25 @@ function toggleColumnPopup() {
   if(!popup) return;
   var isOpen = popup.style.display !== 'none';
   if(isOpen) { popup.style.display='none'; return; }
-  // 체크박스 렌더링
+
+  // 고정 컬럼 (No., 주소) + 항목설정 전체 탭 기준 동적 컬럼
+  var fixedKeys = ['propNo','address'];
+  // 항목설정 전체 탭의 최신 순서로 컬럼 목록 생성
+  var dynamicCols = getOrderedFields('전체').map(function(f){
+    return { key: f.key, label: f.label, fixed: fixedKeys.indexOf(f.key) !== -1 };
+  });
+  // 사진 컬럼은 항목설정에 없으므로 가격 앞에 수동 추가
+  var allCols = [
+    { key:'propNo', label:'No.',  fixed:true },
+    { key:'photo',  label:'사진', fixed:false },
+  ].concat(dynamicCols.filter(function(c){ return c.key !== 'propNo'; }));
+
   var html = '';
-  LIST_COLUMNS.forEach(function(col) {
+  allCols.forEach(function(col) {
     var checked = listColumnSettings[col.key] !== false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
-      '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+
+      '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
+      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;renderTable();" style="width:14px;height:14px;">'+
       col.label+(col.fixed?' <span style="font-size:10px;color:var(--text-muted)">고정</span>':'')+
       '</label>';
   });

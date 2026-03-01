@@ -1946,7 +1946,7 @@ function executePrint(mode) {
   if(mode === 'pdf') {
     // PDF 저장: html2pdf.js 사용
     var container = document.createElement('div');
-    container.style.cssText = 'position:absolute;left:-9999px;top:0;font-family:sans-serif;padding:20px;color:#1a1f36;font-size:12px;width:700px;box-sizing:border-box;';
+    container.style.cssText = 'position:fixed;top:0;left:0;width:700px;background:#fff;font-family:sans-serif;padding:20px;color:#1a1f36;font-size:12px;box-sizing:border-box;z-index:-9999;opacity:0;pointer-events:none;';
     if(includeAgency) {
       var hdr = document.createElement('div');
       hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a1f36;padding-bottom:8px;margin-bottom:16px;';
@@ -1958,32 +1958,24 @@ function executePrint(mode) {
     div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
 
     // 지도 버튼 영역 제거
-    div.querySelectorAll('#mapButtons, [id="mapButtons"]').forEach(function(el){ el.remove(); });
+    div.querySelectorAll('#mapButtons').forEach(function(el){ el.remove(); });
 
     // 지도: 카카오맵 정적 이미지로 교체
     var mapEl = div.querySelector('#kakaoMap');
     if(mapEl && window._mapCoords) {
       var lat = window._mapCoords.getLat();
       var lng = window._mapCoords.getLng();
-      // 카카오 정적지도 API
       var staticMapUrl = 'https://map.kakaocdn.net/api/staticmap?appkey=f08b63af7ea30749c5105b52cb8828f7&center='+lat+','+lng+'&level=4&w=660&h=260&marker=color(red)|pos('+lng+' '+lat+')';
       var mapImg = document.createElement('img');
       mapImg.src = staticMapUrl;
       mapImg.crossOrigin = 'anonymous';
       mapImg.style.cssText = 'width:100%;height:260px;object-fit:cover;border-radius:8px;display:block;';
-      mapImg.onerror = function() {
-        // 실패 시 대체 텍스트
-        var fallback = document.createElement('div');
-        fallback.style.cssText = 'height:100px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#999;font-size:13px;';
-        fallback.textContent = '지도를 불러올 수 없습니다';
-        mapEl.parentNode.replaceChild(fallback, mapImg);
-      };
       mapEl.parentNode.replaceChild(mapImg, mapEl);
     } else if(mapEl) {
-      var fallback = document.createElement('div');
-      fallback.style.cssText = 'height:60px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#999;font-size:13px;';
-      fallback.textContent = '지도 정보 없음';
-      mapEl.parentNode.replaceChild(fallback, mapEl);
+      var fb = document.createElement('div');
+      fb.style.cssText = 'height:60px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#999;font-size:13px;';
+      fb.textContent = '지도 정보 없음';
+      mapEl.parentNode.replaceChild(fb, mapEl);
     }
 
     container.appendChild(div);
@@ -1996,16 +1988,20 @@ function executePrint(mode) {
     var pAddr   = curProp ? (curProp.address||'') : '';
     var fileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'') + '.pdf';
 
-    var opt = {
-      margin: [10,10,10,10],
-      filename: fileName,
-      image: { type:'jpeg', quality:0.95 },
-      html2canvas: { scale:2, useCORS:true, allowTaint:true, logging:false, windowWidth:700 },
-      jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
-    };
-    html2pdf().set(opt).from(container).save().then(function(){
-      document.body.removeChild(container);
-    });
+    // 살짝 딜레이 후 렌더링 (DOM 안정화)
+    setTimeout(function() {
+      container.style.opacity = '1';
+      var opt = {
+        margin: [10,10,10,10],
+        filename: fileName,
+        image: { type:'jpeg', quality:0.95 },
+        html2canvas: { scale:2, useCORS:true, allowTaint:true, logging:false },
+        jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+      };
+      html2pdf().set(opt).from(container).save().then(function(){
+        document.body.removeChild(container);
+      });
+    }, 300);
   } else {
     // 인쇄
     var win = window.open('','_blank','width=800,height=900');

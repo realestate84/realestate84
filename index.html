@@ -1056,9 +1056,13 @@ function uploadDetailPhotos(e, propId) {
 
   var p = properties.find(function(x){ return x.id === propId; });
   var existingPhotos = (p && p.photos) ? p.photos.slice() : [];
+  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+  var existingCount = existingPhotos.length;
 
-  var uploads = files.map(function(file) {
-    var ref = storage.ref('properties/' + propId + '/photos/' + Date.now() + '_' + file.name);
+  var uploads = files.map(function(file, i) {
+    var ext = file.name.split('.').pop() || 'jpg';
+    var fileName = addrBase + '_사진' + (existingCount + i + 1) + '.' + ext;
+    var ref = storage.ref('properties/' + propId + '/photos/' + fileName);
     return ref.put(file).then(function(){ return ref.getDownloadURL(); });
   });
 
@@ -1635,7 +1639,12 @@ function uploadDoc(e, propId, docName) {
   var origText = label.childNodes[0].textContent;
   label.childNodes[0].textContent = '업로드 중...';
 
-  var ref = storage.ref('properties/' + propId + '/docs/' + docName + '.pdf');
+  var p = properties.find(function(x){ return x.id === propId; });
+  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+  var ext = file.name.split('.').pop() || 'pdf';
+  var fileName = addrBase + '_' + docName + '.' + ext;
+
+  var ref = storage.ref('properties/' + propId + '/docs/' + fileName);
   ref.put(file).then(function() {
     return ref.getDownloadURL();
   }).then(function(url) {

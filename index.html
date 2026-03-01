@@ -1558,6 +1558,19 @@ function openDetail(id){
     (p.video?'<div class="detail-section no-print"><div class="detail-section-title">🎬 동영상</div>'+getVideoEmbed(p.video)+'</div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+
+    // 노션 링크
+    '<div id="notionLinkArea" style="margin-bottom:12px;">'+
+      (p.notionLink ?
+        '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">'+
+          '<span style="font-size:18px;">📋</span>'+
+          '<a href="'+p.notionLink+'" target="_blank" style="flex:1;color:var(--accent);font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">노션 페이지 열기</a>'+
+          '<button onclick="editNotionLink(\''+p.id+'\',\''+p.notionLink.replace(/'/g,"\\'")+'\')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:13px;padding:2px 6px;" title="수정">✏️</button>'+
+          '<button onclick="removeNotionLink(\''+p.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px;padding:2px 6px;" title="삭제">✕</button>'+
+        '</div>' :
+        '<button onclick="editNotionLink(\''+p.id+'\',\'\')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px dashed var(--border);border-radius:8px;background:none;cursor:pointer;color:var(--text-muted);font-size:13px;width:100%;">'+
+          '<span>📋</span><span>노션 링크 추가</span>'+
+        '</button>')+
+    '</div>'+
     ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName) {
       var key = docName;
       var url = p.docs && p.docs[key] ? p.docs[key] : null;
@@ -1926,6 +1939,41 @@ function uploadDoc(e, propId, docName) {
 }
 
 // ── 문서 삭제 ────────────────────────────
+// ── 노션 링크 ─────────────────────────────
+function editNotionLink(propId, current) {
+  var area = document.getElementById('notionLinkArea');
+  if(!area) return;
+  area.innerHTML =
+    '<div style="display:flex;gap:6px;align-items:center;">'+
+      '<input id="notionLinkInput" type="url" class="form-input" placeholder="https://www.notion.so/..." value="'+current+'" style="flex:1;font-size:13px;">'+
+      '<button class="btn btn-primary btn-sm" onclick="saveNotionLink(\''+propId+'\')">저장</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+propId+'\')">취소</button>'+
+    '</div>';
+  setTimeout(function(){ var el=document.getElementById('notionLinkInput'); if(el){el.focus();} },50);
+}
+
+function saveNotionLink(propId) {
+  var input = document.getElementById('notionLinkInput');
+  if(!input) return;
+  var url = input.value.trim();
+  if(url && !url.startsWith('http')) { showToast('❌ 올바른 URL을 입력해주세요.'); return; }
+  db.collection('properties').doc(propId).update({ notionLink: url }).then(function(){
+    var p = properties.find(function(x){ return x.id===propId; });
+    if(p) p.notionLink = url;
+    showToast('✅ 노션 링크가 저장됐어요!');
+    openDetail(propId);
+  });
+}
+
+function removeNotionLink(propId) {
+  if(!confirm('노션 링크를 삭제하시겠습니까?')) return;
+  db.collection('properties').doc(propId).update({ notionLink: '' }).then(function(){
+    var p = properties.find(function(x){ return x.id===propId; });
+    if(p) p.notionLink = '';
+    openDetail(propId);
+  });
+}
+
 function deleteDoc(propId, docName) {
   if(!confirm('「'+docName+'」을 삭제하시겠습니까?')) return;
   var p = properties.find(function(x){ return x.id === propId; });

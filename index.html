@@ -256,6 +256,7 @@ th{position:relative;}
   <div class="logo" onclick="refreshApp()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
+    <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
@@ -276,6 +277,7 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
+  <button class="btn btn-outline" onclick="openSettings();closeMobileMenu()">⚙️ 설정</button>
   <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
@@ -605,6 +607,17 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- 설정 모달 -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="max-width:960px;">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ 항목 설정</div>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body" id="settingsBody" style="padding:20px;"></div>
+  </div>
+</div>
+
 <div id="mapAllModal" onclick="if(event.target===this)closeMapAll()">
   <div class="modal">
     <div class="modal-header">
@@ -649,6 +662,41 @@ var currentPhotos = [];
 var lightboxPhotos = [];
 var lightboxIndex = 0;
 var COLLECTION = 'properties';
+var SETTINGS_DOC = 'fieldSettings';
+
+// 매물종류 목록
+var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션'];
+
+// 기본 항목 정의 (key, label, suffix)
+var DEFAULT_FIELDS = [
+  {key:'price',    label:'가격',         section:'기본정보', suffix:''},
+  {key:'maintenance',label:'관리비',     section:'기본정보', suffix:''},
+  {key:'premium',  label:'권리금',       section:'기본정보', suffix:''},
+  {key:'landArea', label:'토지면적',     section:'상세정보', suffix:' 평'},
+  {key:'totalArea',label:'건축면적',     section:'상세정보', suffix:' 평'},
+  {key:'supplyArea',label:'면적(공급)',  section:'상세정보', suffix:' 평'},
+  {key:'exclusiveArea',label:'면적(전용)',section:'상세정보',suffix:' 평'},
+  {key:'tempArea', label:'가설면적',     section:'상세정보', suffix:' 평'},
+  {key:'roadArea', label:'도로부지면적', section:'상세정보', suffix:' 평'},
+  {key:'useZone',  label:'용도지역',     section:'상세정보', suffix:''},
+  {key:'jimok',    label:'지목',         section:'상세정보', suffix:''},
+  {key:'buildingUse',label:'건축물용도', section:'상세정보', suffix:''},
+  {key:'approvalDate',label:'사용승인일',section:'상세정보', suffix:''},
+  {key:'floors',   label:'총층수',       section:'상세정보', suffix:''},
+  {key:'electric', label:'동력',         section:'상세정보', suffix:'kw'},
+  {key:'hoist',    label:'호이스트',     section:'상세정보', suffix:''},
+  {key:'direction',label:'방향',         section:'상세정보', suffix:''},
+  {key:'height',   label:'층고',         section:'상세정보', suffix:'m'},
+  {key:'parking',  label:'주차가능여부', section:'상세정보', suffix:''},
+  {key:'toilet',   label:'화장실',       section:'상세정보', suffix:''},
+  {key:'elevator', label:'엘리베이터',   section:'상세정보', suffix:''},
+  {key:'factoryReg',label:'공장등록 가능여부',section:'상세정보',suffix:''},
+  {key:'access',   label:'진출입로',     section:'상세정보', suffix:''},
+];
+
+// 설정 저장소 (Firebase에서 로드)
+var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ... }
+var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
@@ -671,7 +719,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
     if(user) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
-      load();
+      loadFieldSettings(function(){ load(); });
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainScreen').style.display = 'none';
@@ -1359,36 +1407,50 @@ function openDetail(id){
     '<span class="tag tag-'+(p.georae||'')+'" style="margin-right:8px">'+(p.georae||'')+'</span>'+
     '<span class="tag tag-'+(p.type||'')+'">'+(p.type||'')+'</span>';
 
+  var ptype = p.type || '';
+
+  // 필드 표시 헬퍼
+  function showField(key) { return isFieldVisible(ptype, key); }
+  function fieldVal(key, val, suffix) {
+    if(!showField(key)) return '';
+    var v = val ? val+(suffix||'') : '-';
+    return '<div class="detail-item"><label>'+key+'</label><div class="val">'+v+'</div></div>';
+  }
+
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
-      '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>'+
-      '<div class="detail-item"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>'+
-      '<div class="detail-item full"><label>권리금</label><div class="val">'+(p.premium||'-')+'</div></div>'+
+      (showField('price')       ? '<div class="detail-item"><label>가격 (만원)</label><div class="val" style="color:var(--accent)">'+(p.price||'-')+'</div></div>' : '')+
+      (showField('maintenance') ? '<div class="detail-item"><label>관리비</label><div class="val">'+(p.maintenance||'-')+'</div></div>' : '')+
+      (showField('premium')     ? '<div class="detail-item full"><label>권리금</label><div class="val">'+(p.premium||'-')+'</div></div>' : '')+
       '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
       '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
-      '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>면적(공급)</label><div class="val">'+(p.supplyArea?p.supplyArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>면적(전용)</label><div class="val">'+((p.exclusiveArea||(p.rentArea))?((p.exclusiveArea||p.rentArea)+' 평'):'-')+'</div></div>'+
-      '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>'+
-      '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>'+
-      '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>'+
-      '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>'+
-      '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>'+
-      '<div class="detail-item"><label>총층수</label><div class="val">'+(p.floors||'-')+'</div></div>'+
-      '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric ? p.electric+'kw' : '-')+'</div></div>'+
-      '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>'+
-      '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>'+
-      '<div class="detail-item"><label>층고</label><div class="val">'+(p.height ? p.height+'m' : '-')+'</div></div>'+
-      '<div class="detail-item"><label>주차가능여부</label><div class="val">'+(p.parking||'-')+'</div></div>'+
-      '<div class="detail-item"><label>화장실</label><div class="val">'+(p.toilet||'-')+'</div></div>'+
-      '<div class="detail-item"><label>엘리베이터</label><div class="val">'+(p.elevator||'-')+'</div></div>'+
-      '<div class="detail-item"><label>공장등록 가능여부</label><div class="val">'+(p.factoryReg||'-')+'</div></div>'+
-      '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>'+
+      (showField('landArea')    ? '<div class="detail-item"><label>토지면적</label><div class="val">'+(p.landArea?p.landArea+' 평':'-')+'</div></div>' : '')+
+      (showField('totalArea')   ? '<div class="detail-item"><label>건축면적</label><div class="val">'+(p.totalArea?p.totalArea+' 평':'-')+'</div></div>' : '')+
+      (showField('supplyArea')  ? '<div class="detail-item"><label>면적(공급)</label><div class="val">'+(p.supplyArea?p.supplyArea+' 평':'-')+'</div></div>' : '')+
+      (showField('exclusiveArea')? '<div class="detail-item"><label>면적(전용)</label><div class="val">'+((p.exclusiveArea||(p.rentArea))?((p.exclusiveArea||p.rentArea)+' 평'):'-')+'</div></div>' : '')+
+      (showField('tempArea')    ? '<div class="detail-item"><label>가설면적</label><div class="val">'+(p.tempArea?p.tempArea+' 평':'-')+'</div></div>' : '')+
+      (showField('roadArea')    ? '<div class="detail-item"><label>도로부지면적</label><div class="val">'+(p.roadArea?p.roadArea+' 평':'-')+'</div></div>' : '')+
+      (showField('useZone')     ? '<div class="detail-item"><label>용도지역</label><div class="val">'+(p.useZone||'-')+'</div></div>' : '')+
+      (showField('jimok')       ? '<div class="detail-item"><label>지목</label><div class="val">'+(p.jimok||'-')+'</div></div>' : '')+
+      (showField('buildingUse') ? '<div class="detail-item"><label>건축물용도</label><div class="val">'+(p.buildingUse||'-')+'</div></div>' : '')+
+      (showField('approvalDate')? '<div class="detail-item"><label>사용승인일</label><div class="val">'+(p.approvalDate||'-')+'</div></div>' : '')+
+      (showField('floors')      ? '<div class="detail-item"><label>총층수</label><div class="val">'+(p.floors||'-')+'</div></div>' : '')+
+      (showField('electric')    ? '<div class="detail-item"><label>동력</label><div class="val">'+(p.electric?p.electric+'kw':'-')+'</div></div>' : '')+
+      (showField('hoist')       ? '<div class="detail-item"><label>호이스트</label><div class="val">'+(p.hoist||'-')+'</div></div>' : '')+
+      (showField('direction')   ? '<div class="detail-item"><label>방향</label><div class="val">'+(p.direction||'-')+'</div></div>' : '')+
+      (showField('height')      ? '<div class="detail-item"><label>층고</label><div class="val">'+(p.height?p.height+'m':'-')+'</div></div>' : '')+
+      (showField('parking')     ? '<div class="detail-item"><label>주차가능여부</label><div class="val">'+(p.parking||'-')+'</div></div>' : '')+
+      (showField('toilet')      ? '<div class="detail-item"><label>화장실</label><div class="val">'+(p.toilet||'-')+'</div></div>' : '')+
+      (showField('elevator')    ? '<div class="detail-item"><label>엘리베이터</label><div class="val">'+(p.elevator||'-')+'</div></div>' : '')+
+      (showField('factoryReg')  ? '<div class="detail-item"><label>공장등록 가능여부</label><div class="val">'+(p.factoryReg||'-')+'</div></div>' : '')+
+      (showField('access')      ? '<div class="detail-item"><label>진출입로</label><div class="val">'+(p.access||'-')+'</div></div>' : '')+
+      // 커스텀 항목
+      (customFields[ptype]||[]).filter(function(cf){ return isFieldVisible(ptype,cf.key); }).map(function(cf){
+        return '<div class="detail-item"><label>'+cf.label+'</label><div class="val">'+(p[cf.key]||'-')+'</div></div>';
+      }).join('')+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">소유자 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>등기부상 소유자명</label><div class="val">'+(p.regOwnerName||'-')+'</div></div>'+
@@ -2089,6 +2151,7 @@ function openDetailOverMap(id) {
 }
 
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
+document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) closeSettings(); });
 
 // ── textarea 높이 기억 ────────────────────
 function saveMemoHeight(){
@@ -2201,6 +2264,158 @@ function updateDarkModeBtn(isDark) {
     updateDarkModeBtn(true);
   }
 })();
+
+// ── 항목 설정 시스템 ───────────────────────────
+
+function loadFieldSettings(callback) {
+  db.collection('settings').doc(SETTINGS_DOC).get().then(function(doc) {
+    if(doc.exists) {
+      var data = doc.data();
+      fieldSettings = data.fieldSettings || {};
+      customFields = data.customFields || {};
+    } else {
+      // 기본값: 모든 항목 ON
+      fieldSettings = {};
+      customFields = {};
+      PROP_TYPES.forEach(function(t) {
+        fieldSettings[t] = {};
+        DEFAULT_FIELDS.forEach(function(f) { fieldSettings[t][f.key] = true; });
+        customFields[t] = [];
+      });
+      saveFieldSettings();
+    }
+    if(callback) callback();
+  });
+}
+
+function saveFieldSettings() {
+  db.collection('settings').doc(SETTINGS_DOC).set({
+    fieldSettings: fieldSettings,
+    customFields: customFields
+  });
+}
+
+function isFieldVisible(type, key) {
+  if(!fieldSettings[type]) return true;
+  if(fieldSettings[type][key] === undefined) return true;
+  return fieldSettings[type][key];
+}
+
+function openSettings() {
+  renderSettingsPanel();
+  document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('active');
+}
+
+function renderSettingsPanel() {
+  var activeType = window._settingsActiveType || PROP_TYPES[0];
+  var html = '';
+
+  // 탭
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">';
+  PROP_TYPES.forEach(function(t) {
+    var active = t === activeType;
+    html += '<button onclick="switchSettingsTab(\''+t+'\')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;background:'+(active?'var(--accent)':'var(--surface)')+';color:'+(active?'#fff':'var(--text)')+';transition:all 0.2s;">'+t+'</button>';
+  });
+  html += '</div>';
+
+  // 현재 탭 항목
+  if(!fieldSettings[activeType]) {
+    fieldSettings[activeType] = {};
+    DEFAULT_FIELDS.forEach(function(f){ fieldSettings[activeType][f.key]=true; });
+  }
+  if(!customFields[activeType]) customFields[activeType] = [];
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">';
+
+  // 기본 섹션별 그룹
+  var sections = {};
+  DEFAULT_FIELDS.forEach(function(f){
+    if(!sections[f.section]) sections[f.section]=[];
+    sections[f.section].push(f);
+  });
+
+  Object.keys(sections).forEach(function(sec) {
+    html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:600;margin-top:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">'+sec+'</div>';
+    sections[sec].forEach(function(f) {
+      var checked = isFieldVisible(activeType, f.key);
+      html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;">'+
+        '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+f.key+'\',this.checked)" style="cursor:pointer;width:15px;height:15px;">'+
+        f.label+'</label>';
+    });
+  });
+
+  // 커스텀 항목
+  if(customFields[activeType].length > 0) {
+    html += '<div style="grid-column:1/-1;font-size:11px;color:var(--text-muted);font-weight:600;margin-top:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">추가 항목</div>';
+    customFields[activeType].forEach(function(cf) {
+      html += '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;">'+
+        '<input type="checkbox" '+(isFieldVisible(activeType,cf.key)?'checked':'')+' onchange="toggleFieldSetting(\''+activeType+'\',\''+cf.key+'\',this.checked)" style="cursor:pointer;width:15px;height:15px;">'+
+        cf.label+
+        '<button onclick="deleteCustomField(\''+activeType+'\',\''+cf.key+'\')" style="margin-left:auto;background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;" title="삭제">✕</button>'+
+        '</label>';
+    });
+  }
+
+  html += '</div>';
+
+  // 신규 항목 추가
+  html += '<div style="display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--border);">'+
+    '<input type="text" id="newFieldInput" class="form-input" placeholder="새 항목명 입력..." style="flex:1;font-size:13px;">'+
+    '<button class="btn btn-primary btn-sm" onclick="addCustomField(\''+activeType+'\')" style="white-space:nowrap;">+ 항목 추가</button>'+
+    '</div>';
+
+  document.getElementById('settingsBody').innerHTML = html;
+}
+
+function switchSettingsTab(type) {
+  window._settingsActiveType = type;
+  renderSettingsPanel();
+}
+
+function toggleFieldSetting(type, key, val) {
+  if(!fieldSettings[type]) fieldSettings[type] = {};
+  fieldSettings[type][key] = val;
+  saveFieldSettings();
+}
+
+function addCustomField(type) {
+  var input = document.getElementById('newFieldInput');
+  var label = input.value.trim();
+  if(!label) return;
+  var key = 'custom_' + Date.now();
+  if(!customFields[type]) customFields[type] = [];
+  if(!fieldSettings[type]) fieldSettings[type] = {};
+  customFields[type].push({key:key, label:label});
+  fieldSettings[type][key] = true;
+  saveFieldSettings();
+  input.value = '';
+  renderSettingsPanel();
+  showToast('✅ 항목이 추가됐어요!');
+}
+
+function deleteCustomField(type, key) {
+  // 해당 항목에 데이터가 있는 매물 찾기
+  var affected = properties.filter(function(p) {
+    return p.type === type && p[key] && String(p[key]).trim() !== '';
+  });
+
+  var msg = '이 항목을 삭제하시겠습니까?';
+  if(affected.length > 0) {
+    var nums = affected.map(function(p){ return 'No.'+p.propNo; }).join(', ');
+    msg = '⚠️ ' + nums + ' 매물에 입력된 내용이 있습니다.\n그래도 삭제하시겠습니까?';
+  }
+
+  if(!confirm(msg)) return;
+  customFields[type] = customFields[type].filter(function(f){ return f.key !== key; });
+  delete fieldSettings[type][key];
+  saveFieldSettings();
+  renderSettingsPanel();
+  showToast('항목이 삭제됐어요.');
+}
 
 // ── PC버전 보기 ───────────────────────────
 function togglePCView() {

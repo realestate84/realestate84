@@ -377,7 +377,7 @@ th{position:relative;}
       <button class="modal-close" onclick="closeFormModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="form-grid" id="formFieldsContainer">
+      <div class="form-grid">
         <div class="form-group">
           <label>거래유형 *</label>
           <select class="form-select" id="f_georae">
@@ -396,7 +396,7 @@ th{position:relative;}
           <label>주소 *</label>
           <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
         </div>
-        <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;grid-column:1/-1;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
           <div class="form-group" data-field-key="price">
             <label id="flabel_price">가격</label>
             <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
@@ -1416,43 +1416,20 @@ function updateFormFieldVisibility(type) {
 function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
-
-  // 커스텀 항목 렌더링
   var customs = customFields[type] || [];
   var html = '';
   customs.forEach(function(cf) {
-    if(!isFieldVisible(type, cf.key)) return;
+    if(!isFieldVisible(type, cf.key)) return; // OFF된 커스텀 항목은 숨김
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
-    html += '<div class="form-group" data-field-key="'+cf.key+'">'+
+    html += '<div class="form-group">'+
       '<label>'+lbl+'</label>'+
       '<input class="form-input" type="text" id="fc_'+cf.key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
       '</div>';
   });
   area.innerHTML = html;
-
   // 기본 항목 표시/숨김 업데이트
   updateFormFieldVisibility(type);
-
-  // 항목설정 순서대로 폼 항목 재배치
-  if(type) {
-    var ordered = getOrderedFields(type);
-    var formFields = document.getElementById('formFieldsContainer');
-    if(!formFields) return;
-    var priceGridMoved = false;
-    var priceGrid = formFields.querySelector('[data-price-grid]');
-    ordered.forEach(function(f) {
-      if(['price','maintenance','premium'].indexOf(f.key) !== -1) {
-        if(!priceGridMoved && priceGrid && priceGrid.parentNode === formFields) {
-          formFields.appendChild(priceGrid);
-          priceGridMoved = true;
-        }
-      } else {
-        var el = formFields.querySelector('[data-field-key="'+f.key+'"]');
-        if(el && el.parentNode === formFields) formFields.appendChild(el);
-      }
-    });
-  }
 }
 
 // 커스텀 항목 값 수집

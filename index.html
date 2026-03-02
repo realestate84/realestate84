@@ -1840,12 +1840,11 @@ function openDetail(id){
     return '<div class="detail-item"><label>'+key+'</label><div class="val">'+v+'</div></div>';
   }
 
-  // fieldSections 기준으로 기본정보/상세정보 분리
+  // fieldSections 기준으로 기본정보/상세정보/소유자정보 분리
   var allOrdered = getOrderedFields(ptype);
   var basicItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='기본정보' && isFieldVisible(ptype,f.key); });
-  var detailItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')!=='기본정보' && isFieldVisible(ptype,f.key); });
-  var ownerItems = detailItems.filter(function(f){ return ['regOwnerName','ownerName','ownerPhone'].indexOf(f.key)!==-1; });
-  var detailOnlyItems = detailItems.filter(function(f){ return ['regOwnerName','ownerName','ownerPhone'].indexOf(f.key)===-1; });
+  var ownerItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='소유자정보' && isFieldVisible(ptype,f.key); });
+  var detailOnlyItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='상세정보' && isFieldVisible(ptype,f.key); });
 
   function renderFieldVal(f) {
     var raw = p[f.key] || '';
@@ -3074,6 +3073,9 @@ function getOrderedFields(type) {
   customs.forEach(function(cf){
     if(!orderSet[cf.key]) { order.push(cf.key); orderSet[cf.key] = true; }
   });
+  // 중복 제거 (같은 항목이 두 번 나오지 않도록)
+  var seen = {};
+  order = order.filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
   // 전체 항목 맵
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
@@ -3678,6 +3680,9 @@ function renderSettingsPanel() {
     var order = (tmpOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
     var customs = tmpCustoms[type] || [];
     customs.forEach(function(cf){ if(order.indexOf(cf.key)===-1) order.push(cf.key); });
+    // 중복 제거 (같은 키가 두 번 나오지 않도록)
+    var seen = {};
+    order = order.filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
     var allFields = {};
     DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
     customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
@@ -3779,6 +3784,8 @@ function tmpAddCustomField() {
   var label = input.value.trim();
   if(!label) return;
   var key = 'custom_' + Date.now();
+  // 새 항목은 상세정보 섹션에 자동 등록
+  _tmpFieldSections[key] = '상세정보';
   PROP_TYPES.forEach(function(t) {
     if(!_tmpCustomFields[t]) _tmpCustomFields[t] = [];
     if(!_tmpFieldSettings[t]) _tmpFieldSettings[t] = {};

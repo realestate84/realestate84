@@ -736,7 +736,7 @@ th{position:relative;}
     <div class="modal-header">
       <div class="modal-title">👥 고객관리</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">＋ 고객 등록</button>
+        <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">＋ 문의등록</button>
         <button class="modal-close" onclick="closeCustomers()">×</button>
       </div>
     </div>
@@ -3246,9 +3246,13 @@ function openCustomerForm(id) {
   var el = document.getElementById('customerDetail');
   if(!el) return;
 
+  var georaeOpts = '<option value="">선택</option><option value="매매">매매</option><option value="전세">전세</option><option value="월세">월세</option>';
+  var typeOpts = '<option value="">선택</option>' + PROP_TYPES.map(function(t){ return '<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+'</option>'; }).join('');
+  var selGeorae = (c && c.custGeorae) ? c.custGeorae : '';
+  var selType = (c && c.custType) ? c.custType : '';
   el.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">'+
-      '<div style="font-size:16px;font-weight:800;">'+(id?'고객 수정':'고객 등록')+'</div>'+
+      '<div style="font-size:16px;font-weight:800;">'+(id?'문의 수정':'문의 등록')+'</div>'+
       '<div style="display:flex;gap:8px;">'+
         (id?'<button class="btn btn-outline btn-sm" onclick="openCustomerDetail(\''+id+'\')">취소</button>':'<button class="btn btn-outline btn-sm" onclick="renderCustomerEmpty()">취소</button>')+
         '<button class="btn btn-primary btn-sm" onclick="saveCustomerForm(\''+(id||'')+'\')">저장</button>'+
@@ -3257,8 +3261,14 @@ function openCustomerForm(id) {
     '<div class="form-grid">'+
       '<div class="form-group"><label>이름 *</label><input id="cust_name" class="form-input" value="'+escapeHtml(c?c.name:'')+'" placeholder="예) 홍길동"></div>'+
       '<div class="form-group"><label>연락처</label><input id="cust_phone" type="tel" inputmode="tel" maxlength="13" class="form-input" value="'+escapeHtml(c?c.phone:'')+'" placeholder="예) 010-0000-0000" oninput="formatPhoneInput(this)"></div>'+
+      '<div class="form-group"><label>거래유형</label><select id="cust_georae" class="form-select">'+georaeOpts+'</select></div>'+
+      '<div class="form-group"><label>매물종류</label><select id="cust_type" class="form-select">'+typeOpts+'</select></div>'+
       '<div class="form-group full"><label>메모</label><textarea id="cust_memo" class="form-textarea" style="min-height:140px;">'+escapeHtml(c?c.memo:'')+'</textarea></div>'+
     '</div>';
+  var georaeEl = document.getElementById('cust_georae');
+  var typeEl = document.getElementById('cust_type');
+  if(georaeEl) georaeEl.value = selGeorae;
+  if(typeEl) typeEl.value = selType;
   setTimeout(function(){ var ph = document.getElementById('cust_phone'); if(ph && ph.value) formatPhoneInput(ph); }, 0);
 }
 
@@ -3266,13 +3276,15 @@ function saveCustomerForm(id) {
   var name = (document.getElementById('cust_name').value||'').trim();
   if(!name) { alert('이름은 필수입니다.'); return; }
   var phone = (document.getElementById('cust_phone').value||'').trim();
+  var georae = (document.getElementById('cust_georae') && document.getElementById('cust_georae').value) || '';
+  var custType = (document.getElementById('cust_type') && document.getElementById('cust_type').value) || '';
   var memo  = (document.getElementById('cust_memo').value||'').trim();
 
   var now = new Date();
   var dateStr = now.toLocaleDateString('ko-KR');
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   var base = {
-    name:name, phone:phone, memo:memo,
+    name:name, phone:phone, custGeorae:georae, custType:custType, memo:memo,
     updatedDate:dateStr, updatedTime:timeStr,
     updatedAtMs: Date.now()
   };

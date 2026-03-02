@@ -1960,18 +1960,6 @@ function switchMapView(mode) {
   var btnSky = document.getElementById('btnSkyView');
   var btnRv = document.getElementById('btnRvView');
   if(!mapEl || !rvEl) return;
-
-  function navigateToProperty() {
-  if(!window._mapCoords) {
-    alert('지도 좌표가 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
-    return;
-  }
-  var lat = window._mapCoords.getLat();
-  var lng = window._mapCoords.getLng();
-  var name = window._mapAddress || '목적지';
-  var url = 'https://map.kakao.com/link/to/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
-  window.open(url, '_blank');
-}
   
   // 버튼 스타일 초기화
   [btnMap, btnSky, btnRv].forEach(function(b){ if(b){ b.style.background='#fff'; b.style.color='#333'; b.style.fontWeight='normal'; }});
@@ -2006,6 +1994,18 @@ function switchMapView(mode) {
   }
 }
 
+    function navigateToProperty() {
+  if(!window._mapCoords) {
+    alert('지도 좌표가 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
+  var lat = window._mapCoords.getLat();
+  var lng = window._mapCoords.getLng();
+  var name = window._mapAddress || '목적지';
+  var url = 'https://map.kakao.com/link/to/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
+  window.open(url, '_blank');
+}
+  
 function printDetail() {
   var hasPhotos = window._dp && window._dp.length > 0;
   document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';

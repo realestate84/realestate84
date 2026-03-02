@@ -3343,10 +3343,10 @@ function openCustomerDetail(id, keep) {
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">'+
       '<div style="min-width:0;">'+
         '<div style="font-size:18px;font-weight:900;line-height:1.2;">'+escapeHtml(c.name||'-')+'</div>'+
-        '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:10px;">'+
+        '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;align-items:center;gap:8px;">'+
           '<span>📞 '+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'" style="color:var(--accent);text-decoration:none;">'+escapeHtml(c.phone)+'</a>':'-')+'</span>'+
-          (c.custGeorae?'<span>거래유형 '+escapeHtml(c.custGeorae)+'</span>':'')+
-          (c.custType?'<span>매물종류 '+escapeHtml(c.custType)+'</span>':'')+
+          (c.custGeorae?'<span class="tag tag-'+escapeHtml(c.custGeorae)+'">'+escapeHtml(c.custGeorae)+'</span>':'')+
+          (c.custType?'<span class="tag tag-'+escapeHtml(c.custType)+'">'+escapeHtml(c.custType)+'</span>':'')+
           '<span>🗓 등록일시 ' + escapeHtml(c.createdDate||'-') + (c.createdTime ? ' ' + escapeHtml(c.createdTime) : '') + '</span>'+
         '</div>'+
       '</div>'+

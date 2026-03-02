@@ -3068,8 +3068,14 @@ function getOrderedFields(type) {
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
   customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:(fieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-  // order대로 반환 (존재하는 것만)
-  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
+  // order대로 반환 (존재하는 것만, 중복 key는 한 번만)
+  var seen = {};
+  return order.filter(function(k){
+    if(!allFields[k]) return false;
+    if(seen[k]) return false;
+    seen[k] = true;
+    return true;
+  }).map(function(k){ return allFields[k]; });
 }
 
 function isFieldVisible(type, key) {

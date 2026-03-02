@@ -752,8 +752,8 @@ th{position:relative;}
             <thead>
               <tr>
                 <th style="width:40%;">이름</th>
-                <th style="width:40%;">연락처</th>
-                <th style="width:20%;">매물</th>
+                <th style="width:35%;">등록일</th>
+                <th style="width:25%;">매물</th>
               </tr>
             </thead>
             <tbody id="customerListBody"></tbody>
@@ -3229,7 +3229,7 @@ function renderCustomerList() {
       var selected = (_currentCustomerId === c.id);
       return '<tr onclick="openCustomerDetail(\''+c.id+'\')" style="cursor:pointer;'+(selected?'background:rgba(58,126,246,0.06);':'')+'">'+
         '<td style="font-weight:600;">'+escapeHtml(c.name||'-')+'</td>'+
-        '<td class="muted">'+escapeHtml(c.phone||'-')+'</td>'+
+        '<td class="muted">'+escapeHtml(c.createdDate||'-')+'</td>'+
         '<td class="muted" style="text-align:center;">'+shownCnt+'</td>'+
       '</tr>';
     }).join('');
@@ -3331,7 +3331,7 @@ function openCustomerDetail(id, keep) {
         '<div style="font-size:18px;font-weight:900;line-height:1.2;">'+escapeHtml(c.name||'-')+'</div>'+
         '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:10px;">'+
           '<span>📞 '+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'" style="color:var(--accent);text-decoration:none;">'+escapeHtml(c.phone)+'</a>':'-')+'</span>'+
-          '<span>🗓 '+escapeHtml(c.createdDate||'-')+'</span>'+
+          '<span>🗓 등록일시 ' + escapeHtml(c.createdDate||'-') + (c.createdTime ? ' ' + escapeHtml(c.createdTime) : '') + '</span>'+
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;flex-shrink:0;">'+

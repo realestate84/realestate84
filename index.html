@@ -20,9 +20,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <!-- 카카오맵 -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services,roadview"></script>
-<!-- 다크모드 참고 필요없으면 지울것 예전색상임  --bg:#1e2028; --surface:#272b35; --surface2:#303540; --border:#3d4258; --accent:#6b9ff8; --accent2:#9b7ef8;  --text:#bec4d8; --text-muted:#6a7090; --danger:#e06070;  -->
-<style>
+
+
   
+<style>
+ 
 :root {
   --bg:#f4f6fb; --surface:#fff; --surface2:#eef1f8; --border:#dde2f0;
   --accent:#3a7ef6; --accent2:#6c47f5; --text:#1a1f36; --text-muted:#7a85a8;
@@ -74,7 +76,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .btn-danger{background:rgba(224,74,90,0.12);color:var(--danger);border:1px solid rgba(224,74,90,0.3);}
 .btn-danger:hover{background:rgba(224,74,90,0.22);}
 .btn-sm{padding:5px 11px;font-size:12px;}
-.container{max-width:1400px;margin:0 auto;padding:24px;display:flex;flex-direction:column;height:calc(100vh - 60px);}
+.container{max-width:1500px;margin:0 auto;padding:24px;display:flex;flex-direction:column;height:calc(100vh - 60px);}
 .stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:16px;flex-shrink:0;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:flex;align-items:center;gap:10px;}
 .stat-num{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}

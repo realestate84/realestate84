@@ -819,6 +819,7 @@ var lightboxIndex = 0;
 var COLLECTION = 'properties';
 var CUSTOMER_COLLECTION = 'customers';
 var SETTINGS_DOC = 'fieldSettings';
+var STORAGE_KEY_COLUMNS = 'mh_listColumnSettings';
 var _customersUnsub = null;
 var _currentCustomerId = null;
 
@@ -2946,6 +2947,14 @@ function updateDarkModeBtn(isDark) {
 // ── 항목 설정 시스템 ───────────────────────────
 
 function loadFieldSettings(callback) {
+  // 새로고침 시 컬럼 설정 유지: localStorage에서 먼저 복원
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY_COLUMNS);
+    if(saved) {
+      var parsed = JSON.parse(saved);
+      if(parsed && typeof parsed === 'object') listColumnSettings = Object.assign({}, listColumnSettings, parsed);
+    }
+  } catch(e) {}
   db.collection('settings').doc(SETTINGS_DOC).get().then(function(doc) {
     if(doc.exists) {
       var data = doc.data();
@@ -2955,7 +2964,9 @@ function loadFieldSettings(callback) {
       fieldSections = data.fieldSections || {};
       fieldLabelOverrides = data.fieldLabelOverrides || {};
       fieldSuffixOverrides = data.fieldSuffixOverrides || {};
-      listColumnSettings = Object.assign({}, listColumnSettings, data.listColumnSettings || {});
+      if(data.listColumnSettings && Object.keys(data.listColumnSettings).length > 0) {
+        listColumnSettings = Object.assign({}, listColumnSettings, data.listColumnSettings);
+      }
     } else {
       fieldSettings = {};
       customFields = {};
@@ -3039,11 +3050,13 @@ function loadFieldSettings(callback) {
       needsSave=true;
     });
     if(needsSave) saveFieldSettings();
+    persistListColumnSettings();
     if(callback) callback();
   });
 }
 
 function saveFieldSettings() {
+  persistListColumnSettings();
   db.collection('settings').doc(SETTINGS_DOC).set({
     fieldSettings: fieldSettings,
     customFields: customFields,
@@ -3699,7 +3712,7 @@ function toggleColumnPopup() {
     var checked = col.fixed || listColumnSettings[col.key]!==false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
-      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;invalidateColDefsCache();renderTable();" style="width:14px;height:14px;">'+
+      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;persistListColumnSettings();invalidateColDefsCache();renderTable();" style="width:14px;height:14px;">'+
       col.label+(col.fixed?' <span style="font-size:10px;color:var(--text-muted)">고정</span>':'')+
       '</label>';
   });
@@ -3713,7 +3726,11 @@ function toggleListColumn(key, val) {
   listColumnSettings[key] = val;
 }
 
+function persistListColumnSettings() {
+  try { localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(listColumnSettings)); } catch(e) {}
+}
 function saveListColumnSettings() {
+  persistListColumnSettings();
   saveFieldSettings();
   document.getElementById('colSettingPopup').style.display = 'none';
   showToast('✅ 컬럼 설정이 저장됐어요!');

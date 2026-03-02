@@ -397,10 +397,23 @@ th{position:relative;}
           <label>주소 *</label>
           <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
         </div>
+        <!-- ── 가격 그룹 ── -->
         <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;grid-column:1/-1;">
           <div class="form-group" data-field-key="price">
             <label id="flabel_price">가격</label>
             <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
+          </div>
+          <div class="form-group" data-field-key="pricePerPyeong">
+            <label id="flabel_pricePerPyeong">평당가격</label>
+            <input class="form-input" type="text" id="f_pricePerPyeong" placeholder="예) 500만원">
+          </div>
+          <div class="form-group" data-field-key="officialBuildingPrice">
+            <label id="flabel_officialBuildingPrice">건물공시가격</label>
+            <input class="form-input" type="text" id="f_officialBuildingPrice" placeholder="예) 1억2000만">
+          </div>
+          <div class="form-group" data-field-key="officialLandPrice">
+            <label id="flabel_officialLandPrice">토지공시지가</label>
+            <input class="form-input" type="text" id="f_officialLandPrice" placeholder="예) 80만원/㎡">
           </div>
           <div class="form-group" data-field-key="maintenance">
             <label id="flabel_maintenance">관리비</label>
@@ -411,25 +424,26 @@ th{position:relative;}
             <input class="form-input" type="text" id="f_premium" placeholder="예) 5000만원, 없음">
           </div>
         </div>
+        <!-- ── 토지 정보 ── -->
+        <div class="form-group" data-field-key="lotCount">
+          <label id="flabel_lotCount">총필지수</label>
+          <input class="form-input" type="text" id="f_lotCount" placeholder="예) 3필지">
+        </div>
         <div class="form-group" data-field-key="landArea">
           <label id="flabel_landArea">토지면적 (평)</label>
           <input class="form-input" type="text" id="f_landArea" placeholder="예) 100">
         </div>
-        <div class="form-group" data-field-key="totalArea">
-          <label id="flabel_totalArea">건축면적 (평)</label>
-          <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+        <div class="form-group" data-field-key="landShareRatio">
+          <label id="flabel_landShareRatio">대지권의 비율</label>
+          <input class="form-input" type="text" id="f_landShareRatio" placeholder="예) 1000분의 82.5">
         </div>
-        <div class="form-group" data-field-key="supplyArea">
-          <label id="flabel_supplyArea">면적(공급) (평)</label>
-          <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
+        <div class="form-group" data-field-key="roadShare">
+          <label id="flabel_roadShare">도로지분 (평)</label>
+          <input class="form-input" type="text" id="f_roadShare" placeholder="예) 15">
         </div>
-        <div class="form-group" data-field-key="exclusiveArea">
-          <label id="flabel_exclusiveArea">면적(전용) (평)</label>
-          <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
-        </div>
-        <div class="form-group" data-field-key="tempArea">
-          <label id="flabel_tempArea">가설면적 (평)</label>
-          <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
+        <div class="form-group" data-field-key="totalLandArea">
+          <label id="flabel_totalLandArea">총토지면적 (평)</label>
+          <input class="form-input" type="text" id="f_totalLandArea" placeholder="토지면적+도로지분">
         </div>
         <div class="form-group" data-field-key="roadArea">
           <label id="flabel_roadArea">도로부지면적 (평)</label>
@@ -443,25 +457,38 @@ th{position:relative;}
           <label id="flabel_jimok">지목</label>
           <input class="form-input" type="text" id="f_jimok" placeholder="예) 대, 전, 답, 공장">
         </div>
+        <div class="form-group" data-field-key="access">
+          <label id="flabel_access">진출입로</label>
+          <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
+        </div>
+        <!-- ── 건물 정보 ── -->
+        <div class="form-group" data-field-key="floorArea">
+          <label id="flabel_floorArea">연면적 (평)</label>
+          <input class="form-input" type="text" id="f_floorArea" placeholder="예) 120">
+        </div>
+        <div class="form-group" data-field-key="structure">
+          <label id="flabel_structure">건물구조</label>
+          <input class="form-input" type="text" id="f_structure" placeholder="예) 철근콘크리트, 경량철골">
+        </div>
+        <div class="form-group" data-field-key="totalArea">
+          <label id="flabel_totalArea">건축면적 (평)</label>
+          <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+        </div>
+        <div class="form-group" data-field-key="tempArea">
+          <label id="flabel_tempArea">가설면적 (평)</label>
+          <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
+        </div>
         <div class="form-group" data-field-key="buildingUse">
           <label id="flabel_buildingUse">건축물용도</label>
           <input class="form-input" type="text" id="f_buildingUse" placeholder="예) 단독주택, 근린생활시설">
         </div>
-        <div class="form-group" data-field-key="approvalDate">
-          <label id="flabel_approvalDate">사용승인일</label>
-          <input class="form-input" type="date" id="f_approvalDate">
+        <div class="form-group" data-field-key="supplyArea">
+          <label id="flabel_supplyArea">공급면적 (평)</label>
+          <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
         </div>
-        <div class="form-group" data-field-key="floors">
-          <label id="flabel_floors">총층수</label>
-          <input class="form-input" type="text" id="f_floors" placeholder="예) 1층, 2층, 지하1층+지상2층">
-        </div>
-        <div class="form-group" data-field-key="electric">
-          <label id="flabel_electric">동력 (kw)</label>
-          <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
-        </div>
-        <div class="form-group" data-field-key="hoist">
-          <label id="flabel_hoist">호이스트 (t)</label>
-          <input class="form-input" type="text" id="f_hoist" placeholder="예) 3t, 5t">
+        <div class="form-group" data-field-key="exclusiveArea">
+          <label id="flabel_exclusiveArea">전용면적 (평)</label>
+          <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
         </div>
         <div class="form-group" data-field-key="direction">
           <label id="flabel_direction">방향</label>
@@ -471,13 +498,29 @@ th{position:relative;}
           <label id="flabel_height">층고 (m)</label>
           <input class="form-input" type="text" id="f_height" placeholder="예) 6m, 8m">
         </div>
-        <div class="form-group" data-field-key="parking">
-          <label id="flabel_parking">주차가능여부</label>
-          <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
+        <div class="form-group" data-field-key="hoist">
+          <label id="flabel_hoist">호이스트 (t)</label>
+          <input class="form-input" type="text" id="f_hoist" placeholder="예) 3t, 5t">
+        </div>
+        <div class="form-group" data-field-key="waterIn">
+          <label id="flabel_waterIn">수도in</label>
+          <input class="form-input" type="text" id="f_waterIn" placeholder="예) 있음, 없음, 공업용수">
+        </div>
+        <div class="form-group" data-field-key="drain">
+          <label id="flabel_drain">퇴수구</label>
+          <input class="form-input" type="text" id="f_drain" placeholder="예) 있음, 없음, 하수도">
+        </div>
+        <div class="form-group" data-field-key="electric">
+          <label id="flabel_electric">동력 (kw)</label>
+          <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
         </div>
         <div class="form-group" data-field-key="toilet">
           <label id="flabel_toilet">화장실</label>
           <input class="form-input" type="text" id="f_toilet" placeholder="예) 1개, 남녀구분, 없음">
+        </div>
+        <div class="form-group" data-field-key="parking">
+          <label id="flabel_parking">주차가능여부</label>
+          <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
         </div>
         <div class="form-group" data-field-key="elevator">
           <label id="flabel_elevator">엘리베이터</label>
@@ -487,24 +530,41 @@ th{position:relative;}
           <label id="flabel_factoryReg">공장등록 가능여부</label>
           <input class="form-input" type="text" id="f_factoryReg" placeholder="예) 가능, 불가, 조건부가능">
         </div>
-        <div class="form-group" data-field-key="access">
-          <label id="flabel_access">진출입로</label>
-          <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
+        <div class="form-group" data-field-key="floors">
+          <label id="flabel_floors">총층수</label>
+          <input class="form-input" type="text" id="f_floors" placeholder="예) 1층, 2층, 지하1층+지상2층">
+        </div>
+        <div class="form-group" data-field-key="rooms">
+          <label id="flabel_rooms">방개수</label>
+          <input class="form-input" type="text" id="f_rooms" placeholder="예) 2개, 3개">
+        </div>
+        <div class="form-group" data-field-key="bathrooms">
+          <label id="flabel_bathrooms">욕실수</label>
+          <input class="form-input" type="text" id="f_bathrooms" placeholder="예) 1개, 2개">
+        </div>
+        <div class="form-group" data-field-key="approvalDate">
+          <label id="flabel_approvalDate">사용승인일</label>
+          <input class="form-input" type="date" id="f_approvalDate">
+        </div>
+        <div class="form-group" data-field-key="recommendedBusiness">
+          <label id="flabel_recommendedBusiness">추천업종</label>
+          <input class="form-input" type="text" id="f_recommendedBusiness" placeholder="예) 물류창고, 제조업, 음식점">
+        </div>
+        <!-- ── 소유자 정보 ── -->
+        <div class="form-group" data-field-key="regOwnerName">
+          <label id="flabel_regOwnerName">등기부상 소유자명</label>
+          <input class="form-input" type="text" id="f_regOwnerName" placeholder="등기부등본상 소유자명">
+        </div>
+        <div class="form-group" data-field-key="ownerName">
+          <label id="flabel_ownerName">소유자명</label>
+          <input class="form-input" type="text" id="f_ownerName" placeholder="소유자 이름">
+        </div>
+        <div class="form-group" data-field-key="ownerPhone">
+          <label id="flabel_ownerPhone">소유자 연락처</label>
+          <input class="form-input" type="text" id="f_ownerPhone" placeholder="010-0000-0000" oninput="formatPhone(this)" maxlength="13">
         </div>
         <!-- 커스텀 항목 자동 추가 영역 -->
         <div id="customFieldsArea"></div>
-        <div class="form-group">
-          <label>등기부상 소유자명</label>
-          <input class="form-input" type="text" id="f_regOwnerName" placeholder="등기부등본상 소유자명">
-        </div>
-        <div class="form-group">
-          <label>소유자명</label>
-          <input class="form-input" type="text" id="f_ownerName" placeholder="소유자 이름">
-        </div>
-        <div class="form-group">
-          <label>소유자 연락처</label>
-          <input class="form-input" type="text" id="f_ownerPhone" placeholder="010-0000-0000" oninput="formatPhone(this)" maxlength="13">
-        </div>
         <div class="form-group full">
           <label>특이사항 / 메모</label>
           <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등...&#10;링크: [표시할글자](https://주소)"></textarea>
@@ -702,77 +762,110 @@ var SETTINGS_DOC = 'fieldSettings';
 // 매물종류 목록
 // 리스트 컬럼 정의
 var LIST_COLUMNS = [
-  {key:'propNo',       label:'No.',        sortKey:'propNo',       fixed:true},
-  {key:'photo',        label:'사진',        sortKey:null,           fixed:true},
-  {key:'georae',       label:'거래',        sortKey:'georae',       fixed:true},
-  {key:'type',         label:'종류',        sortKey:'type',         fixed:true},
-  {key:'address',      label:'주소',        sortKey:'address',      fixed:true},
-  {key:'price',        label:'가격',        sortKey:'price',        fixed:true},
-  {key:'landArea',     label:'토지면적',    sortKey:'landArea',     fixed:false},
-  {key:'totalArea',    label:'건축면적',    sortKey:'totalArea',    fixed:false},
-  {key:'supplyArea',   label:'면적(공급)',  sortKey:'supplyArea',   fixed:false},
-  {key:'exclusiveArea',label:'면적(전용)',  sortKey:'exclusiveArea',fixed:false},
-  {key:'tempArea',     label:'가설면적',    sortKey:'tempArea',     fixed:false},
-  {key:'roadArea',     label:'도로부지',    sortKey:'roadArea',     fixed:false},
-  {key:'useZone',      label:'용도지역',    sortKey:'useZone',      fixed:false},
-  {key:'jimok',        label:'지목',        sortKey:'jimok',        fixed:false},
-  {key:'buildingUse',  label:'건축물용도',  sortKey:'buildingUse',  fixed:false},
-  {key:'approvalDate', label:'사용승인일',  sortKey:'approvalDate', fixed:false},
-  {key:'floors',       label:'총층수',      sortKey:'floors',       fixed:false},
-  {key:'electric',     label:'동력',        sortKey:'electric',     fixed:false},
-  {key:'hoist',        label:'호이스트',    sortKey:'hoist',        fixed:false},
-  {key:'direction',    label:'방향',        sortKey:'direction',    fixed:false},
-  {key:'height',       label:'층고',        sortKey:'height',       fixed:false},
-  {key:'parking',      label:'주차',        sortKey:'parking',      fixed:false},
-  {key:'toilet',       label:'화장실',      sortKey:'toilet',       fixed:false},
-  {key:'elevator',     label:'엘리베이터',  sortKey:'elevator',     fixed:false},
-  {key:'factoryReg',   label:'공장등록',    sortKey:'factoryReg',   fixed:false},
-  {key:'access',       label:'진출입로',    sortKey:'access',       fixed:false},
-  {key:'ownerName',    label:'소유자',      sortKey:'ownerName',    fixed:false},
-  {key:'createdDate',  label:'등록일',      sortKey:'createdDate',  fixed:false},
-  {key:'adStatus',     label:'광고',        sortKey:'adStatus',     fixed:true},
-  {key:'departure',    label:'출발',        sortKey:'departure',    fixed:true},
+  {key:'propNo',              label:'No.',         sortKey:'propNo',              fixed:true},
+  {key:'photo',               label:'사진',        sortKey:null,                  fixed:true},
+  {key:'georae',              label:'거래',        sortKey:'georae',              fixed:true},
+  {key:'type',                label:'종류',        sortKey:'type',                fixed:true},
+  {key:'address',             label:'주소',        sortKey:'address',             fixed:true},
+  {key:'price',               label:'가격',        sortKey:'price',               fixed:true},
+  {key:'pricePerPyeong',      label:'평당가격',    sortKey:'pricePerPyeong',      fixed:false},
+  {key:'officialBuildingPrice',label:'건물공시가', sortKey:'officialBuildingPrice',fixed:false},
+  {key:'officialLandPrice',   label:'토지공시지가',sortKey:'officialLandPrice',   fixed:false},
+  {key:'lotCount',            label:'총필지수',    sortKey:'lotCount',            fixed:false},
+  {key:'landArea',            label:'토지면적',    sortKey:'landArea',            fixed:false},
+  {key:'landShareRatio',      label:'대지권비율',  sortKey:'landShareRatio',      fixed:false},
+  {key:'roadShare',           label:'도로지분',    sortKey:'roadShare',           fixed:false},
+  {key:'totalLandArea',       label:'총토지면적',  sortKey:'totalLandArea',       fixed:false},
+  {key:'roadArea',            label:'도로부지',    sortKey:'roadArea',            fixed:false},
+  {key:'useZone',             label:'용도지역',    sortKey:'useZone',             fixed:false},
+  {key:'jimok',               label:'지목',        sortKey:'jimok',               fixed:false},
+  {key:'access',              label:'진출입로',    sortKey:'access',              fixed:false},
+  {key:'floorArea',           label:'연면적',      sortKey:'floorArea',           fixed:false},
+  {key:'structure',           label:'건물구조',    sortKey:'structure',           fixed:false},
+  {key:'totalArea',           label:'건축면적',    sortKey:'totalArea',           fixed:false},
+  {key:'tempArea',            label:'가설면적',    sortKey:'tempArea',            fixed:false},
+  {key:'buildingUse',         label:'건축물용도',  sortKey:'buildingUse',         fixed:false},
+  {key:'supplyArea',          label:'공급면적',    sortKey:'supplyArea',          fixed:false},
+  {key:'exclusiveArea',       label:'전용면적',    sortKey:'exclusiveArea',       fixed:false},
+  {key:'direction',           label:'방향',        sortKey:'direction',           fixed:false},
+  {key:'height',              label:'층고',        sortKey:'height',              fixed:false},
+  {key:'hoist',               label:'호이스트',    sortKey:'hoist',               fixed:false},
+  {key:'waterIn',             label:'수도in',      sortKey:'waterIn',             fixed:false},
+  {key:'drain',               label:'퇴수구',      sortKey:'drain',               fixed:false},
+  {key:'electric',            label:'동력',        sortKey:'electric',            fixed:false},
+  {key:'toilet',              label:'화장실',      sortKey:'toilet',              fixed:false},
+  {key:'parking',             label:'주차',        sortKey:'parking',             fixed:false},
+  {key:'elevator',            label:'엘리베이터',  sortKey:'elevator',            fixed:false},
+  {key:'factoryReg',          label:'공장등록',    sortKey:'factoryReg',          fixed:false},
+  {key:'floors',              label:'총층수',      sortKey:'floors',              fixed:false},
+  {key:'rooms',               label:'방개수',      sortKey:'rooms',               fixed:false},
+  {key:'bathrooms',           label:'욕실수',      sortKey:'bathrooms',           fixed:false},
+  {key:'approvalDate',        label:'사용승인일',  sortKey:'approvalDate',        fixed:false},
+  {key:'recommendedBusiness', label:'추천업종',    sortKey:'recommendedBusiness', fixed:false},
+  {key:'ownerName',           label:'소유자',      sortKey:'ownerName',           fixed:false},
+  {key:'createdDate',         label:'등록일',      sortKey:'createdDate',         fixed:false},
+  {key:'adStatus',            label:'광고',        sortKey:'adStatus',            fixed:true},
+  {key:'departure',           label:'출발',        sortKey:'departure',           fixed:true},
 ];
 // 기본 ON 컬럼
 var listColumnSettings = {
   propNo:true, photo:true, georae:true, type:true, address:true,
-  price:true, landArea:false, totalArea:false, supplyArea:false, exclusiveArea:false,
-  tempArea:false, roadArea:false, useZone:false, jimok:false, buildingUse:false,
-  approvalDate:false, floors:false, electric:false, hoist:false, direction:false,
-  height:false, parking:false, toilet:false, elevator:false, factoryReg:false,
-  access:false, ownerName:false, createdDate:false, adStatus:true, departure:true
+  price:true,
+  pricePerPyeong:false, officialBuildingPrice:false, officialLandPrice:false,
+  lotCount:false, landArea:false, landShareRatio:false, roadShare:false, totalLandArea:false,
+  roadArea:false, useZone:false, jimok:false, access:false,
+  floorArea:false, structure:false, totalArea:false, tempArea:false, buildingUse:false,
+  supplyArea:false, exclusiveArea:false,
+  direction:false, height:false, hoist:false, waterIn:false, drain:false,
+  electric:false, toilet:false, parking:false, elevator:false, factoryReg:false,
+  floors:false, rooms:false, bathrooms:false, approvalDate:false, recommendedBusiness:false,
+  ownerName:false, createdDate:false, adStatus:true, departure:true
 };
 
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 
 // 기본 항목 정의 (key, label, suffix)
 var DEFAULT_FIELDS = [
-  {key:'price',    label:'가격',         section:'기본정보', suffix:''},
-  {key:'maintenance',label:'관리비',     section:'기본정보', suffix:''},
-  {key:'premium',  label:'권리금',       section:'기본정보', suffix:''},
-  {key:'landArea', label:'토지면적',     section:'상세정보', suffix:' 평'},
-  {key:'totalArea',label:'건축면적',     section:'상세정보', suffix:' 평'},
-  {key:'supplyArea',label:'면적(공급)',  section:'상세정보', suffix:' 평'},
-  {key:'exclusiveArea',label:'면적(전용)',section:'상세정보',suffix:' 평'},
-  {key:'tempArea', label:'가설면적',     section:'상세정보', suffix:' 평'},
-  {key:'roadArea', label:'도로부지면적', section:'상세정보', suffix:' 평'},
-  {key:'useZone',  label:'용도지역',     section:'상세정보', suffix:''},
-  {key:'jimok',    label:'지목',         section:'상세정보', suffix:''},
-  {key:'buildingUse',label:'건축물용도', section:'상세정보', suffix:''},
-  {key:'approvalDate',label:'사용승인일',section:'상세정보', suffix:''},
-  {key:'floors',   label:'총층수',       section:'상세정보', suffix:''},
-  {key:'electric', label:'동력',         section:'상세정보', suffix:'kw'},
-  {key:'hoist',    label:'호이스트',     section:'상세정보', suffix:''},
-  {key:'direction',label:'방향',         section:'상세정보', suffix:''},
-  {key:'height',   label:'층고',         section:'상세정보', suffix:'m'},
-  {key:'parking',  label:'주차가능여부', section:'상세정보', suffix:''},
-  {key:'toilet',   label:'화장실',       section:'상세정보', suffix:''},
-  {key:'elevator', label:'엘리베이터',   section:'상세정보', suffix:''},
-  {key:'factoryReg',label:'공장등록 가능여부',section:'상세정보',suffix:''},
-  {key:'access',   label:'진출입로',     section:'상세정보', suffix:''},
-  {key:'regOwnerName',label:'등기부상 소유자명',section:'소유자정보',suffix:''},
-  {key:'ownerName',label:'소유자명',      section:'소유자정보',suffix:''},
-  {key:'ownerPhone',label:'소유자연락처', section:'소유자정보',suffix:''},
+  {key:'price',               label:'가격',             section:'기본정보', suffix:''},
+  {key:'pricePerPyeong',      label:'평당가격',          section:'기본정보', suffix:''},
+  {key:'officialBuildingPrice',label:'건물공시가격',     section:'기본정보', suffix:''},
+  {key:'officialLandPrice',   label:'토지공시지가',      section:'기본정보', suffix:''},
+  {key:'maintenance',         label:'관리비',            section:'기본정보', suffix:''},
+  {key:'premium',             label:'권리금',            section:'기본정보', suffix:''},
+  {key:'lotCount',            label:'총필지수',          section:'상세정보', suffix:''},
+  {key:'landArea',            label:'토지면적',          section:'상세정보', suffix:' 평'},
+  {key:'landShareRatio',      label:'대지권의 비율',     section:'상세정보', suffix:''},
+  {key:'roadShare',           label:'도로지분',          section:'상세정보', suffix:' 평'},
+  {key:'totalLandArea',       label:'총토지면적',        section:'상세정보', suffix:' 평'},
+  {key:'roadArea',            label:'도로부지면적',      section:'상세정보', suffix:' 평'},
+  {key:'useZone',             label:'용도지역',          section:'상세정보', suffix:''},
+  {key:'jimok',               label:'지목',              section:'상세정보', suffix:''},
+  {key:'access',              label:'진출입로',          section:'상세정보', suffix:''},
+  {key:'floorArea',           label:'연면적',            section:'상세정보', suffix:' 평'},
+  {key:'structure',           label:'건물구조',          section:'상세정보', suffix:''},
+  {key:'totalArea',           label:'건축면적',          section:'상세정보', suffix:' 평'},
+  {key:'tempArea',            label:'가설면적',          section:'상세정보', suffix:' 평'},
+  {key:'buildingUse',         label:'건축물용도',        section:'상세정보', suffix:''},
+  {key:'supplyArea',          label:'공급면적',          section:'상세정보', suffix:' 평'},
+  {key:'exclusiveArea',       label:'전용면적',          section:'상세정보', suffix:' 평'},
+  {key:'direction',           label:'방향',              section:'상세정보', suffix:''},
+  {key:'height',              label:'층고',              section:'상세정보', suffix:'m'},
+  {key:'hoist',               label:'호이스트',          section:'상세정보', suffix:''},
+  {key:'waterIn',             label:'수도in',            section:'상세정보', suffix:''},
+  {key:'drain',               label:'퇴수구',            section:'상세정보', suffix:''},
+  {key:'electric',            label:'동력',              section:'상세정보', suffix:'kw'},
+  {key:'toilet',              label:'화장실',            section:'상세정보', suffix:''},
+  {key:'parking',             label:'주차가능여부',      section:'상세정보', suffix:''},
+  {key:'elevator',            label:'엘리베이터',        section:'상세정보', suffix:''},
+  {key:'factoryReg',          label:'공장등록 가능여부', section:'상세정보', suffix:''},
+  {key:'floors',              label:'총층수',            section:'상세정보', suffix:''},
+  {key:'rooms',               label:'방개수',            section:'상세정보', suffix:''},
+  {key:'bathrooms',           label:'욕실수',            section:'상세정보', suffix:''},
+  {key:'approvalDate',        label:'사용승인일',        section:'상세정보', suffix:''},
+  {key:'recommendedBusiness', label:'추천업종',          section:'상세정보', suffix:''},
+  {key:'regOwnerName',        label:'등기부상 소유자명', section:'소유자정보', suffix:''},
+  {key:'ownerName',           label:'소유자명',          section:'소유자정보', suffix:''},
+  {key:'ownerPhone',          label:'소유자연락처',      section:'소유자정보', suffix:''},
 ];
 
 // 설정 저장소 (Firebase에서 로드)
@@ -1403,13 +1496,11 @@ function updateFormFieldVisibility(type) {
     var lbl = document.getElementById('flabel_'+key);
     if(lbl) lbl.textContent = getFieldLabel(key, lbl.textContent);
   });
-  // 가격/관리비/권리금 3컬럼 그리드: 모두 숨겨지면 그리드 wrapper도 숨기기
-  var priceGrid = document.querySelector('#formModal [data-field-key="price"]');
-  if(priceGrid && priceGrid.parentNode && priceGrid.parentNode.style.display==='grid'||
-     priceGrid && priceGrid.parentNode && window.getComputedStyle(priceGrid.parentNode).display==='grid') {
-    var gridEl = priceGrid.parentNode;
-    var allHidden = Array.from(gridEl.children).every(function(c){ return c.style.display==='none'; });
-    gridEl.style.display = allHidden ? 'none' : '';
+  // 가격 그리드 wrapper: 자식이 모두 숨겨지면 wrapper도 숨기기
+  var priceGridWrapper = document.querySelector('#formModal [data-price-grid]');
+  if(priceGridWrapper) {
+    var allHidden = Array.from(priceGridWrapper.querySelectorAll('[data-field-key]')).every(function(c){ return c.style.display==='none'; });
+    priceGridWrapper.style.display = allHidden ? 'none' : '';
   }
 }
 
@@ -1418,11 +1509,10 @@ function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
 
-  // 커스텀 항목 렌더링
+  // 커스텀 항목 렌더링 (커스텀 항목만 동적으로 innerHTML 갱신)
   var customs = customFields[type] || [];
   var html = '';
   customs.forEach(function(cf) {
-    if(!isFieldVisible(type, cf.key)) return;
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
     html += '<div class="form-group" data-field-key="'+cf.key+'">'+
@@ -1432,28 +1522,8 @@ function renderCustomFieldsInForm(type, propData) {
   });
   area.innerHTML = html;
 
-  // 기본 항목 표시/숨김 업데이트
+  // 표시/숨김만 제어 (DOM 순서는 절대 변경하지 않음)
   updateFormFieldVisibility(type);
-
-  // 항목설정 순서대로 폼 항목 재배치
-  if(type) {
-    var ordered = getOrderedFields(type);
-    var formFields = document.getElementById('formFieldsContainer');
-    if(!formFields) return;
-    var priceGridMoved = false;
-    var priceGrid = formFields.querySelector('[data-price-grid]');
-    ordered.forEach(function(f) {
-      if(['price','maintenance','premium'].indexOf(f.key) !== -1) {
-        if(!priceGridMoved && priceGrid && priceGrid.parentNode === formFields) {
-          formFields.appendChild(priceGrid);
-          priceGridMoved = true;
-        }
-      } else {
-        var el = formFields.querySelector('[data-field-key="'+f.key+'"]');
-        if(el && el.parentNode === formFields) formFields.appendChild(el);
-      }
-    });
-  }
 }
 
 // 커스텀 항목 값 수집
@@ -1473,6 +1543,11 @@ function openAddModal(){
   document.getElementById('formModalTitle').textContent='매물 등록';
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
   renderCustomFieldsInForm('', null);
+  // 매물종류 미선택 상태: 항목설정 대상 항목 전부 숨김
+  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
+    el.style.display = 'none';
+  });
+  document.querySelector('#formModal [data-price-grid]') && (document.querySelector('#formModal [data-price-grid]').style.display = 'none');
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
   document.getElementById('formModal').classList.add('active');
@@ -1486,28 +1561,42 @@ function openEditModal(id){
   document.getElementById('f_type').value=p.type||'';
   document.getElementById('f_address').value=p.address||'';
   document.getElementById('f_price').value=p.price||'';
+  document.getElementById('f_pricePerPyeong').value=p.pricePerPyeong||'';
+  document.getElementById('f_officialBuildingPrice').value=p.officialBuildingPrice||'';
+  document.getElementById('f_officialLandPrice').value=p.officialLandPrice||'';
   document.getElementById('f_maintenance').value=p.maintenance||'';
   document.getElementById('f_premium').value=p.premium||'';
+  document.getElementById('f_lotCount').value=p.lotCount||'';
   document.getElementById('f_landArea').value=p.landArea||'';
-  document.getElementById('f_totalArea').value=p.totalArea||'';
-  document.getElementById('f_supplyArea').value=p.supplyArea||'';
-  document.getElementById('f_exclusiveArea').value=p.exclusiveArea||(p.rentArea||'');
-  document.getElementById('f_tempArea').value=p.tempArea||'';
+  document.getElementById('f_landShareRatio').value=p.landShareRatio||'';
+  document.getElementById('f_roadShare').value=p.roadShare||'';
+  document.getElementById('f_totalLandArea').value=p.totalLandArea||'';
   document.getElementById('f_roadArea').value=p.roadArea||'';
   document.getElementById('f_useZone').value=p.useZone||'';
   document.getElementById('f_jimok').value=p.jimok||'';
+  document.getElementById('f_access').value=p.access||'';
+  document.getElementById('f_floorArea').value=p.floorArea||'';
+  document.getElementById('f_structure').value=p.structure||'';
+  document.getElementById('f_totalArea').value=p.totalArea||'';
+  document.getElementById('f_tempArea').value=p.tempArea||'';
   document.getElementById('f_buildingUse').value=p.buildingUse||'';
-  document.getElementById('f_approvalDate').value=p.approvalDate||'';
-  document.getElementById('f_floors').value=p.floors||'';
-  document.getElementById('f_electric').value=p.electric||'';
-  document.getElementById('f_hoist').value=p.hoist||'';
+  document.getElementById('f_supplyArea').value=p.supplyArea||'';
+  document.getElementById('f_exclusiveArea').value=p.exclusiveArea||(p.rentArea||'');
   document.getElementById('f_direction').value=p.direction||'';
   document.getElementById('f_height').value=p.height||'';
-  document.getElementById('f_parking').value=p.parking||'';
+  document.getElementById('f_hoist').value=p.hoist||'';
+  document.getElementById('f_waterIn').value=p.waterIn||'';
+  document.getElementById('f_drain').value=p.drain||'';
+  document.getElementById('f_electric').value=p.electric||'';
   document.getElementById('f_toilet').value=p.toilet||'';
+  document.getElementById('f_parking').value=p.parking||'';
   document.getElementById('f_elevator').value=p.elevator||'';
   document.getElementById('f_factoryReg').value=p.factoryReg||'';
-  document.getElementById('f_access').value=p.access||'';
+  document.getElementById('f_floors').value=p.floors||'';
+  document.getElementById('f_rooms').value=p.rooms||'';
+  document.getElementById('f_bathrooms').value=p.bathrooms||'';
+  document.getElementById('f_approvalDate').value=p.approvalDate||'';
+  document.getElementById('f_recommendedBusiness').value=p.recommendedBusiness||'';
   document.getElementById('f_regOwnerName').value=p.regOwnerName||'';
   document.getElementById('f_ownerName').value=p.ownerName||'';
   document.getElementById('f_ownerPhone').value=p.ownerPhone||'';
@@ -1539,7 +1628,16 @@ function openEditModal(id){
 }
 function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
 function clearForm(){
-  ['f_georae','f_type','f_address','f_price','f_maintenance','f_premium','f_landArea','f_totalArea','f_supplyArea','f_exclusiveArea','f_tempArea','f_roadArea','f_useZone','f_jimok','f_buildingUse','f_approvalDate','f_floors','f_electric','f_hoist','f_direction','f_height','f_parking','f_toilet','f_elevator','f_factoryReg','f_access','f_regOwnerName','f_ownerName','f_ownerPhone','f_memo','f_note','f_naver','f_video'].forEach(function(id){
+  ['f_georae','f_type','f_address',
+   'f_price','f_pricePerPyeong','f_officialBuildingPrice','f_officialLandPrice','f_maintenance','f_premium',
+   'f_lotCount','f_landArea','f_landShareRatio','f_roadShare','f_totalLandArea','f_roadArea',
+   'f_useZone','f_jimok','f_access',
+   'f_floorArea','f_structure','f_totalArea','f_tempArea','f_buildingUse','f_supplyArea','f_exclusiveArea',
+   'f_direction','f_height','f_hoist','f_waterIn','f_drain','f_electric','f_toilet','f_parking',
+   'f_elevator','f_factoryReg','f_floors','f_rooms','f_bathrooms','f_approvalDate','f_recommendedBusiness',
+   'f_regOwnerName','f_ownerName','f_ownerPhone',
+   'f_memo','f_note','f_naver','f_video'
+  ].forEach(function(id){
     document.getElementById(id).value='';
   });
 }
@@ -1556,28 +1654,42 @@ function saveProperty(){
   var data={
     georae:georae, type:type, address:address,
     price:document.getElementById('f_price').value.trim(),
+    pricePerPyeong:document.getElementById('f_pricePerPyeong').value.trim(),
+    officialBuildingPrice:document.getElementById('f_officialBuildingPrice').value.trim(),
+    officialLandPrice:document.getElementById('f_officialLandPrice').value.trim(),
     maintenance:document.getElementById('f_maintenance').value.trim(),
     premium:document.getElementById('f_premium').value.trim(),
+    lotCount:document.getElementById('f_lotCount').value.trim(),
     landArea:document.getElementById('f_landArea').value.trim(),
-    totalArea:document.getElementById('f_totalArea').value.trim(),
-    supplyArea:document.getElementById('f_supplyArea').value.trim(),
-    exclusiveArea:document.getElementById('f_exclusiveArea').value.trim(),
-    tempArea:document.getElementById('f_tempArea').value.trim(),
+    landShareRatio:document.getElementById('f_landShareRatio').value.trim(),
+    roadShare:document.getElementById('f_roadShare').value.trim(),
+    totalLandArea:document.getElementById('f_totalLandArea').value.trim(),
     roadArea:document.getElementById('f_roadArea').value.trim(),
     useZone:document.getElementById('f_useZone').value.trim(),
     jimok:document.getElementById('f_jimok').value.trim(),
+    access:document.getElementById('f_access').value.trim(),
+    floorArea:document.getElementById('f_floorArea').value.trim(),
+    structure:document.getElementById('f_structure').value.trim(),
+    totalArea:document.getElementById('f_totalArea').value.trim(),
+    tempArea:document.getElementById('f_tempArea').value.trim(),
     buildingUse:document.getElementById('f_buildingUse').value.trim(),
-    approvalDate:document.getElementById('f_approvalDate').value,
-    floors:document.getElementById('f_floors').value.trim(),
-    electric:document.getElementById('f_electric').value.trim(),
-    hoist:document.getElementById('f_hoist').value.trim(),
+    supplyArea:document.getElementById('f_supplyArea').value.trim(),
+    exclusiveArea:document.getElementById('f_exclusiveArea').value.trim(),
     direction:document.getElementById('f_direction').value.trim(),
     height:document.getElementById('f_height').value.trim(),
-    parking:document.getElementById('f_parking').value.trim(),
+    hoist:document.getElementById('f_hoist').value.trim(),
+    waterIn:document.getElementById('f_waterIn').value.trim(),
+    drain:document.getElementById('f_drain').value.trim(),
+    electric:document.getElementById('f_electric').value.trim(),
     toilet:document.getElementById('f_toilet').value.trim(),
+    parking:document.getElementById('f_parking').value.trim(),
     elevator:document.getElementById('f_elevator').value.trim(),
     factoryReg:document.getElementById('f_factoryReg').value.trim(),
-    access:document.getElementById('f_access').value.trim(),
+    floors:document.getElementById('f_floors').value.trim(),
+    rooms:document.getElementById('f_rooms').value.trim(),
+    bathrooms:document.getElementById('f_bathrooms').value.trim(),
+    approvalDate:document.getElementById('f_approvalDate').value,
+    recommendedBusiness:document.getElementById('f_recommendedBusiness').value.trim(),
     regOwnerName:document.getElementById('f_regOwnerName').value.trim(),
     ownerName:document.getElementById('f_ownerName').value.trim(),
     ownerPhone:document.getElementById('f_ownerPhone').value.trim(),
@@ -1649,7 +1761,9 @@ function openDetail(id){
     if(f.key==='electric') val = raw ? raw+(hasSuffixOverride ? suffix : 'kw') : '-';
     else if(f.key==='height') val = raw ? raw+(hasSuffixOverride ? suffix : 'm') : '-';
     else if(f.key==='exclusiveArea') { var v=p.exclusiveArea||(p.rentArea)||''; val = v ? v+(hasSuffixOverride ? suffix : ' 평') : '-'; }
-    else if(['landArea','totalArea','supplyArea','tempArea','roadArea'].indexOf(f.key)>-1) val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
+    else if(['landArea','totalArea','supplyArea','tempArea','roadArea',
+             'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1)
+      val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
     else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+(raw ? raw+(suffix?' '+suffix:'') : '-')+'</div></div>';
     else if(f.key==='ownerPhone') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(raw?'<a href="tel:'+raw+'" style="color:var(--accent);text-decoration:none">'+raw+'</a>':'-')+'</div></div>';
     else val = raw ? (raw+(suffix?' '+suffix:'')) : '-';
@@ -2772,7 +2886,8 @@ function loadFieldSettings(callback) {
           fieldOrder[t].push(key);
           orderSet[key] = true;
           if(!fieldSettings[t]) fieldSettings[t] = {};
-          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = true;
+          // 신규 추가 키는 false(OFF)로 등록 → 사용자가 항목설정에서 직접 ON
+          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = false;
           if(!fieldSections[key]) fieldSections[key] = DEFAULT_FIELDS.find(function(f){ return f.key===key; }).section;
           needsSave = true;
         }
@@ -2853,9 +2968,15 @@ function getOrderedFields(type) {
 }
 
 function isFieldVisible(type, key) {
-  if(!fieldSettings[type]) return true;
-  if(fieldSettings[type][key] === undefined) return true;
-  return fieldSettings[type][key];
+  if(!type) return true; // 매물종류 미선택 시 전체 표시
+  if(!fieldSettings[type]) return true; // 해당 타입 설정 없으면 전체 표시
+  var val = fieldSettings[type][key];
+  if(val === undefined) {
+    // fieldSettings에 없는 키 → DEFAULT_FIELDS에 있으면 ON, 없으면(커스텀) OFF
+    var inDefault = DEFAULT_FIELDS.some(function(f){ return f.key === key; });
+    return inDefault;
+  }
+  return val;
 }
 
 // 설정 임시 상태 (저장 전까지 원본 유지)

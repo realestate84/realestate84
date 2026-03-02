@@ -2799,22 +2799,16 @@ function getColDefsCache() {
 }
 function invalidateColDefsCache() { _colDefsCache = null; }
 
-
-function downloadExcel(){
-  if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
-
-  // 항목설정 기준 동적 헤더 생성
+// 엑셀 업·다운로드에 쓰는 컬럼 목록 (최신 항목설정 기반)
+function getExcelExportFields() {
   var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || PROP_TYPES[0];
   var orderedFields = getOrderedFields(refType);
-
-  // 고정 앞 컬럼
   var fixedFront = [
     {key:'propNo',    label:'No.'},
     {key:'georae',    label:'거래유형'},
     {key:'type',      label:'매물종류'},
     {key:'address',   label:'주소'},
   ];
-  // 고정 뒤 컬럼 (시스템)
   var fixedBack = [
     {key:'memo',        label:'특이사항/메모'},
     {key:'note',        label:'참고사항'},
@@ -2831,8 +2825,6 @@ function downloadExcel(){
   var fixedFrontKeys = fixedFront.map(function(f){ return f.key; });
   var fixedBackKeys  = fixedBack.map(function(f){ return f.key; });
   var skipKeys = fixedFrontKeys.concat(fixedBackKeys);
-
-  // 중간 컬럼: 항목설정 순서 기준, 앞/뒤 고정 제외
   var middleFields = orderedFields.filter(function(f){
     return skipKeys.indexOf(f.key) === -1;
   }).map(function(f){
@@ -2840,8 +2832,12 @@ function downloadExcel(){
     var label = f.label + (suffix ? '('+suffix+')' : '');
     return { key: f.key, label: label };
   });
+  return fixedFront.concat(middleFields).concat(fixedBack);
+}
 
-  var allFields = fixedFront.concat(middleFields).concat(fixedBack);
+function downloadExcel(){
+  if(properties.length===0){ alert('다운로드할 매물이 없습니다.'); return; }
+  var allFields = getExcelExportFields();
   var headers = allFields.map(function(f){ return f.label; });
 
   var rows = properties.map(function(p){
@@ -2870,16 +2866,10 @@ function uploadExcel(e){
     var lines=text.split('\n').filter(function(l){return l.trim();});
     if(lines.length<2){ alert('데이터가 없습니다.'); return; }
     var headers=parseCSV(lines[0]);
-    var ci={
-      georae:headers.indexOf('거래유형'), type:headers.indexOf('매물종류'),
-      address:headers.indexOf('주소'), price:headers.indexOf('가격'),
-      landArea:headers.indexOf('토지면적(평)'), totalArea:headers.indexOf('건축면적(평)'),
-      roadArea:headers.indexOf('도로부지면적(평)'), useZone:headers.indexOf('용도지역'),
-      jimok:headers.indexOf('지목'), buildingUse:headers.indexOf('건축물용도'),
-      approvalDate:headers.indexOf('사용승인일'), electric:headers.indexOf('동력(kw)'),
-      hoist:headers.indexOf('호이스트(t)'), access:headers.indexOf('진출입로'), ownerName:headers.indexOf('소유자명'),
-      ownerPhone:headers.indexOf('소유자연락처'), memo:headers.indexOf('특이사항/메모'),
-    };
+    // 최신 항목설정 기반으로 컬럼 인덱스 매핑
+    var excelFields = getExcelExportFields();
+    var ci = {};
+    excelFields.forEach(function(f){ ci[f.key] = headers.indexOf(f.label); });
     if(ci.address===-1){ alert('올바른 양식이 아닙니다.\n엑셀 다운로드 후 양식에 맞게 입력해주세요.'); return; }
     var dataRows=lines.slice(1);
     if(!confirm(dataRows.length+'건의 매물을 등록하시겠습니까?')) return;
@@ -2891,18 +2881,18 @@ function uploadExcel(e){
     function next(){
       if(idx>=dataRows.length){ renderTable(); alert('업로드 완료!\n성공: '+success+'건 / 실패: '+fail+'건'); return; }
       var cols=parseCSV(dataRows[idx]); idx++;
-      var addr=ci.address>=0?(cols[ci.address]||''):'';
-      if(!addr.trim()){ fail++; next(); return; }
-      function g(k){ return ci[k]>=0?(cols[ci[k]]||''):''; }
-      var data={
-        georae:g('georae'), type:g('type'), address:addr, price:g('price'),
-        landArea:g('landArea'), totalArea:g('totalArea'), roadArea:g('roadArea'),
-        useZone:g('useZone'), jimok:g('jimok'), buildingUse:g('buildingUse'),
-        approvalDate:g('approvalDate'), electric:g('electric'), hoist:g('hoist'), access:g('access'),
-        ownerName:g('ownerName'), ownerPhone:g('ownerPhone'), memo:g('memo'),
-        photos:[], propNo:maxNo+success+1,
-        createdDate:dateStr, createdTime:timeStr, updatedDate:'', updatedTime:'',
+      var addr=ci.address>=0?(cols[ci.address]||'').trim():'';
+      if(!addr){ fail++; next(); return; }
+      function g(k){ return (ci[k]>=0 && cols[ci[k]]!==undefined) ? String(cols[ci[k]]||'').trim() : ''; }
+      var data = {
+        photos: [], propNo: maxNo+success+1,
+        createdDate: dateStr, createdTime: timeStr, updatedDate: '', updatedTime: ''
       };
+      excelFields.forEach(function(f){
+        if(f.key === 'propNo' || f.key === 'photos') return;
+        data[f.key] = g(f.key);
+      });
+      data.address = addr;
       saveNew(data, function(err, newId){
         if(err){ fail++; } else { properties.unshift(Object.assign({id:newId},data)); success++; }
         next();
@@ -2955,12 +2945,19 @@ function loadFieldSettings(callback) {
       if(parsed && typeof parsed === 'object') listColumnSettings = Object.assign({}, listColumnSettings, parsed);
     }
   } catch(e) {}
+  // 배열에서 키 중복 제거 (첫 번째만 유지)
+  function dedupeOrder(arr) {
+    if(!arr || !Array.isArray(arr)) return arr;
+    var seen = {};
+    return arr.filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
+  }
   db.collection('settings').doc(SETTINGS_DOC).get().then(function(doc) {
     if(doc.exists) {
       var data = doc.data();
       fieldSettings = data.fieldSettings || {};
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
+      PROP_TYPES.forEach(function(t){ if(fieldOrder[t]) fieldOrder[t] = dedupeOrder(fieldOrder[t]); });
       fieldSections = data.fieldSections || {};
       fieldLabelOverrides = data.fieldLabelOverrides || {};
       fieldSuffixOverrides = data.fieldSuffixOverrides || {};
@@ -3057,10 +3054,17 @@ function loadFieldSettings(callback) {
 
 function saveFieldSettings() {
   persistListColumnSettings();
+  var orderToSave = {};
+  PROP_TYPES.forEach(function(t){
+    if(!fieldOrder[t]) { orderToSave[t] = []; return; }
+    var seen = {};
+    orderToSave[t] = fieldOrder[t].filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
+    fieldOrder[t] = orderToSave[t];
+  });
   db.collection('settings').doc(SETTINGS_DOC).set({
     fieldSettings: fieldSettings,
     customFields: customFields,
-    fieldOrder: fieldOrder,
+    fieldOrder: orderToSave,
     fieldSections: fieldSections,
     fieldLabelOverrides: fieldLabelOverrides,
     fieldSuffixOverrides: fieldSuffixOverrides,
@@ -3117,15 +3121,17 @@ function getOrderedFields(type) {
   customs.forEach(function(cf){
     if(!orderSet[cf.key]) { order.push(cf.key); orderSet[cf.key] = true; }
   });
-  // 중복 제거 (같은 항목이 두 번 나오지 않도록)
+  // 중복 제거 (같은 키가 두 번 나오지 않도록)
   var seen = {};
   order = order.filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
   // 전체 항목 맵
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
   customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:(fieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-  // order대로 반환 (존재하는 것만), '총토지면적삭제' 항목 제외
-  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+  // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외, 같은 라벨 중복 제거 (도로지분 등 첫 번째만 유지)
+  var list = order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+  var labelSeen = {};
+  return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
 }
 
 function isFieldVisible(type, key) {
@@ -3768,7 +3774,9 @@ function renderSettingsPanel() {
     var allFields = {};
     DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
     customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+    var list = order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+    var labelSeen = {};
+    return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
   }
 
   var html = '';

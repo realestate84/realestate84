@@ -20,16 +20,29 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <!-- 카카오맵 -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f08b63af7ea30749c5105b52cb8828f7&libraries=services,roadview"></script>
+<!-- 다크모드 참고 필요없으면 지울것 예전색상임  --bg:#1e2028; --surface:#272b35; --surface2:#303540; --border:#3d4258; --accent:#6b9ff8; --accent2:#9b7ef8;  --text:#bec4d8; --text-muted:#6a7090; --danger:#e06070;  -->
 <style>
+  
 :root {
   --bg:#f4f6fb; --surface:#fff; --surface2:#eef1f8; --border:#dde2f0;
   --accent:#3a7ef6; --accent2:#6c47f5; --text:#1a1f36; --text-muted:#7a85a8;
   --danger:#e04a5a;
 }
 body.dark {
-  --bg:#1e2028; --surface:#272b35; --surface2:#303540; --border:#3d4258;
+  --bg:#0c1017;--surface:#131920;--surface2:#1a2130;
+  --border:#1e2d3d;--border2:#243447;
+  --text:#e2eaf4;--text2:#8fa3b8;--text3:#4a6278;
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,.12);
+  --green:#10b981;--green-dim:rgba(16,185,129,.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.12);
+  --purple:#8b5cf6;--purple-dim:rgba(139,92,246,.12);
+  --shadow:0 1px 4px rgba(0,0,0,.3);
+  --shadow-md:0 4px 24px rgba(0,0,0,.5);
+  
   --accent:#6b9ff8; --accent2:#9b7ef8;
-  --text:#bec4d8; --text-muted:#6a7090; --danger:#e06070;
+  --text-muted:#6a7090;  --danger:#e06070;
+  
 }
 body.dark .mobile-drawer { background:var(--surface) !important; }
 body.dark .login-card { background:var(--surface) !important; color:var(--text) !important; }

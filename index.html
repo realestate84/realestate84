@@ -1998,17 +1998,30 @@ function openDetail(id){
       if(!container) return;
       var mapObj = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4});
       var gc = new kakao.maps.services.Geocoder();
-gc.addressSearch(p.address, function(result, status) {
-  if(status === kakao.maps.services.Status.OK) {
-    var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-    new kakao.maps.Marker({map: mapObj, position: coords});
-    mapObj.setCenter(coords);
-    window._mapCoords = coords;
-    window._mapAddress = p.address || '';
-  } else {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
-  }
-});
+      var addr = (p.address || '').trim();
+      function tryAddressSearch(query, isFallback) {
+        gc.addressSearch(query, function(result, status) {
+          if(status === kakao.maps.services.Status.OK) {
+            var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+            new kakao.maps.Marker({map: mapObj, position: coords});
+            mapObj.setCenter(coords);
+            window._mapCoords = coords;
+            window._mapAddress = p.address || '';
+            return;
+          }
+          if(!isFallback && /산\s+[\d\-]/.test(addr)) {
+            var fallback = addr.replace(/\s+산\s+[\d\-][\d\s\-]*.*$/, '').trim();
+            if(fallback && fallback.length >= 2) tryAddressSearch(fallback, true);
+            else showMapError();
+          } else {
+            showMapError();
+          }
+        });
+      }
+      function showMapError() {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
+      }
+      tryAddressSearch(addr, false);
       window._kakaoMapObj = mapObj;
     };
     window._mapInitTimer = setTimeout(function(){ tryMap(0); }, 500);
@@ -3978,10 +3991,15 @@ function openMapAll() {
       }, 200);
     });
 
-    properties.forEach(function(p) {
-      if(!p.address) return;
-      gc.addressSearch(p.address, function(result, status) {
-        if(status !== kakao.maps.services.Status.OK) return;
+    function addMarkerAtAddress(p, addr, isFallback) {
+      gc.addressSearch(addr, function(result, status) {
+        if(status !== kakao.maps.services.Status.OK) {
+          if(!isFallback && /산\s+[\d\-]/.test(addr)) {
+            var fallback = addr.replace(/\s+산\s+[\d\-][\d\s\-]*.*$/, '').trim();
+            if(fallback && fallback.length >= 2) addMarkerAtAddress(p, fallback, true);
+          }
+          return;
+        }
         var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
         var marker = new kakao.maps.Marker({map:_mapObj, position:coords, image:getMarkerImage(p)});
         _mapMarkers.push({marker:marker, p:p});
@@ -4011,6 +4029,10 @@ function openMapAll() {
 
         updateMapInfo();
       });
+    }
+    properties.forEach(function(p) {
+      if(!p.address) return;
+      addMarkerAtAddress(p, (p.address||'').trim(), false);
     });
   }, 300);
 }

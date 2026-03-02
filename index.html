@@ -901,7 +901,6 @@ var DEFAULT_FIELDS = [
   {key:'roadShare',           label:'도로지분',          section:'상세정보', suffix:' 평'},
   {key:'totalLandArea',       label:'총토지면적',        section:'상세정보', suffix:' 평'},
   {key:'roadArea',            label:'도로부지면적',      section:'상세정보', suffix:' 평'},
-  {key:'useZone',             label:'용도지역',          section:'상세정보', suffix:''},
   {key:'jimok',               label:'지목',              section:'상세정보', suffix:''},
   {key:'access',              label:'진출입로',          section:'상세정보', suffix:''},
   {key:'floorArea',           label:'연면적',            section:'상세정보', suffix:' 평'},
@@ -3021,6 +3020,24 @@ function loadFieldSettings(callback) {
         }
       });
     });
+    // '총토지면적삭제' 항목 제거 (커스텀 항목으로 등록된 경우)
+    var keysToRemove = {};
+    PROP_TYPES.forEach(function(t){
+      (customFields[t]||[]).forEach(function(cf){
+        if((fieldLabelOverrides[cf.key]||cf.label)==='총토지면적삭제') keysToRemove[cf.key]=true;
+      });
+    });
+    Object.keys(keysToRemove).forEach(function(key){
+      PROP_TYPES.forEach(function(t){
+        if(fieldOrder[t]) fieldOrder[t]=fieldOrder[t].filter(function(k){ return k!==key; });
+        if(fieldSettings[t]) delete fieldSettings[t][key];
+        if(customFields[t]) customFields[t]=customFields[t].filter(function(f){ return f.key!==key; });
+      });
+      delete fieldLabelOverrides[key];
+      delete fieldSuffixOverrides[key];
+      delete fieldSections[key];
+      needsSave=true;
+    });
     if(needsSave) saveFieldSettings();
     if(callback) callback();
   });
@@ -3094,8 +3111,8 @@ function getOrderedFields(type) {
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
   customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:(fieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-  // order대로 반환 (존재하는 것만)
-  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
+  // order대로 반환 (존재하는 것만), '총토지면적삭제' 항목 제외
+  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
 }
 
 function isFieldVisible(type, key) {
@@ -3734,7 +3751,7 @@ function renderSettingsPanel() {
     var allFields = {};
     DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
     customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
+    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
   }
 
   var html = '';

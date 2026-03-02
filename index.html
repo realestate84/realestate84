@@ -183,6 +183,9 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
   .header-actions{display:none;}
   .mobile-menu-btn{display:flex !important;}
   .mobile-drawer.open{display:block !important;}
+  #customersModal .modal-body{flex-direction:column;overflow:auto;}
+  #customersModal .customer-left{width:100% !important;}
+  #customersModal .table-wrap{max-height:280px;}
 }
 .mobile-menu-btn{display:none;background:none;border:none;cursor:pointer;font-size:22px;padding:4px 8px;color:var(--text);}
 .mobile-drawer{display:none;position:fixed;top:60px;right:0;width:220px;background:#fff;border-left:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:0 0 0 12px;box-shadow:-4px 4px 20px rgba(0,0,0,0.1);z-index:150;padding:10px;}
@@ -274,6 +277,7 @@ th{position:relative;}
   <div class="header-actions">
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
+    <button class="btn btn-outline" onclick="openCustomers()">👥 고객관리</button>
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
@@ -291,6 +295,7 @@ th{position:relative;}
 <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 <div class="mobile-drawer" id="mobileDrawer">
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
+  <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객관리</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
@@ -725,6 +730,40 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- 고객관리 모달 -->
+<div class="modal-overlay" id="customersModal" onclick="if(event.target===this)closeCustomers()">
+  <div class="modal" style="max-width:1150px;height:92vh;">
+    <div class="modal-header">
+      <div class="modal-title">👥 고객관리</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">＋ 고객 등록</button>
+        <button class="modal-close" onclick="closeCustomers()">×</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:16px;display:flex;gap:12px;overflow:hidden;min-height:0;">
+      <div class="customer-left" style="width:360px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;min-height:0;">
+        <input id="customerSearch" class="search-input" type="text" placeholder="🔍 이름/연락처/메모 검색..." oninput="renderCustomerList()">
+        <div class="table-wrap" style="flex:1;min-height:0;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40%;">이름</th>
+                <th style="width:40%;">연락처</th>
+                <th style="width:20%;">매물</th>
+              </tr>
+            </thead>
+            <tbody id="customerListBody"></tbody>
+          </table>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);" id="customerListInfo"></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;">
+        <div id="customerDetail" style="flex:1;overflow:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="mapAllModal" onclick="if(event.target===this)closeMapAll()">
   <div class="modal">
     <div class="modal-header">
@@ -767,12 +806,16 @@ th{position:relative;}
 // ── 전역 변수 ──────────────────────────────
 var db, storage, auth;
 var properties = [];
+var customers = [];
 var editingId = null;
 var currentPhotos = [];
 var lightboxPhotos = [];
 var lightboxIndex = 0;
 var COLLECTION = 'properties';
+var CUSTOMER_COLLECTION = 'customers';
 var SETTINGS_DOC = 'fieldSettings';
+var _customersUnsub = null;
+var _currentCustomerId = null;
 
 // 매물종류 목록
 // 리스트 컬럼 정의
@@ -893,12 +936,12 @@ var fieldSuffixOverrides = {}; // { 'price': '만원', 'custom_xxx': '개' } - �
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
-  apiKey: "AIzaSyDbk_z7GLWnTgzQvb0sg-2fa0NPCVRQz8A",
-  authDomain: "real-customer-d5095.firebaseapp.com",
-  projectId: "real-customer-d5095",
-  storageBucket: "real-customer-d5095.firebasestorage.app",
-  messagingSenderId: "595493330922",
-  appId: "1:595493330922:web:175b00c60fae4932195c93"
+  apiKey: "AIzaSyBYGw8kz3JkVbJ4zIvaMPyCMznGwg_r8tA",
+  authDomain: "realestate84-3574f.firebaseapp.com",
+  projectId: "realestate84-3574f",
+  storageBucket: "realestate84-3574f.firebasestorage.app",
+  messagingSenderId: "382904420257",
+  appId: "1:382904420257:web:09b3fe5c77ce3b28096de0"
 };
 firebase.initializeApp(firebaseConfig);
 db = firebase.firestore();
@@ -912,7 +955,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
     if(user) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
-      loadFieldSettings(function(){ load(); });
+      loadFieldSettings(function(){ load(); loadCustomers(); });
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainScreen').style.display = 'none';
@@ -966,6 +1009,28 @@ function load() {
     console.error(e);
     properties = [];
     renderTable();
+  });
+}
+
+function loadCustomers() {
+  try { if(_customersUnsub) _customersUnsub(); } catch(e){}
+  _customersUnsub = db.collection(CUSTOMER_COLLECTION).onSnapshot(function(snap) {
+    customers = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    customers.sort(function(a,b){
+      var am = (a.updatedAtMs||a.createdAtMs||0);
+      var bm = (b.updatedAtMs||b.createdAtMs||0);
+      return bm - am;
+    });
+    if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) {
+      renderCustomerList();
+      if(_currentCustomerId) openCustomerDetail(_currentCustomerId, true);
+    }
+  }, function(e){
+    console.error(e);
+    customers = [];
+    if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) {
+      renderCustomerList();
+    }
   });
 }
 
@@ -1960,7 +2025,7 @@ function switchMapView(mode) {
   var btnSky = document.getElementById('btnSkyView');
   var btnRv = document.getElementById('btnRvView');
   if(!mapEl || !rvEl) return;
-  
+
   // 버튼 스타일 초기화
   [btnMap, btnSky, btnRv].forEach(function(b){ if(b){ b.style.background='#fff'; b.style.color='#333'; b.style.fontWeight='normal'; }});
 
@@ -1994,7 +2059,7 @@ function switchMapView(mode) {
   }
 }
 
-    function navigateToProperty() {
+function navigateToProperty() {
   if(!window._mapCoords) {
     alert('지도 좌표가 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
     return;
@@ -2005,7 +2070,7 @@ function switchMapView(mode) {
   var url = 'https://map.kakao.com/link/to/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
   window.open(url, '_blank');
 }
-  
+
 function printDetail() {
   var hasPhotos = window._dp && window._dp.length > 0;
   document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';
@@ -2141,6 +2206,7 @@ function closeDetailModal(){
   window._dp=[];
   window._rvInitialized = false;
   window._mapCoords = null;
+  window._mapAddress = '';
   window._kakaoMapObj = null;
   _cadastralOn.detail = false;
 }
@@ -3053,6 +3119,401 @@ function closeSettings() {
   _tmpFieldLabelOverrides = null;
   _tmpFieldSuffixOverrides = null;
   document.getElementById('settingsModal').classList.remove('active');
+}
+
+// ── 고객관리 ────────────────────────────────
+function openCustomers() {
+  var modal = document.getElementById('customersModal');
+  if(!modal) return;
+  modal.classList.add('active');
+  if(document.getElementById('customerSearch')) document.getElementById('customerSearch').value = '';
+  _currentCustomerId = null;
+  renderCustomerEmpty();
+  renderCustomerList();
+}
+
+function closeCustomers() {
+  var modal = document.getElementById('customersModal');
+  if(!modal) return;
+  modal.classList.remove('active');
+}
+
+function escapeHtml(s) {
+  s = (s===undefined || s===null) ? '' : String(s);
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getCustomerById(id) {
+  return customers.find(function(c){ return c.id === id; });
+}
+
+function renderCustomerEmpty() {
+  var el = document.getElementById('customerDetail');
+  if(!el) return;
+  el.innerHTML =
+    '<div style="padding:40px 10px;text-align:center;color:var(--text-muted);">'+
+      '<div style="font-size:28px;margin-bottom:10px;">👥</div>'+
+      '<div style="font-size:13px;">왼쪽 목록에서 고객을 선택하거나, 상단에서 고객을 등록하세요.</div>'+
+    '</div>';
+}
+
+function renderCustomerList() {
+  var body = document.getElementById('customerListBody');
+  var info = document.getElementById('customerListInfo');
+  if(!body) return;
+
+  var q = (document.getElementById('customerSearch') ? document.getElementById('customerSearch').value.trim().toLowerCase() : '');
+  var list = customers.slice();
+  if(q) {
+    list = list.filter(function(c){
+      var s = (c.name||'') + ' ' + (c.phone||'') + ' ' + (c.memo||'');
+      return s.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  if(list.length === 0) {
+    body.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:28px;color:var(--text-muted);">고객이 없습니다.</td></tr>';
+  } else {
+    body.innerHTML = list.map(function(c){
+      var shownCnt = (c.shownProps||[]).length;
+      var selected = (_currentCustomerId === c.id);
+      return '<tr onclick="openCustomerDetail(\''+c.id+'\')" style="cursor:pointer;'+(selected?'background:rgba(58,126,246,0.06);':'')+'">'+
+        '<td style="font-weight:600;">'+escapeHtml(c.name||'-')+'</td>'+
+        '<td class="muted">'+escapeHtml(c.phone||'-')+'</td>'+
+        '<td class="muted" style="text-align:center;">'+shownCnt+'</td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  if(info) {
+    info.textContent = '총 ' + customers.length + '명 / 검색 ' + list.length + '명';
+  }
+}
+
+function openCustomerForm(id) {
+  var c = id ? getCustomerById(id) : null;
+  _currentCustomerId = id || null;
+  var el = document.getElementById('customerDetail');
+  if(!el) return;
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">'+
+      '<div style="font-size:16px;font-weight:800;">'+(id?'고객 수정':'고객 등록')+'</div>'+
+      '<div style="display:flex;gap:8px;">'+
+        (id?'<button class="btn btn-outline btn-sm" onclick="openCustomerDetail(\''+id+'\')">취소</button>':'<button class="btn btn-outline btn-sm" onclick="renderCustomerEmpty()">취소</button>')+
+        '<button class="btn btn-primary btn-sm" onclick="saveCustomerForm(\''+(id||'')+'\')">저장</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="form-grid">'+
+      '<div class="form-group"><label>이름 *</label><input id="cust_name" class="form-input" value="'+escapeHtml(c?c.name:'')+'" placeholder="예) 홍길동"></div>'+
+      '<div class="form-group"><label>연락처</label><input id="cust_phone" class="form-input" value="'+escapeHtml(c?c.phone:'')+'" placeholder="예) 010-0000-0000"></div>'+
+      '<div class="form-group full"><label>이메일</label><input id="cust_email" class="form-input" value="'+escapeHtml(c?c.email:'')+'" placeholder="예) test@example.com"></div>'+
+      '<div class="form-group full"><label>메모</label><textarea id="cust_memo" class="form-textarea" style="min-height:140px;">'+escapeHtml(c?c.memo:'')+'</textarea></div>'+
+    '</div>';
+}
+
+function saveCustomerForm(id) {
+  var name = (document.getElementById('cust_name').value||'').trim();
+  if(!name) { alert('이름은 필수입니다.'); return; }
+  var phone = (document.getElementById('cust_phone').value||'').trim();
+  var email = (document.getElementById('cust_email').value||'').trim();
+  var memo  = (document.getElementById('cust_memo').value||'').trim();
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR');
+  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var base = {
+    name:name, phone:phone, email:email, memo:memo,
+    updatedDate:dateStr, updatedTime:timeStr,
+    updatedAtMs: Date.now()
+  };
+
+  if(id) {
+    db.collection(CUSTOMER_COLLECTION).doc(id).update(base).then(function(){
+      showToast('✅ 저장됐어요!');
+      openCustomerDetail(id, true);
+    }).catch(function(e){
+      alert('저장 오류: ' + (e && e.message ? e.message : e));
+    });
+  } else {
+    base.createdDate = dateStr;
+    base.createdTime = timeStr;
+    base.createdAtMs = Date.now();
+    base.shownProps = [];
+    base.history = [];
+    db.collection(CUSTOMER_COLLECTION).add(base).then(function(ref){
+      showToast('✅ 등록됐어요!');
+      openCustomerDetail(ref.id);
+      renderCustomerList();
+    }).catch(function(e){
+      alert('등록 오류: ' + (e && e.message ? e.message : e));
+    });
+  }
+}
+
+function deleteCustomer(id) {
+  var c = getCustomerById(id);
+  if(!c) return;
+  if(!confirm('고객을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.')) return;
+  db.collection(CUSTOMER_COLLECTION).doc(id).delete().then(function(){
+    showToast('🗑 삭제됐어요.');
+    _currentCustomerId = null;
+    renderCustomerEmpty();
+    renderCustomerList();
+  }).catch(function(e){
+    alert('삭제 오류: ' + (e && e.message ? e.message : e));
+  });
+}
+
+function openCustomerDetail(id, keep) {
+  var c = getCustomerById(id);
+  if(!c) { renderCustomerEmpty(); return; }
+  _currentCustomerId = id;
+  renderCustomerList();
+
+  var el = document.getElementById('customerDetail');
+  if(!el) return;
+  var shown = c.shownProps || [];
+  var hist = c.history || [];
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">'+
+      '<div style="min-width:0;">'+
+        '<div style="font-size:18px;font-weight:900;line-height:1.2;">'+escapeHtml(c.name||'-')+'</div>'+
+        '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:10px;">'+
+          '<span>📞 '+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'" style="color:var(--accent);text-decoration:none;">'+escapeHtml(c.phone)+'</a>':'-')+'</span>'+
+          '<span>✉️ '+escapeHtml(c.email||'-')+'</span>'+
+          '<span>🗓 '+escapeHtml(c.createdDate||'-')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex-shrink:0;">'+
+        '<button class="btn btn-outline btn-sm" onclick="openCustomerForm(\''+id+'\')">수정</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="deleteCustomer(\''+id+'\')">삭제</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="detail-section"><div class="detail-section-title">메모</div>'+
+      '<div style="font-size:13px;line-height:1.8;white-space:pre-wrap;">'+(c.memo?linkifyMemo(c.memo):'<span class="muted">메모 없음</span>')+'</div>'+
+    '</div>'+
+
+    '<div class="detail-section"><div class="detail-section-title">🏠 고객에게 보여준 매물</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">'+
+        '<select id="customerShownPropSelect" class="form-select" style="max-width:520px;min-width:240px;"></select>'+
+        '<button class="btn btn-primary btn-sm" onclick="addShownPropertyToCustomer(\''+id+'\')">추가</button>'+
+      '</div>'+
+      '<div id="customerShownList" style="display:flex;flex-direction:column;gap:8px;"></div>'+
+    '</div>'+
+
+    '<div class="detail-section"><div class="detail-section-title">📋 고객 히스토리</div>'+
+      '<div id="customerHistoryList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:260px;overflow-y:auto;"></div>'+
+      '<div style="display:flex;gap:8px;">'+
+        '<textarea id="customerHistoryInput" class="form-textarea" placeholder="히스토리 내용 입력..." style="flex:1;min-height:60px;font-size:13px;resize:vertical;"></textarea>'+
+        '<button class="btn btn-primary btn-sm" onclick="addCustomerHistory(\''+id+'\')" style="align-self:flex-end;white-space:nowrap;">추가</button>'+
+      '</div>'+
+    '</div>';
+
+  renderCustomerShownProps(id);
+  renderCustomerHistoryList(id, hist);
+}
+
+function renderCustomerShownProps(custId) {
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var select = document.getElementById('customerShownPropSelect');
+  var listEl = document.getElementById('customerShownList');
+  if(!select || !listEl) return;
+
+  var already = {};
+  (c.shownProps||[]).forEach(function(pid){ already[pid] = true; });
+
+  var options = ['<option value="">매물 선택...</option>'].concat(
+    properties.slice().sort(function(a,b){
+      return (parseInt(a.propNo)||0) - (parseInt(b.propNo)||0);
+    }).map(function(p){
+      if(already[p.id]) return '';
+      var label = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'') + (p.type?' · '+p.type:'') + (p.georae?' · '+p.georae:'');
+      return '<option value="'+p.id+'">'+escapeHtml(label)+'</option>';
+    }).filter(Boolean)
+  ).join('');
+  select.innerHTML = options;
+
+  var shown = (c.shownProps||[]).slice();
+  if(shown.length === 0) {
+    listEl.innerHTML = '<div style="padding:8px 0;color:var(--text-muted);">아직 고객에게 보여준 매물이 없습니다.</div>';
+    return;
+  }
+
+  listEl.innerHTML = shown.map(function(pid){
+    var p = properties.find(function(x){ return x.id===pid; });
+    if(!p) {
+      return '<div class="doc-row">'+
+        '<div class="doc-row-title">삭제된 매물('+escapeHtml(pid)+')</div>'+
+        '<div class="doc-row-actions">'+
+          '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">목록에서 제거</button>'+
+        '</div>'+
+      '</div>';
+    }
+    var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (p.price?(' · '+p.price):'');
+    return '<div class="doc-row" style="gap:10px;">'+
+      '<div style="min-width:0;flex:1;">'+
+        '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
+        '<div class="doc-status" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
+      '</div>'+
+      '<div class="doc-row-actions">'+
+        '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+pid+'\')">상세보기</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">삭제</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function addShownPropertyToCustomer(custId) {
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var sel = document.getElementById('customerShownPropSelect');
+  if(!sel) return;
+  var propId = sel.value;
+  if(!propId) return;
+  var arr = (c.shownProps||[]).slice();
+  if(arr.indexOf(propId) !== -1) { alert('이미 추가된 매물입니다.'); return; }
+  arr.push(propId);
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR');
+  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+    shownProps: arr,
+    updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
+  }).then(function(){
+    showToast('✅ 매물을 추가했어요!');
+  }).catch(function(e){
+    alert('추가 오류: ' + (e && e.message ? e.message : e));
+  });
+}
+
+function removeShownPropertyFromCustomer(custId, propId) {
+  var c = getCustomerById(custId);
+  if(!c) return;
+  if(!confirm('이 매물을 목록에서 제거할까요?')) return;
+  var arr = (c.shownProps||[]).slice().filter(function(x){ return x !== propId; });
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR');
+  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+    shownProps: arr,
+    updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
+  }).then(function(){
+    showToast('🗑 제거했어요.');
+  }).catch(function(e){
+    alert('삭제 오류: ' + (e && e.message ? e.message : e));
+  });
+}
+
+function renderCustomerHistoryList(custId, history) {
+  var list = document.getElementById('customerHistoryList');
+  if(!list) return;
+  history = history || [];
+  if(history.length === 0) {
+    list.innerHTML = '<div style="padding:8px 0;color:var(--text-muted);">등록된 히스토리가 없어요.</div>';
+    return;
+  }
+  list.innerHTML = history.slice().reverse().map(function(h, ri){
+    var i = history.length - 1 - ri;
+    return '<div id="cHistoryItem_'+i+'" style="padding:8px 0;border-bottom:1px solid var(--border);line-height:1.6;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+        '<div style="flex:1;">'+
+          '<span style="color:var(--accent);font-weight:600;font-size:11px;">'+escapeHtml(h.date||'')+'</span>'+
+          '<div id="cHistoryText_'+i+'" style="white-space:pre-wrap;margin-top:2px;font-size:13px;">'+escapeHtml(h.text||'')+'</div>'+
+          '<div id="cHistoryEdit_'+i+'" style="display:none;margin-top:4px;">'+
+            '<textarea id="cHistoryEditInput_'+i+'" style="width:100%;min-height:60px;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:6px;resize:vertical;font-family:inherit;">'+escapeHtml(h.text||'')+'</textarea>'+
+            '<div style="display:flex;gap:6px;margin-top:4px;">'+
+              '<button onclick="saveCustomerHistoryEdit(\''+custId+'\','+i+')" class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;">저장</button>'+
+              '<button onclick="cancelCustomerHistoryEdit('+i+')" class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;">취소</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:2px;flex-shrink:0;">'+
+          '<button onclick="startCustomerHistoryEdit('+i+')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:0 4px;" title="수정">✏️</button>'+
+          '<button onclick="deleteCustomerHistory(\''+custId+'\','+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 4px;" title="삭제">✕</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function startCustomerHistoryEdit(i) {
+  document.getElementById('cHistoryText_'+i).style.display = 'none';
+  document.getElementById('cHistoryEdit_'+i).style.display = 'block';
+}
+
+function cancelCustomerHistoryEdit(i) {
+  document.getElementById('cHistoryText_'+i).style.display = 'block';
+  document.getElementById('cHistoryEdit_'+i).style.display = 'none';
+}
+
+function saveCustomerHistoryEdit(custId, index) {
+  var input = document.getElementById('cHistoryEditInput_'+index);
+  if(!input) return;
+  var newText = input.value.trim();
+  if(!newText) return;
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var history = c.history ? c.history.slice() : [];
+  if(!history[index]) return;
+  history[index].text = newText;
+
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR');
+  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+    history: history,
+    updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
+  }).then(function(){
+    showToast('✅ 수정했어요!');
+  });
+}
+
+function addCustomerHistory(custId) {
+  var input = document.getElementById('customerHistoryInput');
+  if(!input) return;
+  var text = input.value.trim();
+  if(!text) return;
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var history = c.history ? c.history.slice() : [];
+  history.push({ date: dateStr, text: text });
+
+  var d = now.toLocaleDateString('ko-KR');
+  var t = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+    history: history,
+    updatedDate: d, updatedTime: t, updatedAtMs: Date.now()
+  }).then(function(){
+    input.value = '';
+    showToast('✅ 추가했어요!');
+  });
+}
+
+function deleteCustomerHistory(custId, index) {
+  if(!confirm('이 히스토리를 삭제하시겠습니까?')) return;
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var history = c.history ? c.history.slice() : [];
+  history.splice(index, 1);
+
+  var now = new Date();
+  var d = now.toLocaleDateString('ko-KR');
+  var t = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+    history: history,
+    updatedDate: d, updatedTime: t, updatedAtMs: Date.now()
+  }).then(function(){
+    showToast('🗑 삭제했어요.');
+  });
 }
 
 function confirmSettings() {

@@ -3185,6 +3185,14 @@ function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// 연락처 입력 시 전화번호 형태(010-XXXX-XXXX 등)로 자동 포맷
+function formatPhoneInput(input) {
+  var v = input.value.replace(/[^\d]/g, '');
+  if(v.length <= 3) input.value = v;
+  else if(v.length <= 7) input.value = v.slice(0,3) + '-' + v.slice(3);
+  else input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+}
+
 function getCustomerById(id) {
   return customers.find(function(c){ return c.id === id; });
 }
@@ -3248,24 +3256,23 @@ function openCustomerForm(id) {
     '</div>'+
     '<div class="form-grid">'+
       '<div class="form-group"><label>이름 *</label><input id="cust_name" class="form-input" value="'+escapeHtml(c?c.name:'')+'" placeholder="예) 홍길동"></div>'+
-      '<div class="form-group"><label>연락처</label><input id="cust_phone" class="form-input" value="'+escapeHtml(c?c.phone:'')+'" placeholder="예) 010-0000-0000"></div>'+
-      '<div class="form-group full"><label>이메일</label><input id="cust_email" class="form-input" value="'+escapeHtml(c?c.email:'')+'" placeholder="예) test@example.com"></div>'+
+      '<div class="form-group"><label>연락처</label><input id="cust_phone" type="tel" inputmode="tel" maxlength="13" class="form-input" value="'+escapeHtml(c?c.phone:'')+'" placeholder="예) 010-0000-0000" oninput="formatPhoneInput(this)"></div>'+
       '<div class="form-group full"><label>메모</label><textarea id="cust_memo" class="form-textarea" style="min-height:140px;">'+escapeHtml(c?c.memo:'')+'</textarea></div>'+
     '</div>';
+  setTimeout(function(){ var ph = document.getElementById('cust_phone'); if(ph && ph.value) formatPhoneInput(ph); }, 0);
 }
 
 function saveCustomerForm(id) {
   var name = (document.getElementById('cust_name').value||'').trim();
   if(!name) { alert('이름은 필수입니다.'); return; }
   var phone = (document.getElementById('cust_phone').value||'').trim();
-  var email = (document.getElementById('cust_email').value||'').trim();
   var memo  = (document.getElementById('cust_memo').value||'').trim();
 
   var now = new Date();
   var dateStr = now.toLocaleDateString('ko-KR');
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   var base = {
-    name:name, phone:phone, email:email, memo:memo,
+    name:name, phone:phone, memo:memo,
     updatedDate:dateStr, updatedTime:timeStr,
     updatedAtMs: Date.now()
   };
@@ -3324,7 +3331,6 @@ function openCustomerDetail(id, keep) {
         '<div style="font-size:18px;font-weight:900;line-height:1.2;">'+escapeHtml(c.name||'-')+'</div>'+
         '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:10px;">'+
           '<span>📞 '+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'" style="color:var(--accent);text-decoration:none;">'+escapeHtml(c.phone)+'</a>':'-')+'</span>'+
-          '<span>✉️ '+escapeHtml(c.email||'-')+'</span>'+
           '<span>🗓 '+escapeHtml(c.createdDate||'-')+'</span>'+
         '</div>'+
       '</div>'+

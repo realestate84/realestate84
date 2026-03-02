@@ -3113,6 +3113,19 @@ function openSettings() {
   _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(fieldSuffixOverrides));
   window._settingsActiveType = '전체';
   renderSettingsPanel();
+  // 드래그 중 리스트 밖(빈 영역)에서도 스크롤되도록 모달 본문에 dragover 연결
+  var sb = document.getElementById('settingsBody');
+  if(sb) {
+    sb.ondragover = function(ev) {
+      if(!_dragSrcKey) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      var rect = sb.getBoundingClientRect();
+      var edge = 44, step = 12;
+      if(ev.clientY < rect.top + edge) sb.scrollTop = Math.max(0, sb.scrollTop - step);
+      else if(ev.clientY > rect.bottom - edge) sb.scrollTop = Math.min(sb.scrollHeight - sb.clientHeight, sb.scrollTop + step);
+    };
+  }
   document.getElementById('settingsModal').classList.add('active');
 }
 
@@ -3873,6 +3886,17 @@ function onFieldDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   e.currentTarget.style.borderColor = 'var(--accent)';
+  // 드래그 중 스크롤 영역 끝에 가까우면 자동 스크롤
+  var scrollEl = document.getElementById('settingsBody');
+  if(!scrollEl || !_dragSrcKey) return;
+  var rect = scrollEl.getBoundingClientRect();
+  var edge = 44;
+  var step = 12;
+  if(e.clientY < rect.top + edge) {
+    scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - step);
+  } else if(e.clientY > rect.bottom - edge) {
+    scrollEl.scrollTop = Math.min(scrollEl.scrollHeight - scrollEl.clientHeight, scrollEl.scrollTop + step);
+  }
 }
 function onFieldDragEnd(e) {
   e.currentTarget.style.opacity = '1';

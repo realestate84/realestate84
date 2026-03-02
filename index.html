@@ -3356,11 +3356,11 @@ function openCustomerDetail(id, keep) {
     '</div>'+
 
     '<div class="detail-section"><div class="detail-section-title">📋 고객 히스토리</div>'+
-      '<div id="customerHistoryList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:260px;overflow-y:auto;"></div>'+
-      '<div style="display:flex;gap:8px;">'+
+      '<div style="display:flex;gap:8px;margin-bottom:12px;">'+
         '<textarea id="customerHistoryInput" class="form-textarea" placeholder="히스토리 내용 입력..." style="flex:1;min-height:60px;font-size:13px;resize:vertical;"></textarea>'+
         '<button class="btn btn-primary btn-sm" onclick="addCustomerHistory(\''+id+'\')" style="align-self:flex-end;white-space:nowrap;">추가</button>'+
       '</div>'+
+      '<div id="customerHistoryList" style="font-size:12px;color:var(--text-muted);max-height:260px;overflow-y:auto;"></div>'+
     '</div>';
 
   renderCustomerShownProps(id);

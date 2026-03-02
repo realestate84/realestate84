@@ -1850,18 +1850,25 @@ function openDetail(id){
       '</div>';
     }).join('')+
     '</div>'+
-    (p.address?'<div class="detail-section" style="break-inside:avoid;page-break-inside:avoid;"><div class="detail-section-title">위치</div>'+
-      '<div style="position:relative;">'+
-        '<div id="kakaoMap"></div>'+
-        '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+
-        '<div id="mapViewBtns" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
-          '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
-          '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
-          '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
-          '<button onclick="toggleCadastral(\'detail\')" id="btnCadastral" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지적도</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>':'')+
+
+
+    
+(p.address?'<div class="detail-section" style="break-inside:avoid;page-break-inside:avoid;"><div class="detail-section-title">위치</div>'+
+  '<div style="position:relative;">'+
+    '<div id="kakaoMap"></div>'+
+    '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+
+    '<div id="mapViewBtns" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
+      '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
+      '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
+      '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
+      '<button onclick="toggleCadastral(\'detail\')" id="btnCadastral" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지적도</button>'+
+      '<button onclick="navigateToProperty()" id="btnNavi" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚗 길찾기</button>'+
+    '</div>'+
+  '</div>'+
+'</div>':'')+
+
+
+    
     '<div class="detail-section'+((!p.photos||p.photos.length===0)?' no-print':'')+'">'+
       '<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
         '<span>사진 '+(p.photos&&p.photos.length>0?'('+p.photos.length+'장)':'')+'</span>'+
@@ -1913,16 +1920,17 @@ function openDetail(id){
       if(!container) return;
       var mapObj = new kakao.maps.Map(container, {center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4});
       var gc = new kakao.maps.services.Geocoder();
-      gc.addressSearch(p.address, function(result, status) {
-        if(status === kakao.maps.services.Status.OK) {
-          var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-          new kakao.maps.Marker({map: mapObj, position: coords});
-          mapObj.setCenter(coords);
-          window._mapCoords = coords;
-        } else {
-          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
-        }
-      });
+gc.addressSearch(p.address, function(result, status) {
+  if(status === kakao.maps.services.Status.OK) {
+    var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+    new kakao.maps.Marker({map: mapObj, position: coords});
+    mapObj.setCenter(coords);
+    window._mapCoords = coords;
+    window._mapAddress = p.address || '';
+  } else {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px">주소를 지도에서 찾을 수 없습니다</div>';
+  }
+});
       window._kakaoMapObj = mapObj;
     };
     window._mapInitTimer = setTimeout(function(){ tryMap(0); }, 500);
@@ -1953,6 +1961,18 @@ function switchMapView(mode) {
   var btnRv = document.getElementById('btnRvView');
   if(!mapEl || !rvEl) return;
 
+  function navigateToProperty() {
+  if(!window._mapCoords) {
+    alert('지도 좌표가 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
+  var lat = window._mapCoords.getLat();
+  var lng = window._mapCoords.getLng();
+  var name = window._mapAddress || '목적지';
+  var url = 'https://map.kakao.com/link/to/' + encodeURIComponent(name) + ',' + lat + ',' + lng;
+  window.open(url, '_blank');
+}
+  
   // 버튼 스타일 초기화
   [btnMap, btnSky, btnRv].forEach(function(b){ if(b){ b.style.background='#fff'; b.style.color='#333'; b.style.fontWeight='normal'; }});
 

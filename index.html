@@ -734,7 +734,7 @@ th{position:relative;}
 <div class="modal-overlay" id="customersModal" onclick="if(event.target===this)closeCustomers()">
   <div class="modal" style="max-width:1150px;height:92vh;">
     <div class="modal-header">
-      <div class="modal-title">👥 고객관리</div>
+      <div class="modal-title">👥 고객문의</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">＋ 문의등록</button>
         <button class="modal-close" onclick="closeCustomers()">×</button>
@@ -751,9 +751,10 @@ th{position:relative;}
           <table>
             <thead>
               <tr>
-                <th style="width:40%;">이름</th>
-                <th style="width:35%;">등록일</th>
-                <th style="width:25%;">매물</th>
+                <th style="width:30%;">이름</th>
+                <th style="width:20%;">거래유형</th>
+                <th style="width:25%;">매물종류</th>
+                <th style="width:15%;">매물</th>
               </tr>
             </thead>
             <tbody id="customerListBody"></tbody>
@@ -3222,14 +3223,15 @@ function renderCustomerList() {
   }
 
   if(list.length === 0) {
-    body.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:28px;color:var(--text-muted);">고객이 없습니다.</td></tr>';
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-muted);">고객이 없습니다.</td></tr>';
   } else {
     body.innerHTML = list.map(function(c){
       var shownCnt = (c.shownProps||[]).length;
       var selected = (_currentCustomerId === c.id);
       return '<tr onclick="openCustomerDetail(\''+c.id+'\')" style="cursor:pointer;'+(selected?'background:rgba(58,126,246,0.06);':'')+'">'+
         '<td style="font-weight:600;">'+escapeHtml(c.name||'-')+'</td>'+
-        '<td class="muted">'+escapeHtml(c.createdDate||'-')+'</td>'+
+        '<td class="muted">'+escapeHtml(c.custGeorae||'-')+'</td>'+
+        '<td class="muted">'+escapeHtml(c.custType||'-')+'</td>'+
         '<td class="muted" style="text-align:center;">'+shownCnt+'</td>'+
       '</tr>';
     }).join('');
@@ -3343,6 +3345,8 @@ function openCustomerDetail(id, keep) {
         '<div style="font-size:18px;font-weight:900;line-height:1.2;">'+escapeHtml(c.name||'-')+'</div>'+
         '<div style="margin-top:4px;font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:10px;">'+
           '<span>📞 '+(c.phone?'<a href="tel:'+escapeHtml(c.phone)+'" style="color:var(--accent);text-decoration:none;">'+escapeHtml(c.phone)+'</a>':'-')+'</span>'+
+          (c.custGeorae?'<span>거래유형 '+escapeHtml(c.custGeorae)+'</span>':'')+
+          (c.custType?'<span>매물종류 '+escapeHtml(c.custType)+'</span>':'')+
           '<span>🗓 등록일시 ' + escapeHtml(c.createdDate||'-') + (c.createdTime ? ' ' + escapeHtml(c.createdTime) : '') + '</span>'+
         '</div>'+
       '</div>'+

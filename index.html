@@ -2347,6 +2347,7 @@ function executePrint(mode) {
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
     return;
   }
 
@@ -2372,25 +2373,33 @@ function executePrint(mode) {
       '</style></head><body>'+
       '<div id="saveGuide">'+
         '<span>📄 파일명: <b>'+fileName+'.pdf</b> &nbsp;|&nbsp; 인쇄 대화상자에서 <b>PDF로 저장</b> 선택</span>'+
-        '<button onclick="window.print()" style="background:#3a7ef6;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;font-weight:600;margin-left:12px;">PDF 저장</button>'+
+        '<button onclick="window.focus();window.print()" style="background:#3a7ef6;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;font-weight:600;margin-left:12px;">PDF 저장</button>'+
       '</div>'+
       headerHtml+div.innerHTML+
-      '<script>window.onload=function(){window.print();}<\/script>'+
+      '<script>window.onload=function(){window.focus();setTimeout(function(){window.print();},80);}<\/script>'+
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
   } else {
-    // 인쇄
+    // 인쇄 (PDF로 저장 시 기본 파일명 = 매물종류_거래유형_주소)
+    var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
+    var pType   = curProp ? (curProp.type||'') : '';
+    var pGeorae = curProp ? (curProp.georae||'') : '';
+    var pAddr   = curProp ? (curProp.address||'') : '';
+    var printFileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'') || '매물';
     var win = window.open('','_blank','width=800,height=900');
     win.document.write(
       '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<title>'+printFileName+'</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
       '<style>'+css+'</style></head><body>'+
       headerHtml+div.innerHTML+
-      '<script>window.onload=function(){window.print();window.close();}<\/script>'+
+      '<script>window.onload=function(){window.focus();setTimeout(function(){window.print();window.close();},80);}<\/script>'+
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
   }
 }
 

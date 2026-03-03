@@ -64,9 +64,9 @@ body.dark tr:hover td { background:rgba(107,159,248,0.05); }
 body.dark tr:hover td:first-child { background:var(--surface); filter:brightness(1.05); }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;height:100vh;overflow:hidden;}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);}
-.logo{font-family:'Nanum Gothic',sans-serif;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;min-height:60px;height:auto;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,0.06);flex-wrap:wrap;gap:8px;}
+.logo{font-family:'Nanum Gothic',sans-serif;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;flex-shrink:0;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
 .btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
 .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
 .btn-primary:hover{opacity:0.85;}
@@ -178,12 +178,16 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+/* 중간 크기 이하: 상단 버튼 숨기고 햄버거 메뉴로 → 배열 망가짐 방지 */
+@media(max-width:1024px){
+  .header-actions{display:none !important;}
+  .mobile-menu-btn{display:flex !important;}
+  header{flex-wrap:nowrap;gap:10px;}
+}
 @media(max-width:768px){
   .container{padding:12px; padding-bottom:max(20px, env(safe-area-inset-bottom, 20px));}
   .form-grid{grid-template-columns:1fr;}
   .detail-grid{grid-template-columns:1fr;}
-  .header-actions{display:none;}
-  .mobile-menu-btn{display:flex !important;}
   .mobile-drawer.open{display:block !important;}
   #customersModal .modal-body{flex-direction:column;overflow:auto;}
   #customersModal .customer-left{width:100% !important;min-height:30vh;}
@@ -358,46 +362,9 @@ th{position:relative;}
     <button class="btn btn-outline btn-sm" id="depFilterBtn" onclick="toggleDepFilter()" style="color:#7a85a8;">🔵 출발가능만</button>
   </div>
 
-  <!-- 상세검색 패널 -->
+  <!-- 상세검색 패널 (섹터별로 항목 다름: 주거용=가격/전용면적/지역, 상업용=가격/토지/건축/용도지역/지목/지역) -->
   <div id="advSearchPanel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;flex-shrink:0;">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;">
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최소 (만원)</label>
-        <input class="form-input" type="number" id="adv_priceMin" placeholder="예) 10000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최대 (만원)</label>
-        <input class="form-input" type="number" id="adv_priceMax" placeholder="예) 50000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최소 (평)</label>
-        <input class="form-input" type="number" id="adv_landMin" placeholder="예) 100" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최대 (평)</label>
-        <input class="form-input" type="number" id="adv_landMax" placeholder="예) 1000" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최소 (평)</label>
-        <input class="form-input" type="number" id="adv_areaMin" placeholder="예) 50" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최대 (평)</label>
-        <input class="form-input" type="number" id="adv_areaMax" placeholder="예) 500" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">용도지역</label>
-        <input class="form-input" type="text" id="adv_useZone" placeholder="예) 계획관리" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지목</label>
-        <input class="form-input" type="text" id="adv_jimok" placeholder="예) 대, 전, 답" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-      <div>
-        <label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지역 (주소 포함)</label>
-        <input class="form-input" type="text" id="adv_region" placeholder="예) 강화군, 서구" oninput="renderTable()" style="font-size:12px;padding:7px 10px;">
-      </div>
-    </div>
+    <div id="advSearchPanelInner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;"></div>
   </div>
   <div class="table-wrap">
     <table>
@@ -996,7 +963,9 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
     if(user) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
-      loadFieldSettings(function(){ updateSectorUI(); load(); loadCustomers(); });
+      updateSectorUI();
+      renderAdvSearchPanel();
+      loadFieldSettings(function(){ load(); loadCustomers(); });
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainScreen').style.display = 'none';
@@ -1094,6 +1063,7 @@ function switchSector(sector) {
   invalidateSuffixCache();
   invalidateColDefsCache();
   updateSectorUI();
+  renderAdvSearchPanel();
   if(document.getElementById('detailModal') && document.getElementById('detailModal').classList.contains('active')) _closeDetailModalImpl();
   if(document.getElementById('formModal') && document.getElementById('formModal').classList.contains('active')) closeFormModal();
   if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) closeCustomers();
@@ -1288,16 +1258,24 @@ function renderTable() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   var selectedTypes = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
   var selectedGeorae = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });
-  // 상세검색
-  var priceMin = parseFloat(document.getElementById('adv_priceMin').value) || null;
-  var priceMax = parseFloat(document.getElementById('adv_priceMax').value) || null;
-  var landMin  = parseFloat(document.getElementById('adv_landMin').value)  || null;
-  var landMax  = parseFloat(document.getElementById('adv_landMax').value)  || null;
-  var areaMin  = parseFloat(document.getElementById('adv_areaMin').value)  || null;
-  var areaMax  = parseFloat(document.getElementById('adv_areaMax').value)  || null;
-  var useZone  = document.getElementById('adv_useZone').value.trim().toLowerCase();
-  var jimok    = document.getElementById('adv_jimok').value.trim().toLowerCase();
-  var region   = document.getElementById('adv_region').value.trim().toLowerCase();
+  // 상세검색 (섹터별로 항목·필터 다름)
+  var getAdv = function(id){ var el = document.getElementById(id); return el ? el.value : ''; };
+  var priceMin = parseFloat(getAdv('adv_priceMin')) || null;
+  var priceMax = parseFloat(getAdv('adv_priceMax')) || null;
+  var landMin  = parseFloat(getAdv('adv_landMin'))  || null;
+  var landMax  = parseFloat(getAdv('adv_landMax'))  || null;
+  var areaMin  = parseFloat(getAdv('adv_areaMin'))  || null;
+  var areaMax  = parseFloat(getAdv('adv_areaMax'))  || null;
+  var useZone  = (getAdv('adv_useZone')||'').trim().toLowerCase();
+  var jimok    = (getAdv('adv_jimok')||'').trim().toLowerCase();
+  var region   = (getAdv('adv_region')||'').trim().toLowerCase();
+  var direction = (getAdv('adv_direction')||'').trim().toLowerCase();
+  var rooms    = (getAdv('adv_rooms')||'').trim().toLowerCase();
+  var bathrooms= (getAdv('adv_bathrooms')||'').trim().toLowerCase();
+  var floors   = (getAdv('adv_floors')||'').trim().toLowerCase();
+  var parking  = (getAdv('adv_parking')||'').trim().toLowerCase();
+  var elevator = (getAdv('adv_elevator')||'').trim().toLowerCase();
+  var option   = (getAdv('adv_option')||'').trim().toLowerCase();
 
   var list = properties.filter(function(p){
     if(selectedGeorae.length > 0 && selectedGeorae.indexOf(p.georae) === -1) return false;
@@ -1307,20 +1285,42 @@ function renderTable() {
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
     if(priceMin && price < priceMin) return false;
     if(priceMax && price > priceMax) return false;
-    // 토지면적
-    var land = parseFloat(p.landArea) || 0;
-    if(landMin && land < landMin) return false;
-    if(landMax && land > landMax) return false;
-    // 연면적
-    var area = parseFloat(p.totalArea) || 0;
-    if(areaMin && area < areaMin) return false;
-    if(areaMax && area > areaMax) return false;
-    // 용도지역
-    if(useZone && !(p.useZone||'').toLowerCase().includes(useZone)) return false;
-    // 지목
-    if(jimok && !(p.jimok||'').toLowerCase().includes(jimok)) return false;
-    // 지역
-    if(region && !(p.address||'').toLowerCase().includes(region)) return false;
+    if(currentSector === SECTOR_RESIDENTIAL) {
+      // 주거용: 전용면적, 방향, 방개수, 욕실수, 총층수, 주차, 엘리베이터, 옵션, 지역
+      var excl = parseFloat(p.exclusiveArea || p.rentArea || p.supplyArea || '') || 0;
+      if(areaMin && excl < areaMin) return false;
+      if(areaMax && excl > areaMax) return false;
+      if(region && !(p.address||'').toLowerCase().includes(region)) return false;
+      if(direction && !(p.direction||'').toLowerCase().includes(direction)) return false;
+      if(rooms && !(p.rooms||'').toLowerCase().includes(rooms)) return false;
+      if(bathrooms && !(p.bathrooms||'').toLowerCase().includes(bathrooms)) return false;
+      if(floors && !(p.floors||'').toLowerCase().includes(floors)) return false;
+      if(parking && !(p.parking||'').toLowerCase().includes(parking)) return false;
+      if(elevator && !(p.elevator||'').toLowerCase().includes(elevator)) return false;
+      if(option) {
+        var optMatch = false;
+        getPropTypesForSector(currentSector).forEach(function(t){
+          (customFields[t]||[]).forEach(function(cf){
+            var val = (p[cf.key]||'').toLowerCase();
+            if(val && val.includes(option)) optMatch = true;
+          });
+        });
+        if(!optMatch && (p.memo||'').toLowerCase().includes(option)) optMatch = true;
+        if(!optMatch && (p.note||'').toLowerCase().includes(option)) optMatch = true;
+        if(!optMatch) return false;
+      }
+    } else {
+      // 상업용: 토지면적, 건축/연면적, 용도지역, 지목, 지역
+      var land = parseFloat(p.landArea) || 0;
+      if(landMin && land < landMin) return false;
+      if(landMax && land > landMax) return false;
+      var area = parseFloat(p.totalArea) || 0;
+      if(areaMin && area < areaMin) return false;
+      if(areaMax && area > areaMax) return false;
+      if(useZone && !(p.useZone||'').toLowerCase().includes(useZone)) return false;
+      if(jimok && !(p.jimok||'').toLowerCase().includes(jimok)) return false;
+      if(region && !(p.address||'').toLowerCase().includes(region)) return false;
+    }
     // 출발가능만 보기
     if(window._depFilterOn && p.departure === false) return false;
     return true;
@@ -1527,6 +1527,7 @@ function refreshApp() {
     updateFilterGeoraeButtonText();
     document.getElementById('filterTypePopup').style.display = 'none';
     document.getElementById('filterGeoraePopup').style.display = 'none';
+    renderAdvSearchPanel();
     renderTable();
     window.scrollTo(0, 0);
   }
@@ -1565,6 +1566,39 @@ function copyAddress(addr, e) {
   });
 }
 
+function renderAdvSearchPanel() {
+  var inner = document.getElementById('advSearchPanelInner');
+  if(!inner) return;
+  var isRes = (currentSector === SECTOR_RESIDENTIAL);
+  var common = ' oninput="renderTable()" style="font-size:12px;padding:7px 10px;"';
+  if(isRes) {
+    inner.innerHTML =
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최소 (만원)</label><input class="form-input" type="number" id="adv_priceMin" placeholder="예) 5000"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최대 (만원)</label><input class="form-input" type="number" id="adv_priceMax" placeholder="예) 30000"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">전용면적 최소 (평)</label><input class="form-input" type="number" id="adv_areaMin" placeholder="예) 5"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">전용면적 최대 (평)</label><input class="form-input" type="number" id="adv_areaMax" placeholder="예) 50"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">방향</label><input class="form-input" type="text" id="adv_direction" placeholder="예) 남향, 동향"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">방개수</label><input class="form-input" type="text" id="adv_rooms" placeholder="예) 2개, 3개"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">욕실수</label><input class="form-input" type="text" id="adv_bathrooms" placeholder="예) 1개, 2개"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">총층수</label><input class="form-input" type="text" id="adv_floors" placeholder="예) 1층, 2층"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">주차가능여부</label><input class="form-input" type="text" id="adv_parking" placeholder="예) 1대, 불가"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">엘리베이터</label><input class="form-input" type="text" id="adv_elevator" placeholder="예) 있음, 없음"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">옵션</label><input class="form-input" type="text" id="adv_option" placeholder="예) 에어컨, 냉장고"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지역 (주소 포함)</label><input class="form-input" type="text" id="adv_region" placeholder="예) 강화군, 서구"' + common + '></div>';
+  } else {
+    inner.innerHTML =
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최소 (만원)</label><input class="form-input" type="number" id="adv_priceMin" placeholder="예) 10000"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">가격 최대 (만원)</label><input class="form-input" type="number" id="adv_priceMax" placeholder="예) 50000"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최소 (평)</label><input class="form-input" type="number" id="adv_landMin" placeholder="예) 100"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">토지면적 최대 (평)</label><input class="form-input" type="number" id="adv_landMax" placeholder="예) 1000"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최소 (평)</label><input class="form-input" type="number" id="adv_areaMin" placeholder="예) 50"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">건축면적 최대 (평)</label><input class="form-input" type="number" id="adv_areaMax" placeholder="예) 500"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">용도지역</label><input class="form-input" type="text" id="adv_useZone" placeholder="예) 계획관리"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지목</label><input class="form-input" type="text" id="adv_jimok" placeholder="예) 대, 전, 답"' + common + '></div>' +
+      '<div><label style="font-size:11px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px;">지역 (주소 포함)</label><input class="form-input" type="text" id="adv_region" placeholder="예) 강화군, 서구"' + common + '></div>';
+  }
+}
+
 function toggleAdvSearch() {
   var panel = document.getElementById('advSearchPanel');
   var btn = document.getElementById('advSearchBtn');
@@ -1581,9 +1615,8 @@ function resetFilters(){
   updateFilterGeoraeButtonText();
   document.getElementById('filterTypePopup').style.display = 'none';
   document.getElementById('filterGeoraePopup').style.display = 'none';
-  ['adv_priceMin','adv_priceMax','adv_landMin','adv_landMax','adv_areaMin','adv_areaMax','adv_useZone','adv_jimok','adv_region'].forEach(function(id){
-    document.getElementById(id).value='';
-  });
+  var panel = document.getElementById('advSearchPanelInner');
+  if(panel) panel.querySelectorAll('input').forEach(function(inp){ inp.value = ''; });
   // 출발가능 필터 초기화
   window._depFilterOn = false;
   var btn = document.getElementById('depFilterBtn');
@@ -1650,8 +1683,9 @@ document.addEventListener('keydown',function(e){
 });
 
 // 매물종류에 따라 폼 항목 표시/숨김 + 라벨명 업데이트
+// 주거용: 아파트 선택 시 항목설정의 아파트, 빌라 선택 시 빌라, 원룸→원룸, 1.5룸→1.5룸, 투룸→투룸, 오피스텔→오피스텔 설정 적용. 상업용도 동일하게 타입별 적용.
 function updateFormFieldVisibility(type) {
-  // 매물종류 미선택 시: 항목설정 대상 항목 전부 숨김
+  // 매물종류 미선택 시: 항목설정 대상 항목 전부 숨김 (타입 선택 후 해당 타입 기준 표시)
   if(!type) {
     document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
       el.style.display = 'none';
@@ -1661,7 +1695,7 @@ function updateFormFieldVisibility(type) {
     return;
   }
 
-  // 기본 항목 표시/숨김 + 라벨/단위 항목설정 반영
+  // 기본 항목 표시/숨김 + 라벨/단위 항목설정 반영 (선택한 타입·현재 섹터 기준)
   var defLabels = {};
   DEFAULT_FIELDS.forEach(function(f){ defLabels[f.key] = f.label; });
   document.querySelectorAll('#formModal [data-field-key]').forEach(function(el) {
@@ -1689,12 +1723,12 @@ function updateFormFieldVisibility(type) {
   }
 }
 
-// ── 커스텀 항목 폼 렌더링 ────────────────
+// ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용: 아파트→아파트, 빌라→빌라, 원룸→원룸 등) ───
 function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
 
-  // 커스텀 항목 렌더링 (커스텀 항목만 동적으로 innerHTML 갱신)
+  // 커스텀 항목: 선택한 매물종류(type)의 항목설정 사용 (타입 미선택 시 빈 목록)
   var customs = customFields[type] || [];
   var html = '';
   customs.forEach(function(cf) {
@@ -1735,10 +1769,8 @@ function openAddModal(){
   fillFormTypeOptions();
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
   renderCustomFieldsInForm('', null);
-  // 매물종류 미선택 상태: 항목설정 대상 항목 전부 숨김
-  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
-    el.style.display = 'none';
-  });
+  // 매물종류 미선택: 항목설정 대상 항목 전부 숨김 (타입 선택 시 updateFormFieldVisibility에서 표시)
+  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){ el.style.display = 'none'; });
   document.querySelector('#formModal [data-price-grid]') && (document.querySelector('#formModal [data-price-grid]').style.display = 'none');
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
@@ -2315,6 +2347,7 @@ function executePrint(mode) {
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
     return;
   }
 
@@ -2340,25 +2373,33 @@ function executePrint(mode) {
       '</style></head><body>'+
       '<div id="saveGuide">'+
         '<span>📄 파일명: <b>'+fileName+'.pdf</b> &nbsp;|&nbsp; 인쇄 대화상자에서 <b>PDF로 저장</b> 선택</span>'+
-        '<button onclick="window.print()" style="background:#3a7ef6;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;font-weight:600;margin-left:12px;">PDF 저장</button>'+
+        '<button onclick="window.focus();window.print()" style="background:#3a7ef6;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;font-weight:600;margin-left:12px;">PDF 저장</button>'+
       '</div>'+
       headerHtml+div.innerHTML+
-      '<script>window.onload=function(){window.print();}<\/script>'+
+      '<script>window.onload=function(){window.focus();setTimeout(function(){window.print();},80);}<\/script>'+
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
   } else {
-    // 인쇄
+    // 인쇄 (PDF로 저장 시 기본 파일명 = 매물종류_거래유형_주소)
+    var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
+    var pType   = curProp ? (curProp.type||'') : '';
+    var pGeorae = curProp ? (curProp.georae||'') : '';
+    var pAddr   = curProp ? (curProp.address||'') : '';
+    var printFileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'') || '매물';
     var win = window.open('','_blank','width=800,height=900');
     win.document.write(
       '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<title>'+printFileName+'</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
       '<style>'+css+'</style></head><body>'+
       headerHtml+div.innerHTML+
-      '<script>window.onload=function(){window.print();window.close();}<\/script>'+
+      '<script>window.onload=function(){window.focus();setTimeout(function(){window.print();window.close();},80);}<\/script>'+
       '</body></html>'
     );
     win.document.close();
+    try { win.focus(); } catch(e) {}
   }
 }
 
@@ -3296,12 +3337,20 @@ function getOrderedFields(type) {
   return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
 }
 
+// 주거용 타입(아파트, 빌라 등)에서 설정 미지정 시 기본 표시할 항목만 (상업용 전용 항목 제외)
+var RESIDENTIAL_DEFAULT_VISIBLE_KEYS = ['price','pricePerPyeong','officialBuildingPrice','officialLandPrice','maintenance','premium','supplyArea','exclusiveArea','direction','toilet','parking','elevator','floors','rooms','bathrooms','approvalDate','regOwnerName','ownerName','ownerPhone','createdDate','updatedDate'];
 function isFieldVisible(type, key) {
   if(!type) return true; // 매물종류 미선택 시 전체 표시
-  if(!fieldSettings[type]) return true; // 해당 타입 설정 없으면 전체 표시
-  var val = fieldSettings[type][key];
+  var order = fieldOrder[type];
+  var settings = fieldSettings[type];
+  if(!order || !settings) return true; // 해당 타입 설정 없으면 전체 표시 (폐쇄 전)
+  // 항목설정에 없는 항목은 표시 안 함 (해당 타입 fieldOrder에 없으면 숨김)
+  if(order.indexOf(key) === -1) return false;
+  var val = settings[key];
   if(val === undefined) {
-    // fieldSettings에 없는 키 → DEFAULT_FIELDS에 있으면 ON, 없으면(커스텀) OFF
+    // 설정 미지정: 주거용 타입이면 주거용 기본 항목만 표시(토지/지목/용도지역 등 상업용 항목 제외), 상업용은 기존대로
+    if(RESIDENTIAL_TYPES.indexOf(type) !== -1)
+      return RESIDENTIAL_DEFAULT_VISIBLE_KEYS.indexOf(key) !== -1;
     var inDefault = DEFAULT_FIELDS.some(function(f){ return f.key === key; });
     return inDefault;
   }
@@ -3974,6 +4023,21 @@ function applyFilterGeorae() {
 }
 document.addEventListener('click', function(e) {
   if(!e.target || !isInsidePopupOrTrigger(e.target)) closeAllFilterPopups();
+  // 매물리스트 영역(테이블) 클릭 시 포커스 제거 → 리스트 오른쪽 등에서 커서 깜빡임 방지
+  var tableBody = document.getElementById('tableBody');
+  var inListArea = tableBody && (e.target === tableBody || tableBody.contains(e.target) || (e.target.closest && e.target.closest('.table-wrap') && e.target.closest('.table-wrap').contains(tableBody)));
+  if(inListArea && document.activeElement) {
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { ae.blur(); return; }
+  }
+  // 그 외: 클릭한 요소가 입력/버튼이 아닐 때 포커스 제거
+  var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+  var isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable);
+  var isButtonOrLink = tag === 'BUTTON' || tag === 'A';
+  if(!isEditable && !isButtonOrLink && document.activeElement) {
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+  }
 });
 
 function renderListColumnPanel() {} // 설정패널 탭 제거 - 더 이상 사용 안 함

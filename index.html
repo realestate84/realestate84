@@ -2204,6 +2204,7 @@ function executePrint(mode) {
   var photoCols = photoCount<=1?1:photoCount<=4?2:photoCount<=9?3:photoCount<=16?4:5;
 
   var css =
+    ':root{--accent:#3a7ef6;--text:#1a1f36;--text-muted:#7a85a8;--border:#dde2f0;--bg:#f4f6fb;--surface:#fff;}'+
     'body{font-family:"Noto Sans KR",sans-serif;padding:20px;color:#1a1f36;font-size:12px;}'+
     '.print-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a1f36;padding-bottom:8px;margin-bottom:16px;}'+
     '.print-header .company{font-size:16px;font-weight:700;}'+
@@ -2214,7 +2215,9 @@ function executePrint(mode) {
     '.detail-item{padding:3px 0;}'+
     '.detail-item.full{grid-column:1/-1;}'+
     '.detail-item label{font-size:10px;color:#7a85a8;display:block;margin-bottom:1px;}'+
-    '.val{font-size:12px;color:#1a1f36;}'+
+    '.detail-item .val,.val{font-size:12px;color:#1a1f36 !important;}'+
+    '.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:6px;}'+
+    '[style*="var(--accent)"]{color:#3a7ef6 !important;}'+
     '.copy-badge{display:none !important;}'+
     'a{color:#3a7ef6;}'+
     '[style*="white-space:pre-wrap"]{white-space:pre-wrap;font-family:"Noto Sans KR",sans-serif;font-size:12px;line-height:1.6;}'+

@@ -3974,6 +3974,21 @@ function applyFilterGeorae() {
 }
 document.addEventListener('click', function(e) {
   if(!e.target || !isInsidePopupOrTrigger(e.target)) closeAllFilterPopups();
+  // 매물리스트 영역(테이블) 클릭 시 포커스 제거 → 리스트 오른쪽 등에서 커서 깜빡임 방지
+  var tableBody = document.getElementById('tableBody');
+  var inListArea = tableBody && (e.target === tableBody || tableBody.contains(e.target) || (e.target.closest && e.target.closest('.table-wrap') && e.target.closest('.table-wrap').contains(tableBody)));
+  if(inListArea && document.activeElement) {
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) { ae.blur(); return; }
+  }
+  // 그 외: 클릭한 요소가 입력/버튼이 아닐 때 포커스 제거
+  var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+  var isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable);
+  var isButtonOrLink = tag === 'BUTTON' || tag === 'A';
+  if(!isEditable && !isButtonOrLink && document.activeElement) {
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur();
+  }
 });
 
 function renderListColumnPanel() {} // 설정패널 탭 제거 - 더 이상 사용 안 함

@@ -199,6 +199,9 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 .mobile-drawer button{width:100%;text-align:left;margin-bottom:4px;border-radius:8px;padding:10px 14px;font-size:13px;}
 .mobile-overlay{display:none;position:fixed;inset:0;z-index:140;}
 .mobile-overlay.open{display:block;}
+/* 매물 리스트 스크롤 유지 (모바일·PC버전 포함, flex 자식이 줄어들 수 있도록) */
+.container{min-height:0;overflow:hidden;}
+.table-wrap{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;}
 /* 컬럼 리사이즈 */
 th{position:relative;}
 .col-resizer{position:absolute;right:0;top:0;height:100%;width:6px;cursor:col-resize;user-select:none;z-index:1;}

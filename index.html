@@ -3148,7 +3148,7 @@ function loadFieldSettings(callback) {
       });
       saveFieldSettings();
     }
-    // 누락되거나 항목이 부족한 타입은 같은 섹터 내에서만 동기화 (주거용↔주거용, 상업용↔상업용)
+    // 같은 섹터 내에서, 아예 설정이 비어 있는 타입만 참조 타입 기준으로 채움 (삭제한 항목 복원 방지)
     [RESIDENTIAL_TYPES, COMMERCIAL_TYPES].forEach(function(sectorTypes) {
       var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length > 0; });
       if(!refType) return;
@@ -3157,7 +3157,7 @@ function loadFieldSettings(callback) {
       sectorTypes.forEach(function(t) {
         if(t === refType) return;
         var curOrder = fieldOrder[t] || [];
-        if(curOrder.length < refOrder.length) {
+        if(curOrder.length === 0 && refOrder.length > 0) {
           fieldOrder[t] = refOrder.slice();
           if(!customFields[t]) customFields[t] = [];
           refCustoms.forEach(function(cf){
@@ -3171,36 +3171,14 @@ function loadFieldSettings(callback) {
         }
       });
     });
-    // fieldSections 누락 키 채우기 (섹터별)
+    // fieldSections 누락 키 채우기 (섹터별) - 이미 order에 있는 키만
     ['residential','commercial'].forEach(function(sec){
       if(!fieldSections[sec]) fieldSections[sec] = {};
       DEFAULT_FIELDS.forEach(function(f){
         if(!fieldSections[sec][f.key]) fieldSections[sec][f.key] = f.section;
       });
     });
-    // DEFAULT_FIELDS에 새로 추가된 키가 fieldOrder에 없으면 끝에 추가
-    var defaultKeys = DEFAULT_FIELDS.map(function(f){ return f.key; });
-    var needsSave = false;
-    PROP_TYPES.forEach(function(t){
-      if(!fieldOrder[t]) fieldOrder[t] = [];
-      var orderSet = {};
-      fieldOrder[t].forEach(function(k){ orderSet[k] = true; });
-      defaultKeys.forEach(function(key){
-        if(!orderSet[key]) {
-          fieldOrder[t].push(key);
-          orderSet[key] = true;
-          if(!fieldSettings[t]) fieldSettings[t] = {};
-          // 등록일시·최종수정은 기본 ON, 그 외 신규 키는 OFF
-          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = (key === 'createdDate' || key === 'updatedDate') ? true : false;
-          var defSection = (DEFAULT_FIELDS.find(function(f){ return f.key===key; })||{}).section;
-          if(defSection) {
-            if(!fieldSections.residential[key]) fieldSections.residential[key] = defSection;
-            if(!fieldSections.commercial[key]) fieldSections.commercial[key] = defSection;
-          }
-          needsSave = true;
-        }
-      });
-    });
+    // 사용자가 삭제한 항목을 다시 넣지 않음 (DEFAULT_FIELDS 자동 추가 제거)
     // '총토지면적삭제' 항목 제거 (커스텀 항목으로 등록된 경우)
     var keysToRemove = {};
     PROP_TYPES.forEach(function(t){

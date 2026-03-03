@@ -1484,6 +1484,13 @@ function linkifyMemo(text) {
   return escaped;
 }
 
+function getDisplayAddress(p) {
+  if(!p) return '';
+  var a = (p.address != null && p.address !== '') ? String(p.address).trim() : '';
+  var d = (p.addressDetail != null && p.addressDetail !== '') ? String(p.addressDetail).trim() : '';
+  if(!a && !d) return '';
+  return d ? a + ' ' + d : a;
+}
 function copyAddress(addr, e) {
   navigator.clipboard.writeText(addr).then(function() {
     if(e && e.currentTarget) {
@@ -2225,7 +2232,7 @@ function executePrint(mode) {
       var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
       var pType   = curProp ? (curProp.type||'') : '';
       var pGeorae = curProp ? (curProp.georae||'') : '';
-      var pAddr   = curProp ? (getDisplayAddress(curProp)||'') : '';
+      var pAddr   = curProp ? (typeof getDisplayAddress === 'function' ? getDisplayAddress(curProp) : (curProp.address||'')) : '';
       var fileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'').slice(0, 80);
       div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
       div.querySelectorAll('.detail-section').forEach(function(section){

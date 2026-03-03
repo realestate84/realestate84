@@ -2005,6 +2005,11 @@ function openDetail(id){
   document.getElementById('detailModal').classList.add('active');
   document.getElementById('detailBody').scrollTop = 0;
   renderHistoryList(id, p.history || []);
+  // 모바일 뒤로가기 시 앱 종료 대신 모달만 닫기
+  if (window.history && window.history.pushState) {
+    window._detailModalStatePushed = true;
+    window.history.pushState({ detailModal: true, detailId: id }, '', window.location.pathname + window.location.search || window.location.href);
+  }
 
   if(p.address){
     if(window._mapInitTimer) clearTimeout(window._mapInitTimer);
@@ -2277,6 +2282,14 @@ function executePrint(mode) {
 }
 
 function closeDetailModal(){ 
+  if (window._detailModalStatePushed) {
+    window._detailModalStatePushed = false;
+    if (window.history && window.history.back) window.history.back();
+    return;
+  }
+  _closeDetailModalImpl();
+}
+function _closeDetailModalImpl() {
   document.getElementById('detailModal').classList.remove('active'); 
   closeLightbox();
   window._dp=[];
@@ -2809,6 +2822,13 @@ function openDetailOverMap(id) {
 
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
 document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) forceCloseSettings(); });
+window.addEventListener('popstate', function(e) {
+  var dm = document.getElementById('detailModal');
+  if (dm && dm.classList.contains('active')) {
+    window._detailModalStatePushed = false;
+    _closeDetailModalImpl();
+  }
+});
 
 // ── textarea 높이 기억 ────────────────────
 function saveMemoHeight(){

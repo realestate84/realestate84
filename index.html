@@ -1682,9 +1682,9 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape') closeLightbox();
 });
 
-// 매물종류에 따라 폼 항목 표시/숨김 + 라벨명 업데이트
+// 매물종류에 따라 폼 항목 표시/숨김 + 라벨명 업데이트 (현재 섹터 항목설정 기준)
 function updateFormFieldVisibility(type) {
-  // 매물종류 미선택 시: 항목설정 대상 항목 전부 숨김
+  // 매물종류 미선택 시: 항목설정 대상 항목 전부 숨김 (타입 선택 후 해당 타입 기준 표시)
   if(!type) {
     document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
       el.style.display = 'none';
@@ -1694,7 +1694,7 @@ function updateFormFieldVisibility(type) {
     return;
   }
 
-  // 기본 항목 표시/숨김 + 라벨/단위 항목설정 반영
+  // 기본 항목 표시/숨김 + 라벨/단위 항목설정 반영 (선택한 타입·현재 섹터 기준)
   var defLabels = {};
   DEFAULT_FIELDS.forEach(function(f){ defLabels[f.key] = f.label; });
   document.querySelectorAll('#formModal [data-field-key]').forEach(function(el) {
@@ -1727,7 +1727,7 @@ function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
 
-  // 커스텀 항목 렌더링 (커스텀 항목만 동적으로 innerHTML 갱신)
+  // 커스텀 항목: 선택한 매물종류(type) 기준 (타입 미선택 시 빈 목록)
   var customs = customFields[type] || [];
   var html = '';
   customs.forEach(function(cf) {
@@ -1768,10 +1768,8 @@ function openAddModal(){
   fillFormTypeOptions();
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
   renderCustomFieldsInForm('', null);
-  // 매물종류 미선택 상태: 항목설정 대상 항목 전부 숨김
-  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){
-    el.style.display = 'none';
-  });
+  // 매물종류 미선택: 항목설정 대상 항목 전부 숨김 (타입 선택 시 updateFormFieldVisibility에서 표시)
+  document.querySelectorAll('#formModal [data-field-key]').forEach(function(el){ el.style.display = 'none'; });
   document.querySelector('#formModal [data-price-grid]') && (document.querySelector('#formModal [data-price-grid]').style.display = 'none');
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';

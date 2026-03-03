@@ -276,6 +276,10 @@ th{position:relative;}
 
 <header>
   <div class="logo" onclick="refreshApp()" style="cursor:pointer">새롬부동산 매물관리시스템</div>
+  <div id="sectorToggleWrap" style="display:flex;align-items:center;gap:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:2px;">
+    <button type="button" id="sectorBtnCommercial" class="btn btn-sm sector-btn" onclick="switchSector('commercial')" style="border-radius:6px;font-size:12px;">상업용</button>
+    <button type="button" id="sectorBtnResidential" class="btn btn-outline btn-sm sector-btn" onclick="switchSector('residential')" style="border-radius:6px;font-size:12px;">주거용</button>
+  </div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="openCustomers()">👥 고객문의</button>
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
@@ -296,6 +300,10 @@ th{position:relative;}
 <!-- 모바일 드로어 -->
 <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 <div class="mobile-drawer" id="mobileDrawer">
+  <div style="display:flex;gap:4px;margin-bottom:10px;">
+    <button type="button" id="sectorBtnCommercialM" class="btn btn-sm" onclick="switchSector('commercial');closeMobileMenu()" style="flex:1;font-size:12px;">상업용</button>
+    <button type="button" id="sectorBtnResidentialM" class="btn btn-outline btn-sm" onclick="switchSector('residential');closeMobileMenu()" style="flex:1;font-size:12px;">주거용</button>
+  </div>
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
@@ -416,10 +424,7 @@ th{position:relative;}
       <div class="form-grid" id="formFieldsContainer">
         <div class="form-group">
           <label>매물종류 *</label>
-          <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)">            <option value="">선택</option>
-            <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-            <option>아파트</option><option>빌라</option><option>원룸</option><option>1.5룸</option><option>투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
-          </select>
+          <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)"><option value="">선택</option></select>
         </div>
         <div class="form-group">
           <label>거래유형 *</label>
@@ -749,7 +754,7 @@ th{position:relative;}
 <div class="modal-overlay" id="customersModal" onclick="if(event.target===this)closeCustomers()">
   <div class="modal" style="max-width:1150px;height:92vh;">
     <div class="modal-header">
-      <div class="modal-title">👥 고객문의</div>
+      <div class="modal-title" id="customersModalTitle">👥 고객문의</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-primary btn-sm" onclick="openCustomerForm()">＋ 문의등록</button>
         <button class="modal-close" onclick="closeCustomers()">×</button>
@@ -833,10 +838,18 @@ var editingId = null;
 var currentPhotos = [];
 var lightboxPhotos = [];
 var lightboxIndex = 0;
-var COLLECTION = 'properties';
-var CUSTOMER_COLLECTION = 'customers';
 var SETTINGS_DOC = 'fieldSettings';
 var STORAGE_KEY_COLUMNS = 'mh_listColumnSettings';
+var STORAGE_KEY_SECTOR = 'mh_sector';
+var SECTOR_RESIDENTIAL = 'residential';
+var SECTOR_COMMERCIAL = 'commercial';
+var RESIDENTIAL_TYPES = ['아파트','빌라','원룸','1.5룸','투룸','오피스텔'];
+var COMMERCIAL_TYPES = ['토지','공장창고','상가/사무실','절대농지','펜션','건물','단독주택'];
+function getPropertiesCollection() { return currentSector === SECTOR_COMMERCIAL ? 'properties_commercial' : 'properties_residential'; }
+function getCustomersCollection() { return currentSector === SECTOR_COMMERCIAL ? 'customers_commercial' : 'customers_residential'; }
+function getPropTypesForSector(sector) { return (sector === SECTOR_COMMERCIAL ? COMMERCIAL_TYPES : RESIDENTIAL_TYPES).slice(); }
+var currentSector = (function(){ try { var s = localStorage.getItem(STORAGE_KEY_SECTOR); return (s === SECTOR_RESIDENTIAL ? SECTOR_RESIDENTIAL : SECTOR_COMMERCIAL); } catch(e){ return SECTOR_COMMERCIAL; } })();
+var _propertiesUnsub = null;
 var _customersUnsub = null;
 var _currentCustomerId = null;
 
@@ -982,7 +995,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
     if(user) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display = 'block';
-      loadFieldSettings(function(){ load(); loadCustomers(); });
+      loadFieldSettings(function(){ updateSectorUI(); load(); loadCustomers(); });
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainScreen').style.display = 'none';
@@ -1027,9 +1040,9 @@ function doResetPw() {
 
 // ── Firebase CRUD ─────────────────────────
 function load() {
+  try { if(_propertiesUnsub) _propertiesUnsub(); } catch(e){}
   showLoading();
-  // 실시간 리스너 - 다른 기기에서 변경시 자동 반영
-  db.collection(COLLECTION).orderBy('createdDate','desc').onSnapshot(function(snap) {
+  _propertiesUnsub = db.collection(getPropertiesCollection()).orderBy('createdDate','desc').onSnapshot(function(snap) {
     properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     renderTable();
   }, function(e){
@@ -1041,7 +1054,7 @@ function load() {
 
 function loadCustomers() {
   try { if(_customersUnsub) _customersUnsub(); } catch(e){}
-  _customersUnsub = db.collection(CUSTOMER_COLLECTION).onSnapshot(function(snap) {
+  _customersUnsub = db.collection(getCustomersCollection()).onSnapshot(function(snap) {
     customers = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     customers.sort(function(a,b){
       var am = (a.updatedAtMs||a.createdAtMs||0);
@@ -1061,27 +1074,55 @@ function loadCustomers() {
   });
 }
 
+function updateSectorUI() {
+  var isRes = (currentSector === SECTOR_RESIDENTIAL);
+  var r = document.getElementById('sectorBtnResidential');
+  var c = document.getElementById('sectorBtnCommercial');
+  var rM = document.getElementById('sectorBtnResidentialM');
+  var cM = document.getElementById('sectorBtnCommercialM');
+  if(r) { r.className = 'btn btn-sm sector-btn' + (isRes ? ' btn-primary' : ' btn-outline'); r.style.borderRadius = '6px'; r.style.fontSize = '12px'; }
+  if(c) { c.className = 'btn btn-sm sector-btn' + (isRes ? ' btn-outline' : ' btn-primary'); c.style.borderRadius = '6px'; c.style.fontSize = '12px'; }
+  if(rM) { rM.className = 'btn btn-sm' + (isRes ? ' btn-primary' : ' btn-outline'); rM.style.flex = '1'; rM.style.fontSize = '12px'; }
+  if(cM) { cM.className = 'btn btn-sm' + (isRes ? ' btn-outline' : ' btn-primary'); cM.style.flex = '1'; cM.style.fontSize = '12px'; }
+}
+
+function switchSector(sector) {
+  if(sector !== SECTOR_RESIDENTIAL && sector !== SECTOR_COMMERCIAL) return;
+  currentSector = sector;
+  try { localStorage.setItem(STORAGE_KEY_SECTOR, sector); } catch(e){}
+  updateSectorUI();
+  if(document.getElementById('detailModal') && document.getElementById('detailModal').classList.contains('active')) _closeDetailModalImpl();
+  if(document.getElementById('formModal') && document.getElementById('formModal').classList.contains('active')) closeFormModal();
+  if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) closeCustomers();
+  filterTypeChecked = {};
+  filterGeoraeChecked = {};
+  updateFilterTypeButtonText();
+  updateFilterGeoraeButtonText();
+  load();
+  loadCustomers();
+}
+
 function saveNew(data, callback) {
   var maxNo = properties.length > 0 ? Math.max.apply(null, properties.map(function(p){return p.propNo||0;})) : 0;
   if (!data.propNo) data.propNo = maxNo + 1;
-  db.collection(COLLECTION).add(data)
+  db.collection(getPropertiesCollection()).add(data)
     .then(function(ref){ callback(null, ref.id); })
     .catch(function(e){ callback(e); });
 }
 
 function saveEdit(id, data, callback) {
-  db.collection(COLLECTION).doc(id).update(data)
+  db.collection(getPropertiesCollection()).doc(id).update(data)
     .then(function(){ callback(null); })
     .catch(function(e){ callback(e); });
 }
 
 function deleteFromDB(id, photos, callback) {
   var deletePhotos = function() {
-    if (!photos || photos.length === 0) return db.collection(COLLECTION).doc(id).delete();
+    if (!photos || photos.length === 0) return db.collection(getPropertiesCollection()).doc(id).delete();
     var deletes = photos.filter(function(u){return u && u.startsWith('https://');}).map(function(url){
       try { return storage.refFromURL(url).delete(); } catch(e){ return Promise.resolve(); }
     });
-    return Promise.all(deletes).then(function(){ return db.collection(COLLECTION).doc(id).delete(); });
+    return Promise.all(deletes).then(function(){ return db.collection(getPropertiesCollection()).doc(id).delete(); });
   };
   deletePhotos().then(function(){ callback(null); }).catch(function(e){ callback(e); });
 }
@@ -1450,7 +1491,7 @@ function uploadDetailPhotos(e, propId) {
 
   Promise.all(uploads).then(function(urls) {
     var newPhotos = existingPhotos.concat(urls);
-    return db.collection(COLLECTION).doc(propId).update({ photos: newPhotos }).then(function() {
+    return db.collection(getPropertiesCollection()).doc(propId).update({ photos: newPhotos }).then(function() {
       if(p) p.photos = newPhotos;
       openDetail(propId);
     });
@@ -1679,9 +1720,16 @@ function collectCustomFieldValues(type) {
 }
 
 // ── 폼 모달 ──────────────────────────────
+function fillFormTypeOptions() {
+  var sel = document.getElementById('f_type');
+  if(!sel) return;
+  var types = getPropTypesForSector(currentSector);
+  sel.innerHTML = '<option value="">선택</option>' + types.map(function(t){ return '<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+'</option>'; }).join('');
+}
 function openAddModal(){
   editingId=null; currentPhotos=[];
   document.getElementById('formModalTitle').textContent='매물 등록';
+  fillFormTypeOptions();
   clearForm(); renderPhotoPreview(); restoreMemoHeight();
   renderCustomFieldsInForm('', null);
   // 매물종류 미선택 상태: 항목설정 대상 항목 전부 숨김
@@ -1698,6 +1746,7 @@ function openEditModal(id){
   if(!p) return;
   editingId=id;
   document.getElementById('formModalTitle').textContent='매물 수정';
+  fillFormTypeOptions();
   document.getElementById('f_georae').value=p.georae||'';
   document.getElementById('f_type').value=p.type||'';
   document.getElementById('f_address').value=p.address||'';
@@ -2368,7 +2417,7 @@ function deleteOnePhoto(id, index) {
   var doDelete = function() {
     var newPhotos = p.photos.slice();
     newPhotos.splice(index, 1);
-    db.collection(COLLECTION).doc(id).update({ photos: newPhotos }).then(function() {
+    db.collection(getPropertiesCollection()).doc(id).update({ photos: newPhotos }).then(function() {
       p.photos = newPhotos;
       openDetail(id);
     });
@@ -2386,7 +2435,7 @@ function deleteAllPhotos(id) {
     catch(e) { return Promise.resolve(); }
   });
   Promise.all(deletes).then(function() {
-    return db.collection(COLLECTION).doc(id).update({ photos: [] });
+    return db.collection(getPropertiesCollection()).doc(id).update({ photos: [] });
   }).then(function() {
     p.photos = [];
     openDetail(id);
@@ -2456,7 +2505,7 @@ function uploadDoc(e, propId, docName) {
   }).then(function(url) {
     var update = {};
     update['docs.' + docName] = url;
-    return db.collection(COLLECTION).doc(propId).update(update).then(function() {
+    return db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
       var p = properties.find(function(x){ return x.id === propId; });
       if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
       if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
@@ -2487,7 +2536,7 @@ function saveNotionLink(propId) {
   if(!input) return;
   var url = input.value.trim();
   if(url && !url.startsWith('http')) { showToast('❌ 올바른 URL을 입력해주세요.'); return; }
-  db.collection(COLLECTION).doc(propId).update({ notionLink: url }).then(function(){
+  db.collection(getPropertiesCollection()).doc(propId).update({ notionLink: url }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = url;
     showToast('✅ 노션 링크가 저장됐어요!');
@@ -2497,7 +2546,7 @@ function saveNotionLink(propId) {
 
 function removeNotionLink(propId) {
   if(!confirm('노션 링크를 삭제하시겠습니까?')) return;
-  db.collection(COLLECTION).doc(propId).update({ notionLink: '' }).then(function(){
+  db.collection(getPropertiesCollection()).doc(propId).update({ notionLink: '' }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = '';
     openDetail(propId);
@@ -2512,7 +2561,7 @@ function deleteDoc(propId, docName) {
   var doDelete = function() {
     var update = {};
     update['docs.' + docName] = firebase.firestore.FieldValue.delete();
-    db.collection(COLLECTION).doc(propId).update(update).then(function() {
+    db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
       if(p && p.docs) delete p.docs[docName];
       if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
       else openDetail(propId);
@@ -2584,9 +2633,9 @@ function copyProperty(id) {
     createdDate:dateStr, createdTime:timeStr,
     updatedDate:dateStr, updatedTime:timeStr,
   };
-  db.collection(COLLECTION).add(newData).then(function(ref) {
+  db.collection(getPropertiesCollection()).add(newData).then(function(ref) {
     var maxNo = properties.reduce(function(m,x){ return Math.max(m, parseInt(x.propNo)||0); }, 0);
-    return db.collection(COLLECTION).doc(ref.id).update({ propNo: String(maxNo+1) });
+    return db.collection(getPropertiesCollection()).doc(ref.id).update({ propNo: String(maxNo+1) });
   }).then(function() {
     closeDetailModal();
     showToast('✅ 매물이 복사됐어요!');
@@ -2655,7 +2704,7 @@ function saveHistoryEdit(id, index) {
   if(!p) return;
   var history = p.history ? p.history.slice() : [];
   history[index].text = newText;
-  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
     p.history = history;
     renderHistoryList(id, history);
   });
@@ -2672,7 +2721,7 @@ function addHistory(id) {
   var newEntry = { date: dateStr, text: text };
   var history = p.history ? p.history.slice() : [];
   history.push(newEntry);
-  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
     p.history = history;
     input.value = '';
     renderHistoryList(id, history);
@@ -2685,7 +2734,7 @@ function deleteHistory(id, index) {
   if(!p) return;
   var history = p.history ? p.history.slice() : [];
   history.splice(index, 1);
-  db.collection(COLLECTION).doc(id).update({ history: history }).then(function() {
+  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
     p.history = history;
     renderHistoryList(id, history);
   });
@@ -2695,7 +2744,7 @@ function toggleDeparture(id) {
   var p = properties.find(function(x){ return x.id===id; });
   if(!p) return;
   var newVal = (p.departure === false) ? true : false;
-  db.collection(COLLECTION).doc(id).update({ departure: newVal }).then(function() {
+  db.collection(getPropertiesCollection()).doc(id).update({ departure: newVal }).then(function() {
     p.departure = newVal;
     updateDepBtn(p);
     renderTable();
@@ -2771,7 +2820,7 @@ function toggleAd(id) {
   if(state === 'on') {
     // 켜진 상태 → 끄기
     if(!confirm('광고를 종료하시겠습니까?')) return;
-    db.collection(COLLECTION).doc(id).update({ adEnd: new Date().toISOString().split('T')[0] }).then(function() {
+    db.collection(getPropertiesCollection()).doc(id).update({ adEnd: new Date().toISOString().split('T')[0] }).then(function() {
       p.adEnd = new Date().toISOString().split('T')[0];
       updateAdBtn(p);
       renderTable();
@@ -2780,7 +2829,7 @@ function toggleAd(id) {
     // 꺼진/종료/만료 상태 → 켜기 (새로 30일 시작)
     if(!confirm('네이버 광고를 시작하시겠습니까? (30일)')) return;
     var today = new Date().toISOString().split('T')[0];
-    db.collection(COLLECTION).doc(id).update({ adStart: today, adEnd: '' }).then(function() {
+    db.collection(getPropertiesCollection()).doc(id).update({ adStart: today, adEnd: '' }).then(function() {
       p.adStart = today;
       p.adEnd = '';
       updateAdBtn(p);
@@ -3301,6 +3350,8 @@ function closeSettings() {
 function openCustomers() {
   var modal = document.getElementById('customersModal');
   if(!modal) return;
+  var titleEl = document.getElementById('customersModalTitle');
+  if(titleEl) titleEl.textContent = '👥 고객문의 (' + (currentSector === SECTOR_COMMERCIAL ? '상업용' : '주거용') + ')';
   modal.classList.add('active');
   if(document.getElementById('customerSearch')) document.getElementById('customerSearch').value = '';
   _currentCustomerId = null;
@@ -3382,7 +3433,7 @@ function openCustomerForm(id) {
   if(!el) return;
 
   var georaeOpts = '<option value="">선택</option><option value="매매">매매</option><option value="전세">전세</option><option value="월세">월세</option>';
-  var typeOpts = '<option value="">선택</option>' + PROP_TYPES.map(function(t){ return '<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+'</option>'; }).join('');
+  var typeOpts = '<option value="">선택</option>' + getPropTypesForSector(currentSector).map(function(t){ return '<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+'</option>'; }).join('');
   var selGeorae = (c && c.custGeorae) ? c.custGeorae : '';
   var selType = (c && c.custType) ? c.custType : '';
   el.innerHTML =
@@ -3425,7 +3476,7 @@ function saveCustomerForm(id) {
   };
 
   if(id) {
-    db.collection(CUSTOMER_COLLECTION).doc(id).update(base).then(function(){
+    db.collection(getCustomersCollection()).doc(id).update(base).then(function(){
       showToast('✅ 저장됐어요!');
       openCustomerDetail(id, true);
     }).catch(function(e){
@@ -3437,7 +3488,7 @@ function saveCustomerForm(id) {
     base.createdAtMs = Date.now();
     base.shownProps = [];
     base.history = [];
-    db.collection(CUSTOMER_COLLECTION).add(base).then(function(ref){
+    db.collection(getCustomersCollection()).add(base).then(function(ref){
       showToast('✅ 등록됐어요!');
       openCustomerDetail(ref.id);
       renderCustomerList();
@@ -3451,7 +3502,7 @@ function deleteCustomer(id) {
   var c = getCustomerById(id);
   if(!c) return;
   if(!confirm('고객을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.')) return;
-  db.collection(CUSTOMER_COLLECTION).doc(id).delete().then(function(){
+  db.collection(getCustomersCollection()).doc(id).delete().then(function(){
     showToast('🗑 삭제됐어요.');
     _currentCustomerId = null;
     renderCustomerEmpty();
@@ -3626,7 +3677,7 @@ function commitAddShownProperty(custId, propId, fromPicker) {
   var now = new Date();
   var dateStr = now.toLocaleDateString('ko-KR');
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+  db.collection(getCustomersCollection()).doc(custId).update({
     shownProps: arr,
     updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
   }).then(function(){
@@ -3674,7 +3725,7 @@ function removeShownPropertyFromCustomer(custId, propId) {
   var now = new Date();
   var dateStr = now.toLocaleDateString('ko-KR');
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+  db.collection(getCustomersCollection()).doc(custId).update({
     shownProps: arr,
     updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
   }).then(function(){
@@ -3740,7 +3791,7 @@ function saveCustomerHistoryEdit(custId, index) {
   var now = new Date();
   var dateStr = now.toLocaleDateString('ko-KR');
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+  db.collection(getCustomersCollection()).doc(custId).update({
     history: history,
     updatedDate: dateStr, updatedTime: timeStr, updatedAtMs: Date.now()
   }).then(function(){
@@ -3762,7 +3813,7 @@ function addCustomerHistory(custId) {
 
   var d = now.toLocaleDateString('ko-KR');
   var t = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+  db.collection(getCustomersCollection()).doc(custId).update({
     history: history,
     updatedDate: d, updatedTime: t, updatedAtMs: Date.now()
   }).then(function(){
@@ -3781,7 +3832,7 @@ function deleteCustomerHistory(custId, index) {
   var now = new Date();
   var d = now.toLocaleDateString('ko-KR');
   var t = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  db.collection(CUSTOMER_COLLECTION).doc(custId).update({
+  db.collection(getCustomersCollection()).doc(custId).update({
     history: history,
     updatedDate: d, updatedTime: t, updatedAtMs: Date.now()
   }).then(function(){
@@ -3859,7 +3910,7 @@ function toggleFilterTypePopup() {
   if(isOpen) { popup.style.display = 'none'; return; }
   closeAllFilterPopups();
   var html = '';
-  PROP_TYPES.forEach(function(t) {
+  getPropTypesForSector(currentSector).forEach(function(t) {
     var checked = filterTypeChecked[t] === true;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'+
       '<input type="checkbox" data-type="'+escapeHtml(t)+'" '+(checked?'checked':'')+' style="width:14px;height:14px;">'+escapeHtml(t)+'</label>';
@@ -3925,8 +3976,10 @@ function renderSettingsPanel() {
     return;
   }
 
+  var sectorTypes = getPropTypesForSector(currentSector);
+  if (sectorTypes.indexOf(activeType) === -1) activeType = '전체';
   var isAll = (activeType === '전체');
-  var refType = isAll ? PROP_TYPES[0] : activeType;
+  var refType = isAll ? (sectorTypes[0] || '') : activeType;
 
   var tmpSettings = _tmpFieldSettings;
   var tmpCustoms  = _tmpCustomFields;
@@ -3955,9 +4008,9 @@ function renderSettingsPanel() {
 
   var html = '';
 
-  // 탭: 전체 + 각 매물종류
+  // 탭: 전체 + 각 매물종류 (현재 섹터만)
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">';
-  ['전체'].concat(PROP_TYPES).forEach(function(t) {
+  ['전체'].concat(sectorTypes).forEach(function(t) {
     var active = t === activeType;
     var isAllTab = (t === '전체');
     html += '<button onclick="switchSettingsTab(\''+t+'\')" style="padding:6px 14px;border-radius:20px;border:1px solid '+(isAllTab?'var(--accent2)':'var(--border)')+';cursor:pointer;font-size:12px;font-weight:'+(isAllTab?'700':'500')+';background:'+(active?(isAllTab?'var(--accent2)':'var(--accent)'):'var(--surface)')+';color:'+(active?'#fff':'var(--text)')+';transition:all 0.2s;">'+t+'</button>';
@@ -3979,7 +4032,7 @@ function renderSettingsPanel() {
   ordered.forEach(function(f,i){
     var isCustom = !!f.custom;
     var checked = isAll
-      ? PROP_TYPES.every(function(t){ return tmpIsVisible(t, f.key); })
+      ? sectorTypes.every(function(t){ return tmpIsVisible(t, f.key); })
       : tmpIsVisible(activeType, f.key);
 
     // 섹션 헤더: _tmpFieldSections 기준

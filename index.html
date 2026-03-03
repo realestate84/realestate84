@@ -723,6 +723,16 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- 이미지 저장 준비 완료 모달 (사용자가 버튼 클릭 시에만 다운로드되도록) -->
+<div class="modal-overlay" id="imageReadyModal" style="z-index:10002;">
+  <div class="modal" style="max-width:380px;padding:24px;">
+    <div class="modal-title" style="margin-bottom:12px;">🖼 이미지 만들기 완료</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">아래 버튼을 누르면 PNG 이미지가 저장됩니다.</p>
+    <a id="imageReadyDownloadBtn" href="#" download="매물상세.png" class="btn btn-primary" style="display:inline-block;width:100%;text-align:center;text-decoration:none;box-sizing:border-box;">⬇ 이미지 저장 (PNG)</a>
+    <button class="btn btn-outline" onclick="closeImageReadyModal()" style="margin-top:10px;width:100%;">닫기</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="settingsModal">
   <div class="modal" style="max-width:960px;">
     <div class="modal-header">
@@ -2138,6 +2148,12 @@ function downloadDetailAsImage() {
 function closePrintModal() {
   document.getElementById('printModal').classList.remove('active');
 }
+function closeImageReadyModal() {
+  var modal = document.getElementById('imageReadyModal');
+  if(modal) modal.classList.remove('active');
+  var btn = document.getElementById('imageReadyDownloadBtn');
+  if(btn) { btn.href = '#'; btn.download = ''; }
+}
 
 function buildPrintContent(includePhoto, includeAgency) {
   var body = document.getElementById('detailBody').innerHTML;
@@ -2219,6 +2235,7 @@ function executePrint(mode) {
     wrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;max-height:90vh;overflow:auto;background:#fff;padding:24px;font-family:"Noto Sans KR",sans-serif;color:#1a1f36;font-size:12px;box-sizing:border-box;z-index:99999;opacity:0.01;pointer-events:none;';
     wrapper.innerHTML = '<style>'+css.replace('@page{margin:8mm;size:A4;}','')+'</style>'+headerHtml+div.innerHTML;
     document.body.appendChild(wrapper);
+    showToast('이미지 만들기 중...');
     var doCapture = function() {
       var h2c = window.html2canvas || (typeof html2canvas !== 'undefined' ? html2canvas : null);
       if(!h2c) {
@@ -2228,17 +2245,25 @@ function executePrint(mode) {
       }
       h2c(wrapper, { scale: 2, backgroundColor: '#ffffff', logging: false, imageTimeout: 0 })
         .then(function(canvas) {
+          if(wrapper.parentNode) document.body.removeChild(wrapper);
           try {
             var dataUrl = canvas.toDataURL('image/png');
-            var a = document.createElement('a');
-            a.download = (fileName || '매물상세') + '.png';
-            a.href = dataUrl;
-            a.click();
-            showToast('🖼 이미지로 저장했어요.');
+            var name = (fileName || '매물상세') + '.png';
+            var modal = document.getElementById('imageReadyModal');
+            var btn = document.getElementById('imageReadyDownloadBtn');
+            if(modal && btn) {
+              btn.href = dataUrl;
+              btn.download = name;
+              modal.classList.add('active');
+            } else {
+              var a = document.createElement('a');
+              a.download = name;
+              a.href = dataUrl;
+              a.click();
+            }
           } catch(e) {
             showToast('이미지 변환에 실패했어요. (사진 제외 후 다시 시도해 보세요.)');
           }
-          if(wrapper.parentNode) document.body.removeChild(wrapper);
         })
         .catch(function(err) {
           if(wrapper.parentNode) document.body.removeChild(wrapper);

@@ -304,7 +304,7 @@ th{position:relative;}
     <button class="btn btn-outline" onclick="openSitesModal()">🔗 사이트</button>
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
-    <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
+    <button type="button" class="btn btn-outline js-pc-view-toggle">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
     <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
@@ -331,7 +331,7 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
   <button class="btn btn-outline" onclick="openSettings();closeMobileMenu()">⚙️ 설정</button>
-  <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
+  <button type="button" class="btn btn-outline js-pc-view-toggle js-pc-view-close-drawer">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
   <hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">
@@ -4403,8 +4403,19 @@ function switchSettingsTab(type) {
 function togglePCView() {
   document.body.classList.toggle('pc-view');
   var on = document.body.classList.contains('pc-view');
-  document.querySelectorAll('[onclick="togglePCView()"]').forEach(function(btn) { btn.textContent = on ? '📱 모바일버전' : '🖥 PC버전'; });
+  document.querySelectorAll('.js-pc-view-toggle').forEach(function(btn) { btn.textContent = on ? '📱 모바일버전' : '🖥 PC버전'; });
 }
+document.addEventListener('click', function(e) {
+  var btn = e.target && e.target.closest && e.target.closest('.js-pc-view-toggle');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  togglePCView();
+  if (btn.classList.contains('js-pc-view-close-drawer')) {
+    var drawer = document.getElementById('mobileDrawer');
+    if (drawer && drawer.classList.contains('open')) closeMobileMenu();
+  }
+});
 
 // ── 전체 지도 ─────────────────────────────
 var _mapObj = null;

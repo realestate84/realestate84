@@ -112,7 +112,9 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .tag-건물{background:rgba(96,125,139,0.15);color:#607d8b;}
 .tag-아파트{background:rgba(58,126,246,0.15);color:#3a7ef6;}
 .tag-빌라{background:rgba(108,71,245,0.15);color:#6c47f5;}
-.tag-원투룸{background:rgba(32,170,200,0.15);color:#20aac8;}
+.tag-원룸{background:rgba(32,170,200,0.15);color:#20aac8;}
+.tag-1\.5룸{background:rgba(233,30,140,0.15);color:#e91e8c;}
+.tag-투룸{background:rgba(156,39,176,0.15);color:#9c27b0;}
 .ad-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
 .dep-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
 .dep-light.on{background:#3a7ef6;box-shadow:0 0 6px rgba(58,126,246,0.7);}
@@ -314,7 +316,7 @@ th{position:relative;}
     <select class="filter-select" id="filterType" onchange="renderTable()">
       <option value="">매물종류 전체</option>
       <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-      <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
+      <option>아파트</option><option>빌라</option><option>원룸</option><option>1.5룸</option><option>투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
     </select>
     <select class="filter-select" id="filterGeorae" onchange="renderTable()">
       <option value="">거래유형 전체</option>
@@ -403,7 +405,7 @@ th{position:relative;}
           <label>매물종류 *</label>
           <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)">            <option value="">선택</option>
             <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-            <option>아파트</option><option>빌라</option><option>원투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
+            <option>아파트</option><option>빌라</option><option>원룸</option><option>1.5룸</option><option>투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
           </select>
         </div>
         <div class="form-group">
@@ -791,7 +793,9 @@ th{position:relative;}
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="상가/사무실" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e04a5a"></span>상가/사무실</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="아파트" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>아파트</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="빌라" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>빌라</label>
-          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="원투룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#20aac8"></span>원투룸</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="원룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#20aac8"></span>원룸</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="1.5룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e91e8c"></span>1.5룸</label>
+          <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="투룸" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#9c27b0"></span>투룸</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="오피스텔" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#ff9800"></span>오피스텔</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="절대농지" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#4caf50"></span>절대농지</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="단독주택" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#795548"></span>단독주택</label>
@@ -886,7 +890,7 @@ var listColumnSettings = {
   ownerName:false, createdDate:false, updatedDate:false, adStatus:true, departure:true
 };
 
-var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
+var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원룸','1.5룸','투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 
 // 기본 항목 정의 (key, label, suffix)
 var DEFAULT_FIELDS = [
@@ -4094,7 +4098,7 @@ function togglePCView() {
 var _mapObj = null;
 var _mapMarkers = [];
 var _georaeColor = {'매매':'#3a7ef6','전세':'#6c47f5','월세':'#f0a030'};
-var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가/사무실':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','원투룸':'#e91e8c','오피스텔':'#ff9800','절대농지':'#4caf50','단독주택':'#795548','펜션':'#e91e63','건물':'#607d8b'};
+var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가/사무실':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','원룸':'#20aac8','1.5룸':'#e91e8c','투룸':'#9c27b0','오피스텔':'#ff9800','절대농지':'#4caf50','단독주택':'#795548','펜션':'#e91e63','건물':'#607d8b'};
 
 function getMarkerImage(p) {
   var color = _georaeColor[p.georae] || '#3a7ef6';

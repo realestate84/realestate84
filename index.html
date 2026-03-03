@@ -212,6 +212,11 @@ th{position:relative;}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:var(--text);margin-bottom:2px;}
 .map-marker-info .mi-price{color:var(--danger);font-weight:600;}
+/* 관련사이트 모달 배너 그리드 */
+.sites-banner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.sites-banner-item{display:block;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--accent);font-size:16px;font-weight:500;transition:all 0.2s;text-align:left;}
+.sites-banner-item:hover{border-color:var(--accent);background:rgba(58,126,246,0.08);color:var(--accent);}
+.sites-banner-item .site-name{display:block;}
 /* 상세모달은 전체지도 위에 표시 */
 #detailModal{z-index:500;}
 /* 지도 체크박스 필터 */
@@ -286,6 +291,7 @@ th{position:relative;}
   </div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="openCustomers()">👥 고객문의</button>
+    <button class="btn btn-outline" onclick="openSitesModal()">🔗 사이트</button>
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
@@ -310,6 +316,7 @@ th{position:relative;}
   </div>
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
+  <button class="btn btn-outline" onclick="openSitesModal();closeMobileMenu()">🔗 사이트</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
@@ -669,6 +676,19 @@ th{position:relative;}
       <button class="modal-close" onclick="closeStats()">×</button>
     </div>
     <div class="modal-body" id="statsBody"></div>
+  </div>
+</div>
+
+<!-- 관련사이트 모달 -->
+<div class="modal-overlay" id="sitesModal" onclick="if(event.target===this)closeSitesModal()">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <div class="modal-title">🔗 관련사이트</div>
+      <button class="modal-close" onclick="closeSitesModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div class="sites-banner-grid" id="sitesBannerGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -1249,8 +1269,41 @@ function closeStats() {
   document.getElementById('statsModal').classList.remove('active');
 }
 
+var relatedSites = [
+  { name: '네이버부동산', url: 'http://land.naver.com/' },
+  { name: '정부24', url: 'http://www.gov.kr/' },
+  { name: '세움터', url: 'https://www.eais.go.kr/' },
+  { name: '인터넷등기소', url: 'http://www.iros.go.kr/' },
+  { name: '홈택스', url: 'http://www.hometax.go.kr/' },
+  { name: '토지e음', url: 'http://www.eum.go.kr/' },
+  { name: '땅야', url: 'http://www.ddangya.com/' },
+  { name: '밸류맵', url: 'http://www.valueupmap.com/' },
+  { name: '디스코', url: 'http://www.disco.re/' },
+  { name: '마이옥션', url: 'http://www.my-auction.co.kr/' },
+  { name: '아실', url: 'https://asil.kr/' },
+  { name: '호갱노노', url: 'http://www.hogangnono.com/' },
+  { name: 'KB부동산', url: 'https://kbland.kr/' },
+  { name: '부동산공시가격알리미', url: 'http://www.realtyprice.kr/' },
+  { name: '실거래가 신고', url: 'https://rtms.molit.go.kr/' },
+  { name: '국토교통부 실거래가', url: 'http://rt.molit.go.kr/' },
+  { name: '한국공인중개사협회', url: 'http://www.kar.or.kr/' }
+];
+
+function openSitesModal() {
+  var grid = document.getElementById('sitesBannerGrid');
+  grid.innerHTML = relatedSites.map(function(s, i) {
+    return '<a class="sites-banner-item" href="' + s.url + '" target="_blank" rel="noopener"><span class="site-name">' + (i + 1) + '. ' + s.name + '</span></a>';
+  }).join('');
+  document.getElementById('sitesModal').classList.add('active');
+}
+
+function closeSitesModal() {
+  document.getElementById('sitesModal').classList.remove('active');
+}
+
 document.addEventListener('click', function(e) {
   if(e.target === document.getElementById('statsModal')) closeStats();
+  if(e.target === document.getElementById('sitesModal')) closeSitesModal();
 });
 
 // ── 테이블 ────────────────────────────────

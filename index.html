@@ -3328,12 +3328,20 @@ function getOrderedFields(type) {
   return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
 }
 
+// 주거용 타입(아파트, 빌라 등)에서 설정 미지정 시 기본 표시할 항목만 (상업용 전용 항목 제외)
+var RESIDENTIAL_DEFAULT_VISIBLE_KEYS = ['price','pricePerPyeong','officialBuildingPrice','officialLandPrice','maintenance','premium','supplyArea','exclusiveArea','direction','toilet','parking','elevator','floors','rooms','bathrooms','approvalDate','regOwnerName','ownerName','ownerPhone','createdDate','updatedDate'];
 function isFieldVisible(type, key) {
   if(!type) return true; // 매물종류 미선택 시 전체 표시
-  if(!fieldSettings[type]) return true; // 해당 타입 설정 없으면 전체 표시
-  var val = fieldSettings[type][key];
+  var order = fieldOrder[type];
+  var settings = fieldSettings[type];
+  if(!order || !settings) return true; // 해당 타입 설정 없으면 전체 표시 (폐쇄 전)
+  // 항목설정에 없는 항목은 표시 안 함 (해당 타입 fieldOrder에 없으면 숨김)
+  if(order.indexOf(key) === -1) return false;
+  var val = settings[key];
   if(val === undefined) {
-    // fieldSettings에 없는 키 → DEFAULT_FIELDS에 있으면 ON, 없으면(커스텀) OFF
+    // 설정 미지정: 주거용 타입이면 주거용 기본 항목만 표시(토지/지목/용도지역 등 상업용 항목 제외), 상업용은 기존대로
+    if(RESIDENTIAL_TYPES.indexOf(type) !== -1)
+      return RESIDENTIAL_DEFAULT_VISIBLE_KEYS.indexOf(key) !== -1;
     var inDefault = DEFAULT_FIELDS.some(function(f){ return f.key === key; });
     return inDefault;
   }

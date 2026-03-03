@@ -1046,6 +1046,10 @@ function load() {
 
 function loadCustomers() {
   try { if(_customersUnsub) _customersUnsub(); } catch(e){}
+  customers = [];
+  if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) {
+    renderCustomerList();
+  }
   _customersUnsub = db.collection(getCustomersCollection()).onSnapshot(function(snap) {
     customers = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     customers.sort(function(a,b){
@@ -3304,6 +3308,9 @@ function loadFieldSettings(callback) {
     if(needsSave) saveFieldSettings();
     persistListColumnSettings();
     if(callback) callback();
+  }).catch(function(e){
+    console.error('fieldSettings 로드 실패:', e);
+    if(callback) callback();
   });
 }
 
@@ -4577,6 +4584,7 @@ document.addEventListener('click', function(e) {
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');
 load();
+loadCustomers();
 </script>
 </div><!-- /mainScreen -->
 

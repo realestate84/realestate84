@@ -234,7 +234,6 @@ th{position:relative;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -643,7 +642,7 @@ th{position:relative;}
         <button class="btn btn-primary" id="detailEditBtn" style="font-size:11px;padding:5px 10px;">수정</button>
         <button class="btn btn-outline" id="detailCopyBtn" style="font-size:11px;padding:5px 10px;">📋 복사</button>
         <button class="btn btn-outline" onclick="printDetail()" style="font-size:11px;padding:5px 10px;">🖨 인쇄</button>
-        <button class="btn btn-outline" onclick="downloadDetailAsImage()" style="font-size:11px;padding:5px 10px;">🖼 이미지</button>
+        <button class="btn btn-outline" onclick="openDetailInNewWindow()" style="font-size:11px;padding:5px 10px;">🪟 새 창</button>
         <button class="modal-close" onclick="closeDetailModal()">×</button>
       </div>
     </div>
@@ -720,16 +719,6 @@ th{position:relative;}
       <button class="btn btn-outline" onclick="closePrintModal()" style="min-width:70px;">취소</button>
       <button class="btn btn-primary" id="printModalExecBtn" onclick="doPrintModalExecute()" style="min-width:70px;">인쇄</button>
     </div>
-  </div>
-</div>
-
-<!-- 이미지 저장 준비 완료 모달 (사용자가 버튼 클릭 시에만 다운로드되도록) -->
-<div class="modal-overlay" id="imageReadyModal" style="z-index:10002;">
-  <div class="modal" style="max-width:380px;padding:24px;">
-    <div class="modal-title" style="margin-bottom:12px;">🖼 이미지 만들기 완료</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">아래 버튼을 누르면 PNG 이미지가 저장됩니다.</p>
-    <a id="imageReadyDownloadBtn" href="#" download="매물상세.png" class="btn btn-primary" style="display:inline-block;width:100%;text-align:center;text-decoration:none;box-sizing:border-box;">⬇ 이미지 저장 (PNG)</a>
-    <button class="btn btn-outline" onclick="closeImageReadyModal()" style="margin-top:10px;width:100%;">닫기</button>
   </div>
 </div>
 
@@ -2145,23 +2134,17 @@ function saveDetailPdf() {
   document.getElementById('printModalExecBtn').textContent = 'PDF 저장';
   document.getElementById('printModal').classList.add('active');
 }
-function downloadDetailAsImage() {
-  _printModalMode = 'image';
+function openDetailInNewWindow() {
+  _printModalMode = 'preview';
   var hasPhotos = window._dp && window._dp.length > 0;
   document.getElementById('printPhotoOptSection').style.display = hasPhotos ? '' : 'none';
-  document.getElementById('printModalTitle').textContent = '🖼 이미지로 저장 옵션';
-  document.getElementById('printModalExecBtn').textContent = '이미지 저장';
+  document.getElementById('printModalTitle').textContent = '🪟 새 창으로 열기';
+  document.getElementById('printModalExecBtn').textContent = '열기';
   document.getElementById('printModal').classList.add('active');
 }
 
 function closePrintModal() {
   document.getElementById('printModal').classList.remove('active');
-}
-function closeImageReadyModal() {
-  var modal = document.getElementById('imageReadyModal');
-  if(modal) modal.classList.remove('active');
-  var btn = document.getElementById('imageReadyDownloadBtn');
-  if(btn) { btn.href = '#'; btn.download = ''; }
 }
 
 function buildPrintContent(includePhoto, includeAgency) {
@@ -2230,62 +2213,20 @@ function executePrint(mode) {
   var headerHtml = includeAgency ?
     '<div class="print-header"><div class="company">새롬부동산공인중개사사무소</div><div class="phone">☎ 032-563-3001</div></div>' : '';
 
-  if(mode === 'image') {
-    try {
-      var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
-      var pType   = curProp ? (curProp.type||'') : '';
-      var pGeorae = curProp ? (curProp.georae||'') : '';
-      var pAddr   = curProp ? (typeof getDisplayAddress === 'function' ? getDisplayAddress(curProp) : (curProp.address||'')) : '';
-      var fileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'').slice(0, 80);
-      div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
-      div.querySelectorAll('.detail-section').forEach(function(section){
-        var tit = section.querySelector('.detail-section-title');
-        if(tit && tit.textContent.indexOf('위치') !== -1) section.remove();
-      });
-      var wrapper = document.createElement('div');
-      wrapper.id = 'imageCaptureWrapper';
-      wrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;max-height:90vh;overflow:auto;background:#fff;padding:24px;font-family:"Noto Sans KR",sans-serif;color:#1a1f36;font-size:12px;box-sizing:border-box;z-index:99999;opacity:0.01;pointer-events:none;';
-      wrapper.innerHTML = '<style>'+css.replace('@page{margin:8mm;size:A4;}','')+'</style>'+headerHtml+div.innerHTML;
-      document.body.appendChild(wrapper);
-      showToast('이미지 만들기 중...');
-      var doCapture = function() {
-        var h2c = window.html2canvas || (typeof html2canvas !== 'undefined' ? html2canvas : null);
-        if(!h2c) {
-          if(wrapper.parentNode) document.body.removeChild(wrapper);
-          alert('이미지 저장 라이브러리를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
-          return;
-        }
-        h2c(wrapper, { scale: 2, backgroundColor: '#ffffff', logging: false, imageTimeout: 0 })
-          .then(function(canvas) {
-            if(wrapper.parentNode) document.body.removeChild(wrapper);
-            try {
-              var dataUrl = canvas.toDataURL('image/png');
-              var name = (fileName || '매물상세') + '.png';
-              var modal = document.getElementById('imageReadyModal');
-              var btn = document.getElementById('imageReadyDownloadBtn');
-              if(modal && btn) {
-                btn.href = dataUrl;
-                btn.download = name;
-                modal.classList.add('active');
-              } else {
-                var a = document.createElement('a');
-                a.download = name;
-                a.href = dataUrl;
-                a.click();
-              }
-            } catch(e) {
-              showToast('이미지 변환에 실패했어요.');
-            }
-          })
-          .catch(function(err) {
-            if(wrapper.parentNode) document.body.removeChild(wrapper);
-            alert('이미지 만들기에 실패했어요. 사진 제외 후 다시 시도해 주세요.');
-          });
-      };
-      setTimeout(doCapture, 200);
-    } catch(e) {
-      alert('이미지 저장 오류: ' + (e && e.message ? e.message : '알 수 없음'));
-    }
+  if(mode === 'preview') {
+    div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
+    var win = window.open('','_blank','width=800,height=900');
+    win.document.write(
+      '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">'+
+      '<style>'+css+'</style></head><body>'+
+      '<div style="background:#e8f0ff;border:1px solid #3a7ef6;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a1f36;">'+
+      '💡 이 창에서 <b>Ctrl+P</b> (인쇄)로 PDF 저장하거나, 화면 캡처로 이미지를 저장할 수 있어요.'+
+      '</div>'+
+      headerHtml+div.innerHTML+
+      '</body></html>'
+    );
+    win.document.close();
     return;
   }
 

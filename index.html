@@ -883,7 +883,7 @@ var listColumnSettings = {
   direction:false, height:false, hoist:false, waterIn:false, drain:false,
   electric:false, toilet:false, parking:false, elevator:false, factoryReg:false,
   floors:false, rooms:false, bathrooms:false, approvalDate:false, recommendedBusiness:false,
-  ownerName:false, createdDate:false, adStatus:true, departure:true
+  ownerName:false, createdDate:false, updatedDate:false, adStatus:true, departure:true
 };
 
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원투룸','오피스텔','절대농지','단독주택','펜션','건물'];
@@ -929,6 +929,8 @@ var DEFAULT_FIELDS = [
   {key:'regOwnerName',        label:'등기부상 소유자명', section:'소유자정보', suffix:''},
   {key:'ownerName',           label:'소유자명',          section:'소유자정보', suffix:''},
   {key:'ownerPhone',          label:'소유자연락처',      section:'소유자정보', suffix:''},
+  {key:'createdDate',         label:'등록일시',          section:'기본정보', suffix:''},
+  {key:'updatedDate',         label:'최종수정',          section:'기본정보', suffix:''},
 ];
 
 // 설정 저장소 (Firebase에서 로드)
@@ -1294,7 +1296,7 @@ function renderTable() {
   // 헤더 동적 렌더링
   var allColDefs = getColDefsCache();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; });
-  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',adStatus:'30px',departure:'30px'};
+  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
   var visColKey = visibleCols.map(function(c){ return c.key; }).join(',');
   if(renderTable._lastColKey !== visColKey) {
     renderTable._lastColKey = visColKey;
@@ -1354,6 +1356,7 @@ function renderTable() {
           case 'access':    return '<td class="muted">'+(p.access?(p.access+(getFieldSuffix('access')?' '+getFieldSuffix('access'):'')):'-')+'</td>';
           case 'ownerName': return '<td class="muted">'+(p.ownerName||'-')+'</td>';
           case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
+          case 'updatedDate': return '<td class="muted" style="font-size:11px">'+(p.updatedDate||'-')+'</td>';
           case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
           default: {
@@ -1875,6 +1878,8 @@ function openDetail(id){
       val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
     else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+(raw ? raw+(suffix?' '+suffix:'') : '-')+'</div></div>';
     else if(f.key==='ownerPhone') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(raw?'<a href="tel:'+raw+'" style="color:var(--accent);text-decoration:none">'+raw+'</a>':'-')+'</div></div>';
+    else if(f.key==='createdDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.createdDate||'-')+(p.createdTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.createdTime+'</span>':'')+'</div></div>';
+    else if(f.key==='updatedDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.updatedDate?p.updatedDate+(p.updatedTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':''):'-')+'</div></div>';
     else val = raw ? (raw+(suffix?' '+suffix:'')) : '-';
     return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
   }
@@ -1883,8 +1888,6 @@ function openDetail(id){
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
       basicItems.map(renderFieldVal).join('')+
-      '<div class="detail-item"><label>등록일시</label><div class="val">'+(p.createdDate||'-')+'<br><span style="font-size:12px;color:var(--text-muted)">'+(p.createdTime||'')+'</span></div></div>'+
-      '<div class="detail-item"><label>최종수정</label><div class="val">'+(p.updatedDate?p.updatedDate+'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':'-')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       detailOnlyItems.map(renderFieldVal).join('')+
@@ -3067,8 +3070,8 @@ function loadFieldSettings(callback) {
           fieldOrder[t].push(key);
           orderSet[key] = true;
           if(!fieldSettings[t]) fieldSettings[t] = {};
-          // 신규 추가 키는 false(OFF)로 등록 → 사용자가 항목설정에서 직접 ON
-          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = false;
+          // 등록일시·최종수정은 기본 ON, 그 외 신규 키는 OFF
+          if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = (key === 'createdDate' || key === 'updatedDate') ? true : false;
           if(!fieldSections[key]) fieldSections[key] = DEFAULT_FIELDS.find(function(f){ return f.key===key; }).section;
           needsSave = true;
         }

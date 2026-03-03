@@ -234,7 +234,7 @@ th{position:relative;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -2203,39 +2203,49 @@ function executePrint(mode) {
     '<div class="print-header"><div class="company">새롬부동산공인중개사사무소</div><div class="phone">☎ 032-563-3001</div></div>' : '';
 
   if(mode === 'image') {
-    // 이미지로 저장: 인쇄 항목과 동일한 내용을 캡처
+    // 이미지로 저장: 인쇄 항목과 동일한 내용을 캡처 (지도/iframe은 제거)
     var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
     var pType   = curProp ? (curProp.type||'') : '';
     var pGeorae = curProp ? (curProp.georae||'') : '';
     var pAddr   = curProp ? (getDisplayAddress(curProp)||'') : '';
     var fileName = [pType, pGeorae, pAddr].filter(Boolean).join('_').replace(/[\\/:*?"<>|]/g,'').slice(0, 80);
     div.querySelectorAll('.copy-badge').forEach(function(el){ el.remove(); });
+    div.querySelectorAll('.detail-section').forEach(function(section){
+      var tit = section.querySelector('.detail-section-title');
+      if(tit && tit.textContent.indexOf('위치') !== -1) section.remove();
+    });
     var wrapper = document.createElement('div');
     wrapper.id = 'imageCaptureWrapper';
-    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;padding:24px;font-family:"Noto Sans KR",sans-serif;color:#1a1f36;font-size:12px;box-sizing:border-box;';
+    wrapper.style.cssText = 'position:fixed;top:0;left:0;width:800px;max-height:90vh;overflow:auto;background:#fff;padding:24px;font-family:"Noto Sans KR",sans-serif;color:#1a1f36;font-size:12px;box-sizing:border-box;z-index:99999;opacity:0.01;pointer-events:none;';
     wrapper.innerHTML = '<style>'+css.replace('@page{margin:8mm;size:A4;}','')+'</style>'+headerHtml+div.innerHTML;
     document.body.appendChild(wrapper);
-    if(typeof html2canvas === 'undefined') {
-      document.body.removeChild(wrapper);
-      alert('이미지 저장 라이브러리를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-    html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
-      .then(function(canvas) {
-        try {
-          var dataUrl = canvas.toDataURL('image/png');
-          var a = document.createElement('a');
-          a.download = (fileName || '매물상세') + '.png';
-          a.href = dataUrl;
-          a.click();
-          showToast('🖼 이미지로 저장했어요.');
-        } catch(e) {}
-        document.body.removeChild(wrapper);
-      })
-      .catch(function(err) {
+    var doCapture = function() {
+      var h2c = window.html2canvas || (typeof html2canvas !== 'undefined' ? html2canvas : null);
+      if(!h2c) {
         if(wrapper.parentNode) document.body.removeChild(wrapper);
-        showToast('이미지 저장에 실패했어요.');
-      });
+        alert('이미지 저장 라이브러리를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      h2c(wrapper, { scale: 2, backgroundColor: '#ffffff', logging: false, imageTimeout: 0 })
+        .then(function(canvas) {
+          try {
+            var dataUrl = canvas.toDataURL('image/png');
+            var a = document.createElement('a');
+            a.download = (fileName || '매물상세') + '.png';
+            a.href = dataUrl;
+            a.click();
+            showToast('🖼 이미지로 저장했어요.');
+          } catch(e) {
+            showToast('이미지 변환에 실패했어요. (사진 제외 후 다시 시도해 보세요.)');
+          }
+          if(wrapper.parentNode) document.body.removeChild(wrapper);
+        })
+        .catch(function(err) {
+          if(wrapper.parentNode) document.body.removeChild(wrapper);
+          showToast('이미지 저장에 실패했어요.');
+        });
+    };
+    setTimeout(doCapture, 200);
     return;
   }
 

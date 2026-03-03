@@ -971,9 +971,9 @@ var DEFAULT_FIELDS = [
 var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ... }
 var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
 var fieldOrder = {};    // { '토지': ['price','landArea',...], ... }
-var fieldSections = {}; // { 'price': '기본정보', 'landArea': '상세정보', ... } - 전체 공통
-var fieldLabelOverrides = {}; // { 'price': '매매가', 'custom_xxx': '욕실수' } - 항목명 변경
-var fieldSuffixOverrides = {}; // { 'price': '만원', 'custom_xxx': '개' } - 단위 설정
+var fieldSections = { residential: {}, commercial: {} }; // 섹터별 항목 섹션(기본정보/상세정보/소유자정보)
+var fieldLabelOverrides = { residential: {}, commercial: {} }; // 섹터별 항목명 변경
+var fieldSuffixOverrides = { residential: {}, commercial: {} }; // 섹터별 단위 설정
 
 // ── Firebase 초기화 ───────────────────────
 var firebaseConfig = {
@@ -1091,6 +1091,8 @@ function switchSector(sector) {
   if(sector !== SECTOR_RESIDENTIAL && sector !== SECTOR_COMMERCIAL) return;
   currentSector = sector;
   try { localStorage.setItem(STORAGE_KEY_SECTOR, sector); } catch(e){}
+  invalidateSuffixCache();
+  invalidateColDefsCache();
   updateSectorUI();
   if(document.getElementById('detailModal') && document.getElementById('detailModal').classList.contains('active')) _closeDetailModalImpl();
   if(document.getElementById('formModal') && document.getElementById('formModal').classList.contains('active')) closeFormModal();
@@ -1396,14 +1398,14 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="event.stopPropagation(); copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
-          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:' 평'):'-')+'</td>';
-          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:' 평'):'-')+'</td>';
-          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(fieldSuffixOverrides.hasOwnProperty('supplyArea')?fieldSuffixOverrides['supplyArea']:' 평'):'-')+'</td>';
-          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(fieldSuffixOverrides.hasOwnProperty('exclusiveArea')?fieldSuffixOverrides['exclusiveArea']:' 평'):'-')+'</td>';
-          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(fieldSuffixOverrides.hasOwnProperty('tempArea')?fieldSuffixOverrides['tempArea']:' 평'):'-')+'</td>';
-          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(fieldSuffixOverrides.hasOwnProperty('roadArea')?fieldSuffixOverrides['roadArea']:' 평'):'-')+'</td>';
-          case 'electric':  return '<td class="muted">'+(p.electric?p.electric+(fieldSuffixOverrides.hasOwnProperty('electric')?fieldSuffixOverrides['electric']:'kw'):'-')+'</td>';
-          case 'height':    return '<td class="muted">'+(p.height?p.height+(fieldSuffixOverrides.hasOwnProperty('height')?fieldSuffixOverrides['height']:'m'):'-')+'</td>';
+          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')||' 평'):'-')+'</td>';
+          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')||' 평'):'-')+'</td>';
+          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')||' 평'):'-')+'</td>';
+          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(getFieldSuffix('exclusiveArea')||' 평'):'-')+'</td>';
+          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(getFieldSuffix('tempArea')||' 평'):'-')+'</td>';
+          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(getFieldSuffix('roadArea')||' 평'):'-')+'</td>';
+          case 'electric':  return '<td class="muted">'+(p.electric?p.electric+(getFieldSuffix('electric')||'kw'):'-')+'</td>';
+          case 'height':    return '<td class="muted">'+(p.height?p.height+(getFieldSuffix('height')||'m'):'-')+'</td>';
           case 'useZone':   return '<td class="muted">'+(p.useZone?(p.useZone+(getFieldSuffix('useZone')?' '+getFieldSuffix('useZone'):'')):'-')+'</td>';
           case 'jimok':     return '<td class="muted">'+(p.jimok?(p.jimok+(getFieldSuffix('jimok')?' '+getFieldSuffix('jimok'):'')):'-')+'</td>';
           case 'buildingUse':  return '<td class="muted">'+(p.buildingUse?(p.buildingUse+(getFieldSuffix('buildingUse')?' '+getFieldSuffix('buildingUse'):'')):'-')+'</td>';
@@ -1939,14 +1941,15 @@ function openDetail(id){
 
   // fieldSections 기준으로 기본정보/상세정보/소유자정보 분리
   var allOrdered = getOrderedFields(ptype);
-  var basicItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='기본정보' && isFieldVisible(ptype,f.key); });
-  var ownerItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='소유자정보' && isFieldVisible(ptype,f.key); });
-  var detailOnlyItems = allOrdered.filter(function(f){ return (fieldSections[f.key]||'상세정보')==='상세정보' && isFieldVisible(ptype,f.key); });
+  var basicItems = allOrdered.filter(function(f){ return getFieldSection(f.key,'상세정보')==='기본정보' && isFieldVisible(ptype,f.key); });
+  var ownerItems = allOrdered.filter(function(f){ return getFieldSection(f.key,'상세정보')==='소유자정보' && isFieldVisible(ptype,f.key); });
+  var detailOnlyItems = allOrdered.filter(function(f){ return getFieldSection(f.key,'상세정보')==='상세정보' && isFieldVisible(ptype,f.key); });
 
   function renderFieldVal(f) {
     var raw = p[f.key] || '';
     var suffix = getFieldSuffix(f.key);
-    var hasSuffixOverride = fieldSuffixOverrides.hasOwnProperty(f.key);
+    var so = fieldSuffixOverrides[currentSector];
+    var hasSuffixOverride = so && so.hasOwnProperty(f.key);
     var val;
     if(f.key==='electric') val = raw ? raw+(hasSuffixOverride ? suffix : 'kw') : '-';
     else if(f.key==='height') val = raw ? raw+(hasSuffixOverride ? suffix : 'm') : '-';
@@ -2933,7 +2936,8 @@ function getSuffixCached(key) {
     _suffixCache = {};
     DEFAULT_FIELDS.forEach(function(f){ _suffixCache[f.key] = f.suffix || ''; });
   }
-  if (fieldSuffixOverrides.hasOwnProperty(key)) return fieldSuffixOverrides[key];
+  var o = fieldSuffixOverrides[currentSector];
+  if (o && o.hasOwnProperty(key)) return o[key];
   return _suffixCache[key] !== undefined ? _suffixCache[key] : '';
 }
 function invalidateSuffixCache() { _suffixCache = null; }
@@ -2946,9 +2950,10 @@ function getColDefsCache() {
 }
 function invalidateColDefsCache() { _colDefsCache = null; }
 
-// 엑셀 업·다운로드에 쓰는 컬럼 목록 (최신 항목설정 기반)
+// 엑셀 업·다운로드에 쓰는 컬럼 목록 (최신 항목설정 기반, 현재 섹터)
 function getExcelExportFields() {
-  var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || PROP_TYPES[0];
+  var sectorTypes = getPropTypesForSector(currentSector);
+  var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
   var orderedFields = getOrderedFields(refType);
   var fixedFront = [
     {key:'propNo',    label:'No.'},
@@ -3105,9 +3110,24 @@ function loadFieldSettings(callback) {
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
       PROP_TYPES.forEach(function(t){ if(fieldOrder[t]) fieldOrder[t] = dedupeOrder(fieldOrder[t]); });
-      fieldSections = data.fieldSections || {};
-      fieldLabelOverrides = data.fieldLabelOverrides || {};
-      fieldSuffixOverrides = data.fieldSuffixOverrides || {};
+      var fs = data.fieldSections;
+      if (fs && fs.residential !== undefined && fs.commercial !== undefined) {
+        fieldSections = { residential: fs.residential || {}, commercial: fs.commercial || {} };
+      } else if (fs && typeof fs === 'object' && !Array.isArray(fs)) {
+        fieldSections = { residential: Object.assign({}, fs), commercial: Object.assign({}, fs) };
+      }
+      var lo = data.fieldLabelOverrides;
+      var so = data.fieldSuffixOverrides;
+      if (lo && lo.residential !== undefined && lo.commercial !== undefined) {
+        fieldLabelOverrides = { residential: lo.residential || {}, commercial: lo.commercial || {} };
+      } else if (lo && typeof lo === 'object' && !Array.isArray(lo)) {
+        fieldLabelOverrides = { residential: Object.assign({}, lo), commercial: Object.assign({}, lo) };
+      }
+      if (so && so.residential !== undefined && so.commercial !== undefined) {
+        fieldSuffixOverrides = { residential: so.residential || {}, commercial: so.commercial || {} };
+      } else if (so && typeof so === 'object' && !Array.isArray(so)) {
+        fieldSuffixOverrides = { residential: Object.assign({}, so), commercial: Object.assign({}, so) };
+      }
       if(data.listColumnSettings && Object.keys(data.listColumnSettings).length > 0) {
         listColumnSettings = Object.assign({}, listColumnSettings, data.listColumnSettings);
       }
@@ -3115,46 +3135,48 @@ function loadFieldSettings(callback) {
       fieldSettings = {};
       customFields = {};
       fieldOrder = {};
-      fieldSections = {};
+      fieldSections = { residential: {}, commercial: {} };
       PROP_TYPES.forEach(function(t) {
         fieldSettings[t] = {};
         DEFAULT_FIELDS.forEach(function(f) { fieldSettings[t][f.key] = true; });
         customFields[t] = [];
         fieldOrder[t] = DEFAULT_FIELDS.map(function(f){ return f.key; });
       });
-      DEFAULT_FIELDS.forEach(function(f){ fieldSections[f.key] = f.section; });
+      DEFAULT_FIELDS.forEach(function(f){
+        fieldSections.residential[f.key] = f.section;
+        fieldSections.commercial[f.key] = f.section;
+      });
       saveFieldSettings();
     }
-    // 누락되거나 항목이 부족한 타입은 기존 타입 최신 설정으로 자동 동기화
-    var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length > 0; });
-    if(refType) {
-      var refOrder    = fieldOrder[refType];
-      var refCustoms  = customFields[refType] || [];
-      var refSettings = fieldSettings[refType] || {};
-      PROP_TYPES.forEach(function(t) {
+    // 누락되거나 항목이 부족한 타입은 같은 섹터 내에서만 동기화 (주거용↔주거용, 상업용↔상업용)
+    [RESIDENTIAL_TYPES, COMMERCIAL_TYPES].forEach(function(sectorTypes) {
+      var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length > 0; });
+      if(!refType) return;
+      var refOrder   = fieldOrder[refType];
+      var refCustoms = customFields[refType] || [];
+      sectorTypes.forEach(function(t) {
         if(t === refType) return;
-        // 항목 수가 기준 타입보다 적으면 → 최신 순서/커스텀항목 동기화
         var curOrder = fieldOrder[t] || [];
         if(curOrder.length < refOrder.length) {
-          // 순서 동기화 (없는 키만 추가)
           fieldOrder[t] = refOrder.slice();
-          // 커스텀 항목 동기화 (없는 항목만 추가, 기존 ON/OFF는 유지)
           if(!customFields[t]) customFields[t] = [];
           refCustoms.forEach(function(cf){
             var exists = customFields[t].find(function(f){ return f.key === cf.key; });
             if(!exists) customFields[t].push({key:cf.key, label:cf.label});
           });
           if(!fieldSettings[t]) fieldSettings[t] = {};
-          // 새로 생긴 키는 OFF로 추가
           refOrder.forEach(function(key){
             if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = false;
           });
         }
       });
-    }
-    // fieldSections 누락 키 채우기
-    DEFAULT_FIELDS.forEach(function(f){
-      if(!fieldSections[f.key]) fieldSections[f.key] = f.section;
+    });
+    // fieldSections 누락 키 채우기 (섹터별)
+    ['residential','commercial'].forEach(function(sec){
+      if(!fieldSections[sec]) fieldSections[sec] = {};
+      DEFAULT_FIELDS.forEach(function(f){
+        if(!fieldSections[sec][f.key]) fieldSections[sec][f.key] = f.section;
+      });
     });
     // DEFAULT_FIELDS에 새로 추가된 키가 fieldOrder에 없으면 끝에 추가
     var defaultKeys = DEFAULT_FIELDS.map(function(f){ return f.key; });
@@ -3170,7 +3192,11 @@ function loadFieldSettings(callback) {
           if(!fieldSettings[t]) fieldSettings[t] = {};
           // 등록일시·최종수정은 기본 ON, 그 외 신규 키는 OFF
           if(fieldSettings[t][key] === undefined) fieldSettings[t][key] = (key === 'createdDate' || key === 'updatedDate') ? true : false;
-          if(!fieldSections[key]) fieldSections[key] = DEFAULT_FIELDS.find(function(f){ return f.key===key; }).section;
+          var defSection = (DEFAULT_FIELDS.find(function(f){ return f.key===key; })||{}).section;
+          if(defSection) {
+            if(!fieldSections.residential[key]) fieldSections.residential[key] = defSection;
+            if(!fieldSections.commercial[key]) fieldSections.commercial[key] = defSection;
+          }
           needsSave = true;
         }
       });
@@ -3179,7 +3205,9 @@ function loadFieldSettings(callback) {
     var keysToRemove = {};
     PROP_TYPES.forEach(function(t){
       (customFields[t]||[]).forEach(function(cf){
-        if((fieldLabelOverrides[cf.key]||cf.label)==='총토지면적삭제') keysToRemove[cf.key]=true;
+        var lblRes = (fieldLabelOverrides.residential && fieldLabelOverrides.residential[cf.key]) || cf.label;
+        var lblCom = (fieldLabelOverrides.commercial && fieldLabelOverrides.commercial[cf.key]) || cf.label;
+        if(lblRes==='총토지면적삭제' || lblCom==='총토지면적삭제') keysToRemove[cf.key]=true;
       });
     });
     Object.keys(keysToRemove).forEach(function(key){
@@ -3188,9 +3216,12 @@ function loadFieldSettings(callback) {
         if(fieldSettings[t]) delete fieldSettings[t][key];
         if(customFields[t]) customFields[t]=customFields[t].filter(function(f){ return f.key!==key; });
       });
-      delete fieldLabelOverrides[key];
-      delete fieldSuffixOverrides[key];
-      delete fieldSections[key];
+      if(fieldLabelOverrides.residential) delete fieldLabelOverrides.residential[key];
+      if(fieldLabelOverrides.commercial) delete fieldLabelOverrides.commercial[key];
+      if(fieldSuffixOverrides.residential) delete fieldSuffixOverrides.residential[key];
+      if(fieldSuffixOverrides.commercial) delete fieldSuffixOverrides.commercial[key];
+      if(fieldSections.residential) delete fieldSections.residential[key];
+      if(fieldSections.commercial) delete fieldSections.commercial[key];
       needsSave=true;
     });
     if(needsSave) saveFieldSettings();
@@ -3219,27 +3250,33 @@ function saveFieldSettings() {
   });
 }
 
-// 항목의 실제 표시 이름 반환 (override 우선)
+// 항목의 실제 표시 이름 반환 (현재 섹터 override 우선)
 function getFieldLabel(key, defaultLabel) {
-  return fieldLabelOverrides[key] || defaultLabel;
+  var o = fieldLabelOverrides[currentSector];
+  return (o && o[key]) !== undefined ? o[key] : defaultLabel;
 }
 
-// 항목의 단위 반환 (override 우선, 없으면 DEFAULT suffix)
+// 항목의 단위 반환 (현재 섹터 override 우선)
 function getFieldSuffix(key) {
-  // override가 설정된 경우 (빈 문자열 포함) override 값 사용
-  if(fieldSuffixOverrides.hasOwnProperty(key)) return fieldSuffixOverrides[key];
-  // 없으면 DEFAULT_FIELDS의 suffix 사용
+  var o = fieldSuffixOverrides[currentSector];
+  if(o && o.hasOwnProperty(key)) return o[key];
   var def = DEFAULT_FIELDS.find(function(f){ return f.key===key; });
   return def ? (def.suffix||'') : '';
 }
 
+// 항목의 섹션 반환 (현재 섹터 기준: 기본정보/상세정보/소유자정보)
+function getFieldSection(key, defaultSection) {
+  var o = fieldSections[currentSector];
+  return (o && o[key]) || defaultSection || '상세정보';
+}
+
 // 해당 타입의 전체 항목 순서대로 반환
-// 리스트 컬럼 전체 목록 생성 (고정 + 동적)
+// 리스트 컬럼 전체 목록 생성 (고정 + 동적, 현재 섹터 타입 기준)
 function buildAllColDefs() {
   // 고정 컬럼 키 (매물종류 → 거래유형 순)
   var FIXED_KEYS = ['propNo','photo','type','georae','address','price','adStatus','departure'];
-  // 항목설정 기준 선택 컬럼 (DEFAULT_FIELDS + 커스텀, PROP_TYPES[0] 기준)
-  var refType = PROP_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || PROP_TYPES[0];
+  var sectorTypes = getPropTypesForSector(currentSector);
+  var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
   var ordered = getOrderedFields(refType);
   // 고정 컬럼 제외한 선택 컬럼
   var selectableCols = ordered
@@ -3273,8 +3310,8 @@ function getOrderedFields(type) {
   order = order.filter(function(k){ if(seen[k]) return false; seen[k]=true; return true; });
   // 전체 항목 맵
   var allFields = {};
-  DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:(fieldSections[f.key]||f.section), suffix:f.suffix}; });
-  customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:(fieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
+  DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:getFieldSection(f.key,f.section), suffix:f.suffix}; });
+  customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:getFieldSection(cf.key,'상세정보'), suffix:'', custom:true}; });
   // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외, 같은 라벨 중복 제거 (도로지분 등 첫 번째만 유지)
   var list = order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
   var labelSeen = {};
@@ -3305,9 +3342,12 @@ function openSettings() {
   _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
   _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
   _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
-  _tmpFieldSections = JSON.parse(JSON.stringify(fieldSections));
-  _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(fieldLabelOverrides));
-  _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(fieldSuffixOverrides));
+  var lo = fieldLabelOverrides[currentSector];
+  var so = fieldSuffixOverrides[currentSector];
+  var fs = fieldSections[currentSector];
+  _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(lo || {}));
+  _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(so || {}));
+  _tmpFieldSections = JSON.parse(JSON.stringify(fs || {}));
   window._settingsActiveType = '전체';
   renderSettingsPanel();
   // 드래그 중 리스트 밖(빈 영역)에서도 스크롤되도록 모달 본문에 dragover 연결
@@ -3846,9 +3886,15 @@ function confirmSettings() {
   fieldSettings = JSON.parse(JSON.stringify(_tmpFieldSettings));
   customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
   fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
-  fieldSections = JSON.parse(JSON.stringify(_tmpFieldSections));
-  fieldLabelOverrides = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
-  fieldSuffixOverrides = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
+  if(!fieldSections.residential) fieldSections.residential = {};
+  if(!fieldSections.commercial) fieldSections.commercial = {};
+  fieldSections[currentSector] = JSON.parse(JSON.stringify(_tmpFieldSections));
+  if(!fieldLabelOverrides.residential) fieldLabelOverrides.residential = {};
+  if(!fieldLabelOverrides.commercial) fieldLabelOverrides.commercial = {};
+  if(!fieldSuffixOverrides.residential) fieldSuffixOverrides.residential = {};
+  if(!fieldSuffixOverrides.commercial) fieldSuffixOverrides.commercial = {};
+  fieldLabelOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
+  fieldSuffixOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
   invalidateSuffixCache();
   invalidateColDefsCache();
   saveFieldSettings();
@@ -4088,8 +4134,8 @@ function renderSettingsPanel() {
 // 임시 상태 변경 함수들
 function tmpToggleField(type, key, val) {
   if(type === '전체') {
-    // 전체 탭: 모든 매물종류에 동시 적용
-    PROP_TYPES.forEach(function(t) {
+    // 전체 탭: 현재 섹터(주거용/상업용)의 매물종류에만 적용
+    getPropTypesForSector(currentSector).forEach(function(t) {
       if(!_tmpFieldSettings[t]) _tmpFieldSettings[t] = {};
       _tmpFieldSettings[t][key] = val;
     });
@@ -4104,9 +4150,9 @@ function tmpAddCustomField() {
   var label = input.value.trim();
   if(!label) return;
   var key = 'custom_' + Date.now();
-  // 새 항목은 상세정보 섹션에 자동 등록
+  // 새 항목은 상세정보 섹션에 자동 등록 (현재 섹터 타입에만 추가)
   _tmpFieldSections[key] = '상세정보';
-  PROP_TYPES.forEach(function(t) {
+  getPropTypesForSector(currentSector).forEach(function(t) {
     if(!_tmpCustomFields[t]) _tmpCustomFields[t] = [];
     if(!_tmpFieldSettings[t]) _tmpFieldSettings[t] = {};
     if(!_tmpCustomFields[t].find(function(f){ return f.key===key; }))
@@ -4134,7 +4180,7 @@ function tmpDeleteField(activeType, key, isCustom) {
     }
   }
   if (!confirm(msg)) return;
-  var types = (activeType === '전체') ? PROP_TYPES : [activeType];
+  var types = (activeType === '전체') ? getPropTypesForSector(currentSector) : [activeType];
   types.forEach(function(t) {
     if (_tmpFieldOrder[t]) _tmpFieldOrder[t] = _tmpFieldOrder[t].filter(function(k){ return k !== key; });
     if (_tmpFieldSettings[t]) delete _tmpFieldSettings[t][key];
@@ -4181,8 +4227,8 @@ function confirmLabelEdit(key) {
   if(!newLabel) { renderSettingsPanel(); return; }
   _tmpFieldLabelOverrides[key]  = newLabel;
   _tmpFieldSuffixOverrides[key] = newSuffix;
-  // 커스텀 항목 label도 동기화
-  PROP_TYPES.forEach(function(t){
+  // 커스텀 항목 label도 동기화 (현재 섹터 타입만)
+  getPropTypesForSector(currentSector).forEach(function(t){
     if(_tmpCustomFields[t]) {
       var cf = _tmpCustomFields[t].find(function(f){ return f.key===key; });
       if(cf) cf.label = newLabel;
@@ -4227,8 +4273,8 @@ function onFieldDrop(e) {
   var targetSection = _tmpFieldSections[targetKey] || '상세정보';
   _tmpFieldSections[_dragSrcKey] = targetSection;
 
-  // 모든 타입 순서 업데이트
-  PROP_TYPES.forEach(function(t) {
+  // 현재 섹터(주거용/상업용) 타입 순서만 업데이트
+  getPropTypesForSector(currentSector).forEach(function(t) {
     var tOrder = (_tmpFieldOrder[t] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
     var fi = tOrder.indexOf(_dragSrcKey);
     var ti = tOrder.indexOf(targetKey);

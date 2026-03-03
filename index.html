@@ -1330,7 +1330,7 @@ function renderTable() {
           case 'photo':     return '<td>'+thumb+'</td>';
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
-          case 'address':   return '<td class="address-text" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
+          case 'address':   return '<td class="address-text" onclick="event.stopPropagation(); copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(fieldSuffixOverrides.hasOwnProperty('landArea')?fieldSuffixOverrides['landArea']:' 평'):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(fieldSuffixOverrides.hasOwnProperty('totalArea')?fieldSuffixOverrides['totalArea']:' 평'):'-')+'</td>';
@@ -1362,8 +1362,8 @@ function renderTable() {
           }
         }
       }).join('');
-      return '<tr>'+rowCells+
-        '<td><div class="action-btns">'+
+      return '<tr onclick="openDetail(\''+p.id.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">'+rowCells+
+        '<td onclick="event.stopPropagation()"><div class="action-btns">'+
           '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+p.id+'\')">상세</button>'+
         '</div></td>'+
       '</tr>';

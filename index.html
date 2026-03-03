@@ -313,15 +313,28 @@ th{position:relative;}
   <div class="filter-bar">
     <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="debouncedRender()">
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
-    <select class="filter-select" id="filterType" onchange="renderTable()">
-      <option value="">매물종류 전체</option>
-      <option>토지</option><option>공장창고</option><option>상가/사무실</option>
-      <option>아파트</option><option>빌라</option><option>원룸</option><option>1.5룸</option><option>투룸</option><option>오피스텔</option><option>절대농지</option><option>단독주택</option><option>펜션</option><option>건물</option>
-    </select>
-    <select class="filter-select" id="filterGeorae" onchange="renderTable()">
-      <option value="">거래유형 전체</option>
-      <option>매매</option><option>전세</option><option>월세</option>
-    </select>
+    <div style="position:relative;display:inline-block;">
+      <button class="btn btn-outline btn-sm" type="button" onclick="toggleFilterTypePopup()" id="filterTypeBtn">매물종류 전체</button>
+      <div id="filterTypePopup" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:200px;max-height:280px;overflow-y:auto;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">매물종류 (선택한 것만 표시)</div>
+        <div id="filterTypeCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+          <button class="btn btn-outline btn-sm" onclick="toggleFilterTypePopup()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="applyFilterType();toggleFilterTypePopup();">적용</button>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <button class="btn btn-outline btn-sm" type="button" onclick="toggleFilterGeoraePopup()" id="filterGeoraeBtn">거래유형 전체</button>
+      <div id="filterGeoraePopup" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:160px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">거래유형 (선택한 것만 표시)</div>
+        <div id="filterGeoraeCheckboxes" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+          <button class="btn btn-outline btn-sm" onclick="toggleFilterGeoraePopup()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="applyFilterGeorae();toggleFilterGeoraePopup();">적용</button>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-outline btn-sm" id="advSearchBtn" onclick="toggleAdvSearch()">🔎 상세검색 ▾</button>
     <div style="position:relative;display:inline-block;">
       <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()" id="colSettingBtn" style="font-size:12px;">⚙️ 컬럼 설정</button>
@@ -891,6 +904,9 @@ var listColumnSettings = {
 };
 
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원룸','1.5룸','투룸','오피스텔','절대농지','단독주택','펜션','건물'];
+var GEORAE_TYPES = ['매매','전세','월세'];
+var filterTypeChecked = {};
+var filterGeoraeChecked = {};
 
 // 기본 항목 정의 (key, label, suffix)
 var DEFAULT_FIELDS = [
@@ -1226,8 +1242,8 @@ document.addEventListener('click', function(e) {
 // ── 테이블 ────────────────────────────────
 function renderTable() {
   var q = document.getElementById('searchInput').value.toLowerCase();
-  var fg = document.getElementById('filterGeorae').value;
-  var ft = document.getElementById('filterType').value;
+  var selectedTypes = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
+  var selectedGeorae = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });
   // 상세검색
   var priceMin = parseFloat(document.getElementById('adv_priceMin').value) || null;
   var priceMax = parseFloat(document.getElementById('adv_priceMax').value) || null;
@@ -1240,8 +1256,8 @@ function renderTable() {
   var region   = document.getElementById('adv_region').value.trim().toLowerCase();
 
   var list = properties.filter(function(p){
-    if(fg && p.georae!==fg) return false;
-    if(ft && p.type!==ft) return false;
+    if(selectedGeorae.length > 0 && selectedGeorae.indexOf(p.georae) === -1) return false;
+    if(selectedTypes.length > 0 && selectedTypes.indexOf(p.type) === -1) return false;
     if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.premium,p.landArea,p.totalArea,p.supplyArea,p.exclusiveArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.floors,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.elevator,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     // 가격 범위
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
@@ -1461,8 +1477,12 @@ function refreshApp() {
     location.reload();
   } else {
     document.getElementById('searchInput').value = '';
-    document.getElementById('filterGeorae').value = '';
-    document.getElementById('filterType').value = '';
+    filterTypeChecked = {};
+    filterGeoraeChecked = {};
+    updateFilterTypeButtonText();
+    updateFilterGeoraeButtonText();
+    document.getElementById('filterTypePopup').style.display = 'none';
+    document.getElementById('filterGeoraePopup').style.display = 'none';
     renderTable();
     window.scrollTo(0, 0);
   }
@@ -1511,8 +1531,12 @@ function toggleAdvSearch() {
 
 function resetFilters(){
   document.getElementById('searchInput').value='';
-  document.getElementById('filterGeorae').value='';
-  document.getElementById('filterType').value='';
+  filterTypeChecked = {};
+  filterGeoraeChecked = {};
+  updateFilterTypeButtonText();
+  updateFilterGeoraeButtonText();
+  document.getElementById('filterTypePopup').style.display = 'none';
+  document.getElementById('filterGeoraePopup').style.display = 'none';
   ['adv_priceMin','adv_priceMax','adv_landMin','adv_landMax','adv_areaMin','adv_areaMax','adv_useZone','adv_jimok','adv_region'].forEach(function(id){
     document.getElementById(id).value='';
   });
@@ -3779,11 +3803,29 @@ function confirmSettings() {
   showToast('✅ 설정이 저장됐어요!');
 }
 
+function closeAllFilterPopups() {
+  var c = document.getElementById('colSettingPopup');
+  var ft = document.getElementById('filterTypePopup');
+  var fg = document.getElementById('filterGeoraePopup');
+  if(c) c.style.display = 'none';
+  if(ft) ft.style.display = 'none';
+  if(fg) fg.style.display = 'none';
+}
+function isInsidePopupOrTrigger(el) {
+  while(el) {
+    var id = el.id;
+    if(id === 'colSettingPopup' || id === 'colSettingBtn' || id === 'filterTypePopup' || id === 'filterTypeBtn' || id === 'filterGeoraePopup' || id === 'filterGeoraeBtn') return true;
+    el = el.parentElement;
+  }
+  return false;
+}
 function toggleColumnPopup() {
   var popup = document.getElementById('colSettingPopup');
   if(!popup) return;
   var isOpen = popup.style.display !== 'none';
   if(isOpen) { popup.style.display='none'; return; }
+  closeAllFilterPopups();
+  popup.style.display = 'block';
   // 테이블과 동일한 컬럼 목록 사용 (캐시 기준으로 일치 보장)
   var allCols = getColDefsCache();
   var html = '';
@@ -3796,8 +3838,67 @@ function toggleColumnPopup() {
       '</label>';
   });
   document.getElementById('colCheckboxes').innerHTML = html;
+}
+
+function updateFilterTypeButtonText() {
+  var btn = document.getElementById('filterTypeBtn');
+  if(!btn) return;
+  var selected = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
+  btn.textContent = selected.length === 0 ? '매물종류 전체' : '매물종류 ' + selected.join(', ');
+}
+function updateFilterGeoraeButtonText() {
+  var btn = document.getElementById('filterGeoraeBtn');
+  if(!btn) return;
+  var selected = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });
+  btn.textContent = selected.length === 0 ? '거래유형 전체' : '거래유형 ' + selected.join(', ');
+}
+function toggleFilterTypePopup() {
+  var popup = document.getElementById('filterTypePopup');
+  if(!popup) return;
+  var isOpen = popup.style.display !== 'none';
+  if(isOpen) { popup.style.display = 'none'; return; }
+  closeAllFilterPopups();
+  var html = '';
+  PROP_TYPES.forEach(function(t) {
+    var checked = filterTypeChecked[t] === true;
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'+
+      '<input type="checkbox" data-type="'+escapeHtml(t)+'" '+(checked?'checked':'')+' style="width:14px;height:14px;">'+escapeHtml(t)+'</label>';
+  });
+  document.getElementById('filterTypeCheckboxes').innerHTML = html;
   popup.style.display = 'block';
 }
+function toggleFilterGeoraePopup() {
+  var popup = document.getElementById('filterGeoraePopup');
+  if(!popup) return;
+  var isOpen = popup.style.display !== 'none';
+  if(isOpen) { popup.style.display = 'none'; return; }
+  closeAllFilterPopups();
+  var html = '';
+  GEORAE_TYPES.forEach(function(g) {
+    var checked = filterGeoraeChecked[g] === true;
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">'+
+      '<input type="checkbox" data-georae="'+escapeHtml(g)+'" '+(checked?'checked':'')+' style="width:14px;height:14px;">'+escapeHtml(g)+'</label>';
+  });
+  document.getElementById('filterGeoraeCheckboxes').innerHTML = html;
+  popup.style.display = 'block';
+}
+function applyFilterType() {
+  filterTypeChecked = {};
+  var cbs = document.querySelectorAll('#filterTypeCheckboxes input[type=checkbox]');
+  for(var i=0;i<cbs.length;i++) { if(cbs[i].checked) filterTypeChecked[cbs[i].getAttribute('data-type')] = true; }
+  updateFilterTypeButtonText();
+  renderTable();
+}
+function applyFilterGeorae() {
+  filterGeoraeChecked = {};
+  var cbs = document.querySelectorAll('#filterGeoraeCheckboxes input[type=checkbox]');
+  for(var i=0;i<cbs.length;i++) { if(cbs[i].checked) filterGeoraeChecked[cbs[i].getAttribute('data-georae')] = true; }
+  updateFilterGeoraeButtonText();
+  renderTable();
+}
+document.addEventListener('click', function(e) {
+  if(!e.target || !isInsidePopupOrTrigger(e.target)) closeAllFilterPopups();
+});
 
 function renderListColumnPanel() {} // 설정패널 탭 제거 - 더 이상 사용 안 함
 

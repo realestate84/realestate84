@@ -178,22 +178,12 @@ label{font-size:12px;color:var(--text-muted);font-weight:500;}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-/* 중간 크기 이하: 상단 버튼 숨기고 햄버거 메뉴로 → 배열 망가짐 방지 (PC버전 모드에서는 상단 버튼 표시) */
+/* 중간 크기 이하: 상단 버튼 숨기고 햄버거 메뉴로 → 배열 망가짐 방지 */
 @media(max-width:1024px){
   .header-actions{display:none !important;}
   .mobile-menu-btn{display:flex !important;}
   header{flex-wrap:nowrap;gap:10px;}
 }
-body.pc-view .header-actions{display:flex !important;}
-body.pc-view .mobile-menu-btn{display:none !important;}
-/* PC버전이어도 화면이 작으면 햄버거 메뉴 사용 */
-@media(max-width:768px){
-  body.pc-view .header-actions{display:none !important;}
-  body.pc-view .mobile-menu-btn{display:flex !important;}
-}
-/* 매물 리스트 스크롤 유지 (flex 자식이 줄어들 수 있도록) */
-.container{min-height:0;}
-.table-wrap{-webkit-overflow-scrolling:touch;}
 @media(max-width:768px){
   .container{padding:12px; padding-bottom:max(20px, env(safe-area-inset-bottom, 20px));}
   .form-grid{grid-template-columns:1fr;}
@@ -222,11 +212,6 @@ th{position:relative;}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:var(--text);margin-bottom:2px;}
 .map-marker-info .mi-price{color:var(--danger);font-weight:600;}
-/* 관련사이트 모달 배너 그리드 */
-.sites-banner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
-.sites-banner-item{display:block;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--accent);font-size:16px;font-weight:500;transition:all 0.2s;text-align:left;}
-.sites-banner-item:hover{border-color:var(--accent);background:rgba(58,126,246,0.08);color:var(--accent);}
-.sites-banner-item .site-name{display:block;}
 /* 상세모달은 전체지도 위에 표시 */
 #detailModal{z-index:500;}
 /* 지도 체크박스 필터 */
@@ -301,10 +286,9 @@ th{position:relative;}
   </div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="openCustomers()">👥 고객문의</button>
-    <button class="btn btn-outline" onclick="openSitesModal()">🔗 사이트</button>
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
-    <button type="button" class="btn btn-outline js-pc-view-toggle">🖥 PC버전</button>
+    <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
     <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
@@ -326,12 +310,11 @@ th{position:relative;}
   </div>
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
-  <button class="btn btn-outline" onclick="openSitesModal();closeMobileMenu()">🔗 사이트</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
   <button class="btn btn-outline" onclick="openSettings();closeMobileMenu()">⚙️ 설정</button>
-  <button type="button" class="btn btn-outline js-pc-view-toggle js-pc-view-close-drawer">🖥 PC버전</button>
+  <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
   <hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">
@@ -686,19 +669,6 @@ th{position:relative;}
       <button class="modal-close" onclick="closeStats()">×</button>
     </div>
     <div class="modal-body" id="statsBody"></div>
-  </div>
-</div>
-
-<!-- 관련사이트 모달 -->
-<div class="modal-overlay" id="sitesModal" onclick="if(event.target===this)closeSitesModal()">
-  <div class="modal" style="max-width:720px;">
-    <div class="modal-header">
-      <div class="modal-title">🔗 관련사이트</div>
-      <button class="modal-close" onclick="closeSitesModal()">×</button>
-    </div>
-    <div class="modal-body" style="padding:16px;">
-      <div class="sites-banner-grid" id="sitesBannerGrid"></div>
-    </div>
   </div>
 </div>
 
@@ -1279,44 +1249,8 @@ function closeStats() {
   document.getElementById('statsModal').classList.remove('active');
 }
 
-var relatedSites = [
-  { name: '네이버부동산', url: 'http://land.naver.com/' },
-  { name: '정부24', url: 'http://www.gov.kr/' },
-  { name: '세움터', url: 'https://www.eais.go.kr/' },
-  { name: '인터넷등기소', url: 'http://www.iros.go.kr/' },
-  { name: '홈택스', url: 'http://www.hometax.go.kr/' },
-  { name: '토지e음', url: 'http://www.eum.go.kr/' },
-  { name: '땅야', url: 'http://www.ddangya.com/' },
-  { name: '밸류맵', url: 'http://www.valueupmap.com/' },
-  { name: '디스코', url: 'http://www.disco.re/' },
-  { name: '마이옥션', url: 'http://www.my-auction.co.kr/' },
-  { name: '아실', url: 'https://asil.kr/' },
-  { name: '호갱노노', url: 'http://www.hogangnono.com/' },
-  { name: 'KB부동산', url: 'https://kbland.kr/' },
-  { name: '부동산공시가격알리미', url: 'http://www.realtyprice.kr/' },
-  { name: '실거래가 신고', url: 'https://rtms.molit.go.kr/' },
-  { name: '국토교통부 실거래가', url: 'http://rt.molit.go.kr/' },
-  { name: '한국공인중개사협회', url: 'http://www.kar.or.kr/' },
-  { name: '네이버지도', url: 'https://map.naver.com/' },
-  { name: '카카오지도', url: 'https://map.kakao.com/' },
-  { name: '구글지도', url: 'https://www.google.com/maps/' }
-];
-
-function openSitesModal() {
-  var grid = document.getElementById('sitesBannerGrid');
-  grid.innerHTML = relatedSites.map(function(s, i) {
-    return '<a class="sites-banner-item" href="' + s.url + '" target="_blank" rel="noopener"><span class="site-name">' + (i + 1) + '. ' + s.name + '</span></a>';
-  }).join('');
-  document.getElementById('sitesModal').classList.add('active');
-}
-
-function closeSitesModal() {
-  document.getElementById('sitesModal').classList.remove('active');
-}
-
 document.addEventListener('click', function(e) {
   if(e.target === document.getElementById('statsModal')) closeStats();
-  if(e.target === document.getElementById('sitesModal')) closeSitesModal();
 });
 
 // ── 테이블 ────────────────────────────────
@@ -4399,23 +4333,18 @@ function switchSettingsTab(type) {
   window._settingsActiveType = type;
   renderSettingsPanel();
 }
-// ── PC버전 보기 (viewport 변경 없이 상단 버튼만 표시, 매물 리스트 스크롤·글자 크기 유지) ───────────────────────────
+// ── PC버전 보기 ───────────────────────────
 function togglePCView() {
-  document.body.classList.toggle('pc-view');
-  var on = document.body.classList.contains('pc-view');
-  document.querySelectorAll('.js-pc-view-toggle').forEach(function(btn) { btn.textContent = on ? '📱 모바일버전' : '🖥 PC버전'; });
-}
-document.addEventListener('click', function(e) {
-  var btn = e.target && e.target.closest && e.target.closest('.js-pc-view-toggle');
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation();
-  togglePCView();
-  if (btn.classList.contains('js-pc-view-close-drawer')) {
-    var drawer = document.getElementById('mobileDrawer');
-    if (drawer && drawer.classList.contains('open')) closeMobileMenu();
+  var meta = document.querySelector('meta[name="viewport"]');
+  var btn = document.querySelector('[onclick="togglePCView()"]');
+  if(meta.content.includes('width=device-width')) {
+    meta.content = 'width=1280';
+    btn.textContent = '📱 모바일버전';
+  } else {
+    meta.content = 'width=device-width, initial-scale=1.0';
+    btn.textContent = '🖥 PC버전';
   }
-});
+}
 
 // ── 전체 지도 ─────────────────────────────
 var _mapObj = null;

@@ -1579,7 +1579,9 @@ function updateFormFieldVisibility(type) {
     return;
   }
 
-  // 기본 항목 표시/숨김
+  // 기본 항목 표시/숨김 + 라벨/단위 항목설정 반영
+  var defLabels = {};
+  DEFAULT_FIELDS.forEach(function(f){ defLabels[f.key] = f.label; });
   document.querySelectorAll('#formModal [data-field-key]').forEach(function(el) {
     var key = el.dataset.fieldKey;
     var visible = isFieldVisible(type, key);
@@ -1589,9 +1591,13 @@ function updateFormFieldVisibility(type) {
     if(parent && parent.style && parent.style.display === 'grid') {
       // 그리드 안 항목은 개별 숨김만
     }
-    // 라벨명 업데이트
+    // 라벨명·단위 항목설정 반영 (이름 변경, 단위 변경 둘 다 적용)
     var lbl = document.getElementById('flabel_'+key);
-    if(lbl) lbl.textContent = getFieldLabel(key, lbl.textContent);
+    if(lbl) {
+      var baseLabel = getFieldLabel(key, defLabels[key] || lbl.textContent);
+      var suffix = getFieldSuffix(key);
+      lbl.textContent = suffix ? baseLabel + ' (' + suffix + ')' : baseLabel;
+    }
   });
   // 가격 그리드 wrapper: 자식이 모두 숨겨지면 wrapper도 숨기기
   var priceGridWrapper = document.querySelector('#formModal [data-price-grid]');

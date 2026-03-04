@@ -302,6 +302,7 @@ th{position:relative;}
     <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
     <button class="btn btn-outline" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+    <button class="btn btn-outline" onclick="openLogModal()">Log</button>
     <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
     <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
   </div>
@@ -326,6 +327,7 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
+  <button class="btn btn-outline" onclick="openLogModal();closeMobileMenu()">Log</button>
   <hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">
   <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
 </div>
@@ -740,6 +742,19 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- Log 모달 (작업 이력) -->
+<div class="modal-overlay" id="logModal" onclick="if(event.target===this)closeLogModal()">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">📋 작업 로그</div>
+      <button class="modal-close" onclick="closeLogModal()">×</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+      <div id="logModalBody" style="font-size:13px;color:var(--text-muted);">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
 <!-- 고객관리 모달 -->
 <div class="modal-overlay" id="customersModal" onclick="if(event.target===this)closeCustomers()">
   <div class="modal" style="max-width:1150px;height:92vh;">
@@ -1006,7 +1021,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function() {
 
 function doGoogleLogin() {
   var provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(function(e) {
+  auth.signInWithPopup(provider).then(function() { appendActivityLog('로그인'); }).catch(function(e) {
     document.getElementById('loginErr').textContent = '구글 로그인에 실패했습니다.';
   });
 }
@@ -1018,6 +1033,7 @@ function doLogin() {
   err.textContent = '';
   if(!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
   auth.signInWithEmailAndPassword(email, pw)
+    .then(function() { appendActivityLog('로그인'); })
     .catch(function(e) {
       err.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
     });
@@ -1025,6 +1041,53 @@ function doLogin() {
 
 function doLogout() {
   if(confirm('로그아웃 하시겠습니까?')) auth.signOut();
+}
+
+var ACTIVITY_LOG_COLLECTION = 'activityLogs';
+function appendActivityLog(action, detail) {
+  var user = auth.currentUser;
+  if(!user) return;
+  var email = user.email || user.uid || '알 수 없음';
+  db.collection(ACTIVITY_LOG_COLLECTION).add({
+    userEmail: email,
+    action: action,
+    detail: detail || '',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(e){ console.warn('로그 기록 실패:', e); });
+}
+
+function openLogModal() {
+  document.getElementById('logModal').classList.add('active');
+  var body = document.getElementById('logModalBody');
+  body.textContent = '불러오는 중...';
+  db.collection(ACTIVITY_LOG_COLLECTION).orderBy('createdAt', 'desc').limit(200).get().then(function(snap) {
+    if(snap.empty) { body.innerHTML = '<div style="color:var(--text-muted);">기록된 로그가 없어요.</div>'; return; }
+    var list = snap.docs.map(function(d) {
+      var data = d.data();
+      var createdAt = data.createdAt;
+      var dateStr = '-', timeStr = '';
+      if(createdAt && createdAt.toDate) {
+        var dt = createdAt.toDate();
+        dateStr = dt.getFullYear() + '년 ' + (dt.getMonth()+1) + '월 ' + dt.getDate() + '일';
+        timeStr = dt.getHours() + '시 ' + dt.getMinutes() + '분';
+      }
+      var who = (data.userEmail || '-');
+      var action = (data.action || '-');
+      var detail = (data.detail || '');
+      return '<div class="doc-row" style="margin-bottom:6px;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-weight:600;color:var(--text);">'+escapeHtml(who)+'</div>'+
+          '<div style="font-size:12px;margin-top:2px;">'+dateStr+' '+timeStr+' · '+escapeHtml(action)+(detail ? ' · '+escapeHtml(detail) : '')+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    body.innerHTML = list;
+  }).catch(function(e) {
+    body.innerHTML = '<div style="color:var(--danger);">로그를 불러올 수 없어요. (Firestore 규칙 확인)</div>';
+  });
+}
+function closeLogModal() {
+  document.getElementById('logModal').classList.remove('active');
 }
 
 function doResetPw() {
@@ -2018,6 +2081,7 @@ function saveProperty(){
       saveEdit(editingId, data, function(err){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
+        appendActivityLog('매물 수정', address);
         closeFormModal();
         openDetail(savedId);
       });
@@ -2027,6 +2091,7 @@ function saveProperty(){
       saveNew(data, function(err, newId){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
+        appendActivityLog('매물 등록', address);
         closeFormModal();
       });
     }
@@ -2593,8 +2658,10 @@ function toggleOwnerSection() {
 function deleteProperty(id){
   if(!confirm('이 매물을 삭제하시겠습니까?')) return;
   var p=properties.find(function(x){return x.id===id;});
+  var addr = p ? (p.address || id) : id;
   deleteFromDB(id, p?p.photos:[], function(err){
     if(err){ alert('삭제 오류: '+err.message); return; }
+    appendActivityLog('매물 삭제', addr);
     closeDetailModal();
   });
 }
@@ -2653,6 +2720,7 @@ function uploadDoc(e, propId, docName) {
     return db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
       var p = properties.find(function(x){ return x.id === propId; });
       if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
+      appendActivityLog('문서 업로드', docName);
       if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
       else openDetail(propId);
     });
@@ -2678,6 +2746,7 @@ function uploadZipDoc(e, propId) {
     return db.collection(getPropertiesCollection()).doc(propId).update({ 'docs.ZIP': url }).then(function() {
       var px = properties.find(function(x){ return x.id === propId; });
       if(px) { if(!px.docs) px.docs={}; px.docs['ZIP'] = url; }
+      appendActivityLog('ZIP 업로드', px ? (px.address || propId) : propId);
       if(editingId === propId) refreshFormDocSection(propId);
       else openDetail(propId);
       showToast('✅ ZIP 파일이 업로드됐어요.');
@@ -2735,6 +2804,7 @@ function deleteDoc(propId, docName) {
     update['docs.' + docName] = firebase.firestore.FieldValue.delete();
     db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
       if(p && p.docs) delete p.docs[docName];
+      appendActivityLog('문서 삭제', docName);
       if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
       else openDetail(propId);
     }).catch(function(err){ alert('삭제 오류: ' + err.message); });

@@ -3379,14 +3379,12 @@ function getFieldSection(key, defaultSection) {
 }
 
 // 해당 타입의 전체 항목 순서대로 반환
-// 리스트 컬럼 전체 목록 생성 (고정 + 동적, 현재 섹터 타입 기준)
+// 리스트 컬럼 전체 목록: 고정(No. 사진 매물종류 거래유형 주소 가격 광고 출발) + 나머지는 현재 섹터 항목설정 최신 데이터만 사용 (상업용↔주거용 완전 분리)
 function buildAllColDefs() {
-  // 고정 컬럼 키 (매물종류 → 거래유형 순)
   var FIXED_KEYS = ['propNo','photo','type','georae','address','price','adStatus','departure'];
   var sectorTypes = getPropTypesForSector(currentSector);
   var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
-  var ordered = getOrderedFields(refType);
-  // 고정 컬럼 제외한 선택 컬럼
+  var ordered = getOrderedFields(refType); // 현재 섹터 항목설정(fieldOrder/customFields/라벨) 기준
   var selectableCols = ordered
     .filter(function(f){ return FIXED_KEYS.indexOf(f.key)===-1; })
     .map(function(f){ return {key:f.key, label:f.label, sortKey:f.key, fixed:false}; });
@@ -4040,7 +4038,8 @@ function toggleColumnPopup() {
   if(isOpen) { popup.style.display='none'; return; }
   closeAllFilterPopups();
   popup.style.display = 'block';
-  // 테이블과 동일한 컬럼 목록 사용 (캐시 기준으로 일치 보장)
+  // 컬럼 목록 = 고정 + 현재 섹터 항목설정 최신 데이터만 (상업용/주거용 각각 적용, 상호 영향 없음)
+  invalidateColDefsCache();
   var allCols = getColDefsCache();
   var html = '';
   allCols.forEach(function(col) {

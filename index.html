@@ -1921,7 +1921,14 @@ function openEditModal(id){
         '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="'+(docName==='배치도'?'image/*,application/pdf':'application/pdf')+'" style="display:none" onchange="uploadDoc(event,\''+id+'\',\''+docName+'\')"></label>'+
       '</div>'+
     '</div>';
-  }).join('');
+  }).join('')+
+  '<div class="doc-row" style="margin-top:10px;">'+
+    '<div><div class="doc-row-title">📦 ZIP 파일</div>'+
+    '<div class="doc-status'+(p.docs&&p.docs['ZIP']?' uploaded':'')+'">'+((p.docs&&p.docs['ZIP'])?'✅ 업로드됨':'미등록')+'</div></div>'+
+    '<div class="doc-row-actions">'+
+    ((p.docs&&p.docs['ZIP'])?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+id+'\',\'ZIP\')">🗑</button>':'')+
+    '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 ZIP 업로드<input type="file" accept=".zip,application/zip,application/x-zip-compressed" style="display:none" onchange="uploadZipDoc(event,\''+id+'\')"></label>'+
+    '</div></div>';
   document.getElementById('formDocSection').innerHTML = docHtml;
   closeDetailModal();
   document.getElementById('formModal').classList.add('active');
@@ -2134,6 +2141,17 @@ function openDetail(id){
         '</div>'+
       '</div>';
     }).join('')+
+    '<div class="doc-row" style="margin-top:10px;">'+
+      '<div>'+
+        '<div class="doc-row-title">📦 ZIP 파일</div>'+
+        '<div class="doc-status'+(p.docs&&p.docs['ZIP']?' uploaded':'')+'">'+((p.docs&&p.docs['ZIP']) ? '✅ 업로드됨' : '미등록')+'</div>'+
+      '</div>'+
+      '<div class="doc-row-actions">'+
+        ((p.docs&&p.docs['ZIP'])?'<a class="btn btn-outline btn-sm" href="'+(p.docs['ZIP'])+'" download target="_blank">⬇ 다운로드</a>':'')+
+        ((p.docs&&p.docs['ZIP'])?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+p.id+'\',\'ZIP\')">🗑</button>':'')+
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 ZIP 업로드<input type="file" accept=".zip,application/zip,application/x-zip-compressed" style="display:none" onchange="uploadZipDoc(event,\''+p.id+'\')"></label>'+
+      '</div>'+
+    '</div>'+
     '</div>'+
 
 
@@ -2599,7 +2617,14 @@ function refreshFormDocSection(propId) {
         '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 업로드<input type="file" accept="'+(docName==='배치도'?'image/*,application/pdf':'application/pdf')+'" style="display:none" onchange="uploadDoc(event,\''+propId+'\',\''+docName+'\')"></label>'+
       '</div>'+
     '</div>';
-  }).join('');
+  }).join('')+
+  '<div class="doc-row" style="margin-top:10px;">'+
+    '<div><div class="doc-row-title">📦 ZIP 파일</div>'+
+    '<div class="doc-status'+(p.docs&&p.docs['ZIP']?' uploaded':'')+'">'+((p.docs&&p.docs['ZIP'])?'✅ 업로드됨':'미등록')+'</div></div>'+
+    '<div class="doc-row-actions">'+
+    ((p.docs&&p.docs['ZIP'])?'<button class="btn btn-danger btn-sm" onclick="deleteDoc(\''+propId+'\',\'ZIP\')">🗑</button>':'')+
+    '<label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">📤 ZIP 업로드<input type="file" accept=".zip,application/zip,application/x-zip-compressed" style="display:none" onchange="uploadZipDoc(event,\''+propId+'\')"></label>'+
+    '</div></div>';
   var sec = document.getElementById('formDocSection');
   if(sec) sec.innerHTML = docHtml;
 }
@@ -2635,6 +2660,33 @@ function uploadDoc(e, propId, docName) {
     alert('업로드 오류: ' + err.message);
     label.childNodes[0].textContent = origText;
   });
+}
+
+function uploadZipDoc(e, propId) {
+  var file = e.target.files[0];
+  if(!file) return;
+  var isZip = file.type === 'application/zip' || file.type === 'application/x-zip-compressed' || (file.name && file.name.toLowerCase().endsWith('.zip'));
+  if(!isZip) { alert('ZIP 파일만 업로드 가능합니다.'); return; }
+  var label = e.target.parentElement;
+  var origText = label.childNodes[0].textContent;
+  label.childNodes[0].textContent = '업로드 중...';
+  var p = properties.find(function(x){ return x.id === propId; });
+  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+  var fileName = addrBase + '_ZIP.' + (file.name.split('.').pop() || 'zip');
+  var ref = storage.ref('properties/' + propId + '/docs/' + fileName);
+  ref.put(file).then(function() { return ref.getDownloadURL(); }).then(function(url) {
+    return db.collection(getPropertiesCollection()).doc(propId).update({ 'docs.ZIP': url }).then(function() {
+      var px = properties.find(function(x){ return x.id === propId; });
+      if(px) { if(!px.docs) px.docs={}; px.docs['ZIP'] = url; }
+      if(editingId === propId) refreshFormDocSection(propId);
+      else openDetail(propId);
+      showToast('✅ ZIP 파일이 업로드됐어요.');
+    });
+  }).catch(function(err) {
+    alert('업로드 오류: ' + err.message);
+    label.childNodes[0].textContent = origText;
+  });
+  e.target.value = '';
 }
 
 // ── 문서 삭제 ────────────────────────────

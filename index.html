@@ -891,8 +891,8 @@ var LIST_COLUMNS = [
   {key:'adStatus',            label:'광고',        sortKey:'adStatus',            fixed:true},
   {key:'departure',           label:'출발',        sortKey:'departure',           fixed:true},
 ];
-// 기본 ON 컬럼
-var listColumnSettings = {
+// 기본 ON 컬럼 (상업용/주거용 각각 독립 저장)
+var _defaultListColumnSettings = {
   propNo:true, photo:true, georae:true, type:true, address:true,
   price:true,
   pricePerPyeong:false, officialBuildingPrice:false, officialLandPrice:false,
@@ -905,6 +905,15 @@ var listColumnSettings = {
   floors:false, rooms:false, bathrooms:false, approvalDate:false, recommendedBusiness:false,
   ownerName:false, createdDate:false, updatedDate:false, adStatus:true, departure:true
 };
+var listColumnSettings = {
+  residential: JSON.parse(JSON.stringify(_defaultListColumnSettings)),
+  commercial: JSON.parse(JSON.stringify(_defaultListColumnSettings))
+};
+function getListColumnSettings() {
+  var s = listColumnSettings[currentSector];
+  if(!s) { listColumnSettings[currentSector] = JSON.parse(JSON.stringify(_defaultListColumnSettings)); s = listColumnSettings[currentSector]; }
+  return s;
+}
 
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원룸','1.5룸','투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 var GEORAE_TYPES = ['매매','전세','월세'];
@@ -1141,7 +1150,7 @@ function uploadPhotos(id, photoList, callback) {
 function showLoading(msg) {
   msg = msg || '불러오는 중...';
   var allColDefs = getColDefsCache();
-  var visibleCount = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; }).length;
+  var visibleCount = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; }).length;
   var colCount = visibleCount + 1;
   document.getElementById('tableBody').innerHTML = '<tr><td colspan="'+colCount+'" style="text-align:center;padding:40px;color:var(--text-muted)">'+msg+'</td></tr>';
   document.getElementById('emptyState').style.display = 'none';
@@ -1421,7 +1430,7 @@ function renderTable() {
 
   // 헤더 동적 렌더링
   var allColDefs = getColDefsCache();
-  var visibleCols = allColDefs.filter(function(c){ return c.fixed || listColumnSettings[c.key]!==false; });
+  var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
   var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
   var visColKey = visibleCols.map(function(c){ return c.key; }).join(',');
   if(renderTable._lastColKey !== visColKey) {
@@ -3192,12 +3201,20 @@ function updateDarkModeBtn(isDark) {
 // ── 항목 설정 시스템 ───────────────────────────
 
 function loadFieldSettings(callback) {
-  // 새로고침 시 컬럼 설정 유지: localStorage에서 먼저 복원
+  // 새로고침 시 컬럼 설정 유지: localStorage에서 먼저 복원 (상업용/주거용 각각)
   try {
     var saved = localStorage.getItem(STORAGE_KEY_COLUMNS);
     if(saved) {
       var parsed = JSON.parse(saved);
-      if(parsed && typeof parsed === 'object') listColumnSettings = Object.assign({}, listColumnSettings, parsed);
+      if(parsed && typeof parsed === 'object') {
+        if(parsed.residential !== undefined && parsed.commercial !== undefined) {
+          listColumnSettings.residential = Object.assign({}, _defaultListColumnSettings, parsed.residential);
+          listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, parsed.commercial);
+        } else {
+          listColumnSettings.residential = Object.assign({}, _defaultListColumnSettings, parsed);
+          listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, parsed);
+        }
+      }
     }
   } catch(e) {}
   // 배열에서 키 중복 제거 (첫 번째만 유지)
@@ -3232,7 +3249,14 @@ function loadFieldSettings(callback) {
         fieldSuffixOverrides = { residential: Object.assign({}, so), commercial: Object.assign({}, so) };
       }
       if(data.listColumnSettings && Object.keys(data.listColumnSettings).length > 0) {
-        listColumnSettings = Object.assign({}, listColumnSettings, data.listColumnSettings);
+        var lcs = data.listColumnSettings;
+        if(lcs.residential !== undefined && lcs.commercial !== undefined) {
+          listColumnSettings.residential = Object.assign({}, _defaultListColumnSettings, lcs.residential);
+          listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, lcs.commercial);
+        } else {
+          listColumnSettings.residential = Object.assign({}, _defaultListColumnSettings, lcs);
+          listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, lcs);
+        }
       }
     } else {
       fieldSettings = {};
@@ -4020,10 +4044,10 @@ function toggleColumnPopup() {
   var allCols = getColDefsCache();
   var html = '';
   allCols.forEach(function(col) {
-    var checked = col.fixed || listColumnSettings[col.key]!==false;
+    var checked = col.fixed || getListColumnSettings()[col.key]!==false;
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:'+(col.fixed?'not-allowed':'pointer')+';opacity:'+(col.fixed?'0.5':'1')+';">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(col.fixed?'disabled':'')+
-      ' onchange="listColumnSettings[\''+col.key+'\']=this.checked;persistListColumnSettings();invalidateColDefsCache();renderTable();" style="width:14px;height:14px;">'+
+      ' onchange="setListColumnSetting(\''+col.key+'\', this.checked);persistListColumnSettings();invalidateColDefsCache();renderTable();" style="width:14px;height:14px;">'+
       col.label+(col.fixed?' <span style="font-size:10px;color:var(--text-muted)">고정</span>':'')+
       '</label>';
   });
@@ -4107,12 +4131,15 @@ document.addEventListener('click', function(e) {
 
 function renderListColumnPanel() {} // 설정패널 탭 제거 - 더 이상 사용 안 함
 
+function setListColumnSetting(key, val) {
+  getListColumnSettings()[key] = val;
+}
 function toggleListColumn(key, val) {
-  listColumnSettings[key] = val;
+  setListColumnSetting(key, val);
 }
 
 function persistListColumnSettings() {
-  try { localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(listColumnSettings)); } catch(e) {}
+  try { localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify({ residential: listColumnSettings.residential, commercial: listColumnSettings.commercial })); } catch(e) {}
 }
 function saveListColumnSettings() {
   persistListColumnSettings();

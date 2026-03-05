@@ -3723,9 +3723,16 @@ var _tmpFieldLabelOverrides = null;
 var _tmpFieldSuffixOverrides = null;
 
 function openSettings() {
-  _tmpFieldSettings = JSON.parse(JSON.stringify(fieldSettings));
-  _tmpCustomFields  = JSON.parse(JSON.stringify(customFields));
-  _tmpFieldOrder    = JSON.parse(JSON.stringify(fieldOrder));
+  // 현재 섹터 타입만 _tmp에 로드 → 상업용↔주거용 설정이 서로 영향을 주지 않도록 분리
+  var sectorTypes = getPropTypesForSector(currentSector);
+  _tmpFieldSettings = {};
+  _tmpCustomFields  = {};
+  _tmpFieldOrder    = {};
+  sectorTypes.forEach(function(t) {
+    _tmpFieldSettings[t] = JSON.parse(JSON.stringify(fieldSettings[t] || {}));
+    _tmpCustomFields[t]  = JSON.parse(JSON.stringify(customFields[t]  || []));
+    _tmpFieldOrder[t]    = JSON.parse(JSON.stringify(fieldOrder[t]    || DEFAULT_FIELDS.map(function(f){ return f.key; })));
+  });
   var lo = fieldLabelOverrides[currentSector];
   var so = fieldSuffixOverrides[currentSector];
   var fs = fieldSections[currentSector];
@@ -4272,9 +4279,13 @@ function deleteCustomerHistory(custId, index) {
 
 function confirmSettings() {
   if(!confirm('설정을 저장하시겠습니까?\n모든 매물의 상세보기에 즉시 반영돼요.')) return;
-  fieldSettings = JSON.parse(JSON.stringify(_tmpFieldSettings));
-  customFields  = JSON.parse(JSON.stringify(_tmpCustomFields));
-  fieldOrder    = JSON.parse(JSON.stringify(_tmpFieldOrder));
+  // 현재 섹터 타입만 업데이트 → 반대 섹터 설정에 영향 없음
+  var sectorTypes = getPropTypesForSector(currentSector);
+  sectorTypes.forEach(function(t) {
+    fieldSettings[t] = JSON.parse(JSON.stringify(_tmpFieldSettings[t] || {}));
+    customFields[t]  = JSON.parse(JSON.stringify(_tmpCustomFields[t]  || []));
+    fieldOrder[t]    = JSON.parse(JSON.stringify(_tmpFieldOrder[t]    || []));
+  });
   if(!fieldSections.residential) fieldSections.residential = {};
   if(!fieldSections.commercial) fieldSections.commercial = {};
   fieldSections[currentSector] = JSON.parse(JSON.stringify(_tmpFieldSections));

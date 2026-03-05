@@ -1078,6 +1078,7 @@ function appendActivityLog(action, detail) {
 
 function openLogModal() {
   document.getElementById('logModal').classList.add('active');
+  pushModalState();
   var body = document.getElementById('logModalBody');
   body.textContent = '불러오는 중...';
   db.collection(ACTIVITY_LOG_COLLECTION).orderBy('createdAt', 'desc').limit(200).get().then(function(snap) {
@@ -1107,6 +1108,7 @@ function openLogModal() {
   });
 }
 function closeLogModal() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('logModal').classList.remove('active');
 }
 
@@ -1182,6 +1184,8 @@ function switchSector(sector) {
   invalidateColDefsCache();
   updateSectorUI();
   renderAdvSearchPanel();
+  if (window._detailModalStatePushed) window._detailModalStatePushed = false;
+  _modalStatePushed = false;
   if(document.getElementById('detailModal') && document.getElementById('detailModal').classList.contains('active')) _closeDetailModalImpl();
   if(document.getElementById('formModal') && document.getElementById('formModal').classList.contains('active')) closeFormModal();
   if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) closeCustomers();
@@ -1364,9 +1368,11 @@ function openStats() {
 
   document.getElementById('statsBody').innerHTML = html;
   document.getElementById('statsModal').classList.add('active');
+  pushModalState();
 }
 
 function closeStats() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('statsModal').classList.remove('active');
 }
 
@@ -1399,9 +1405,11 @@ function openSitesModal() {
     return '<a class="sites-banner-item" href="' + s.url + '" target="_blank" rel="noopener"><span class="site-name">' + (i + 1) + '. ' + s.name + '</span></a>';
   }).join('');
   document.getElementById('sitesModal').classList.add('active');
+  pushModalState();
 }
 
 function closeSitesModal() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('sitesModal').classList.remove('active');
 }
 
@@ -1981,6 +1989,10 @@ function openAddModal(){
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
   document.getElementById('formModal').classList.add('active');
+  pushModalState();
+  var formBody = document.querySelector('#formModal .modal-body');
+  if(formBody) { formBody.scrollTop = 0; }
+  setTimeout(function(){ if(formBody) formBody.scrollTop = 0; }, 0);
 }
 function openEditModal(id){
   var p=properties.find(function(x){return x.id===id;});
@@ -2069,8 +2081,15 @@ function openEditModal(id){
   document.getElementById('formDocSection').innerHTML = docHtml;
   closeDetailModal();
   document.getElementById('formModal').classList.add('active');
+  pushModalState();
+  var formBody = document.querySelector('#formModal .modal-body');
+  if(formBody) { formBody.scrollTop = 0; }
+  setTimeout(function(){ if(formBody) formBody.scrollTop = 0; }, 0);
 }
-function closeFormModal(){ document.getElementById('formModal').classList.remove('active'); }
+function closeFormModal(){
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
+  document.getElementById('formModal').classList.remove('active');
+}
 function clearForm(){
   ['f_georae','f_type','f_address',
    'f_price','f_pricePerPyeong','f_officialBuildingPrice','f_officialLandPrice','f_maintenance','f_premium',
@@ -2348,7 +2367,9 @@ function openDetail(id){
   updateAdBtn(p);
   updateDepBtn(p);
   document.getElementById('detailModal').classList.add('active');
-  document.getElementById('detailBody').scrollTop = 0;
+  var detailBody = document.getElementById('detailBody');
+  if(detailBody) { detailBody.scrollTop = 0; }
+  setTimeout(function(){ if(detailBody) detailBody.scrollTop = 0; }, 0);
   renderHistoryList(id, p.history || []);
   // 모바일 뒤로가기 시 앱 종료 대신 모달만 닫기
   if (window.history && window.history.pushState) {
@@ -3215,12 +3236,34 @@ function openDetailOverMap(id) {
 
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
 document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) forceCloseSettings(); });
-window.addEventListener('popstate', function(e) {
-  var dm = document.getElementById('detailModal');
-  if (dm && dm.classList.contains('active')) {
-    window._detailModalStatePushed = false;
-    _closeDetailModalImpl();
+
+var _modalStatePushed = false;
+function pushModalState() {
+  if (window.history && window.history.pushState) {
+    _modalStatePushed = true;
+    window.history.pushState({ modal: true }, '', window.location.href);
   }
+}
+
+window.addEventListener('popstate', function(e) {
+  window._detailModalStatePushed = false;
+  _modalStatePushed = false;
+  var dm = document.getElementById('detailModal');
+  if (dm && dm.classList.contains('active')) { _closeDetailModalImpl(); return; }
+  var fm = document.getElementById('formModal');
+  if (fm && fm.classList.contains('active')) { closeFormModal(); return; }
+  var cm = document.getElementById('customersModal');
+  if (cm && cm.classList.contains('active')) { closeCustomers(); return; }
+  var sm = document.getElementById('settingsModal');
+  if (sm && sm.classList.contains('active')) { forceCloseSettings(); return; }
+  var stm = document.getElementById('statsModal');
+  if (stm && stm.classList.contains('active')) { closeStats(); return; }
+  var sitem = document.getElementById('sitesModal');
+  if (sitem && sitem.classList.contains('active')) { closeSitesModal(); return; }
+  var lm = document.getElementById('logModal');
+  if (lm && lm.classList.contains('active')) { closeLogModal(); return; }
+  var mam = document.getElementById('mapAllModal');
+  if (mam && mam.classList.contains('active')) { closeMapAll(); return; }
 });
 
 // ── textarea 높이 기억 ────────────────────
@@ -3691,9 +3734,11 @@ function openSettings() {
     };
   }
   document.getElementById('settingsModal').classList.add('active');
+  pushModalState();
 }
 
 function forceCloseSettings() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   _tmpFieldSettings = null;
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
@@ -3705,6 +3750,7 @@ function forceCloseSettings() {
 
 function closeSettings() {
   if(!confirm('변경사항을 취소하시겠습니까?\n수정한 내용이 저장되지 않아요.')) return;
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   _tmpFieldSettings = null;
   _tmpCustomFields  = null;
   _tmpFieldOrder    = null;
@@ -3721,6 +3767,7 @@ function openCustomers() {
   var titleEl = document.getElementById('customersModalTitle');
   if(titleEl) titleEl.textContent = '👥 고객문의 (' + (currentSector === SECTOR_COMMERCIAL ? '상업용' : '주거용') + ')';
   modal.classList.add('active');
+  pushModalState();
   if(document.getElementById('customerSearch')) document.getElementById('customerSearch').value = '';
   _currentCustomerId = null;
   renderCustomerEmpty();
@@ -3730,6 +3777,7 @@ function openCustomers() {
 function closeCustomers() {
   var modal = document.getElementById('customersModal');
   if(!modal) return;
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   modal.classList.remove('active');
 }
 
@@ -4670,6 +4718,7 @@ function openMapAll() {
   if(properties.length === 0) { alert('등록된 매물이 없습니다.'); return; }
   document.querySelectorAll('.map-chk').forEach(function(c){ c.checked = true; });
   document.getElementById('mapAllModal').classList.add('active');
+  pushModalState();
 
   setTimeout(function(){
     _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), {center: new kakao.maps.LatLng(36.5,127.5), level:13});
@@ -4755,6 +4804,7 @@ function updateMapInfo() {
 }
 
 function closeMapAll() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('mapAllModal').classList.remove('active');
 }
 

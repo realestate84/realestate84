@@ -1223,32 +1223,61 @@ function closeLogModal() {
 
 // ── to-do 리스트 ─────────────────────────────
 var STORAGE_KEY_TODO = 'saerom_todoList';
+var TODO_COLLECTION = 'userTodoList';
 var todoList = [];
 var _todoCompletedOpen = false;
 
+function _normalizeTodoList(list) {
+  if (!Array.isArray(list)) return [];
+  list.forEach(function(item) {
+    if (item.done && item.completedAt == null) item.completedAt = parseInt(String(item.id).replace('todo_',''), 10) || 0;
+  });
+  var inc = list.filter(function(t) { return !t.done; });
+  var done = list.filter(function(t) { return t.done; });
+  inc.sort(function(a, b) {
+    var na = parseInt(String(a.id).replace('todo_',''), 10) || 0;
+    var nb = parseInt(String(b.id).replace('todo_',''), 10) || 0;
+    return nb - na;
+  });
+  done.sort(function(a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+  return inc.concat(done);
+}
+
 function loadTodoList() {
+  var user = auth.currentUser;
+  if (user) {
+    return db.collection(TODO_COLLECTION).doc(user.uid).get().then(function(doc) {
+      var raw = doc.exists && doc.data() && doc.data().items ? doc.data().items : [];
+      todoList = Array.isArray(raw) ? raw.slice() : [];
+      todoList = _normalizeTodoList(todoList);
+    }).catch(function(err) {
+      console.warn('투두 서버 로드 실패:', err);
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY_TODO);
+        todoList = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(todoList)) todoList = [];
+        todoList = _normalizeTodoList(todoList);
+      } catch (e) { todoList = []; }
+    });
+  }
   try {
     var raw = localStorage.getItem(STORAGE_KEY_TODO);
     todoList = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(todoList)) todoList = [];
-    // 기존 완료 항목에 completedAt 없으면 id 기반 타임스탬프 사용
-    todoList.forEach(function(item) {
-      if (item.done && item.completedAt == null) item.completedAt = parseInt(String(item.id).replace('todo_',''), 10) || 0;
-    });
-    // 정렬: 미완료(생성 최신순) 먼저, 완료(완료 최신순) 뒤로
-    var inc = todoList.filter(function(t) { return !t.done; });
-    var done = todoList.filter(function(t) { return t.done; });
-    inc.sort(function(a, b) {
-      var na = parseInt(String(a.id).replace('todo_',''), 10) || 0;
-      var nb = parseInt(String(b.id).replace('todo_',''), 10) || 0;
-      return nb - na;
-    });
-    done.sort(function(a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
-    todoList = inc.concat(done);
+    todoList = _normalizeTodoList(todoList);
   } catch (e) { todoList = []; }
+  return Promise.resolve();
 }
 
 function saveTodoList() {
+  var user = auth.currentUser;
+  if (user) {
+    db.collection(TODO_COLLECTION).doc(user.uid).set({
+      items: todoList,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(err) { console.warn('투두 서버 저장 실패:', err); });
+    return;
+  }
   try { localStorage.setItem(STORAGE_KEY_TODO, JSON.stringify(todoList)); } catch (e) {}
 }
 
@@ -1373,11 +1402,18 @@ function deleteTodoItem(id) {
 
 function openTodoModal() {
   _todoCompletedOpen = false;
-  loadTodoList();
-  renderTodoList();
   document.getElementById('todoModal').classList.add('active');
   pushModalState();
-  setTimeout(function() { var el = document.getElementById('todoInput'); if (el) el.focus(); }, 100);
+  var body = document.querySelector('#todoModal .modal-body');
+  if (body) body.style.opacity = '0.6';
+  loadTodoList().then(function() {
+    if (body) body.style.opacity = '1';
+    renderTodoList();
+    setTimeout(function() { var el = document.getElementById('todoInput'); if (el) el.focus(); }, 100);
+  }).catch(function() {
+    if (body) body.style.opacity = '1';
+    renderTodoList();
+  });
 }
 
 function closeTodoModal() {

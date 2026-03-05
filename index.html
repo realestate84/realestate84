@@ -220,9 +220,21 @@ th{position:relative;}
 /* 현수막 모달: 전체지도와 동일 크기 */
 #bannerModal .modal{max-width:1200px;width:100%;height:95vh;display:flex;flex-direction:column;}
 #bannerModal .modal-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
-#bannerMapWrap{position:relative;flex:1;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
+#bannerMapWrap{position:relative;flex:2;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
 #bannerMap{width:100%;height:100%;min-height:280px;}
 .banner-map-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:10;pointer-events:none;font-size:42px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));}
+#bannerModal #bannerMemo{min-height:0;height:28px;line-height:1.35;padding:4px 10px;font-size:13px;resize:none;}
+.banner-list-wrap{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);}
+.banner-list-item{border-bottom:1px solid var(--border);padding:4px 10px;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;}
+.banner-list-item:last-child{border-bottom:none;}
+.banner-list-item .banner-addr{font-weight:500;flex:1;min-width:0;}
+.banner-list-item .banner-memo{color:var(--text-muted);width:100%;}
+.banner-list-item img{width:28px;height:28px;object-fit:cover;border-radius:4px;}
+.banner-marker-info{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:200px;max-width:280px;font-family:'Noto Sans KR',sans-serif;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+.banner-marker-info .bm-addr{font-weight:600;color:#1a1a1a;margin-bottom:4px;}
+.banner-marker-info .bm-memo{color:var(--text-muted);font-size:11px;}
+.banner-marker-info .bm-photo{margin-top:6px;}
+.banner-marker-info .bm-photo img{width:64px;height:64px;object-fit:cover;border-radius:6px;}
 .map-marker-info{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:180px;font-family:'Noto Sans KR',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:#1a1a1a;font-weight:600;margin-bottom:2px;}
@@ -903,15 +915,15 @@ th{position:relative;}
         <div id="bannerMap"></div>
         <div class="banner-map-center-pin" aria-hidden="true">📍</div>
       </div>
-      <div style="overflow-y:auto;flex-shrink:0;">
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
           <div>
             <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">주소</label>
             <input type="text" id="bannerAddress" class="form-input" placeholder="지도를 움직이면 자동 입력됩니다" readonly style="background:var(--bg);" />
           </div>
           <div>
             <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">메모</label>
-            <textarea id="bannerMemo" class="form-textarea" placeholder="간단한 메모 (선택)" rows="2" style="resize:vertical;"></textarea>
+            <textarea id="bannerMemo" class="form-textarea" placeholder="간단한 메모 (선택)" rows="1"></textarea>
           </div>
           <div>
             <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">사진 (1장)</label>
@@ -923,9 +935,11 @@ th{position:relative;}
           </div>
         </div>
         <button type="button" class="btn btn-primary" onclick="registerBanner()">등록</button>
-        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-        <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">등록된 현수막 위치</div>
-        <ul id="bannerList" style="list-style:none;padding:0;margin:0;"></ul>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:6px;">등록된 현수막 위치</div>
+        <div class="banner-list-wrap">
+          <ul id="bannerList" style="list-style:none;padding:0;margin:0;"></ul>
+        </div>
       </div>
     </div>
   </div>
@@ -1373,6 +1387,7 @@ var _bannerMapObj = null;
 var _bannerSavedMarkers = [];
 var _bannerList = [];
 var _bannerGeocodeTimer = null;
+var _bannerOverlay = null;
 
 function updateBannerAddressFromCenter() {
   if (!_bannerMapObj) return;
@@ -1410,13 +1425,26 @@ function initBannerMap() {
 
 function renderBannerMarkers() {
   if (!_bannerMapObj) return;
-  _bannerSavedMarkers.forEach(function(m) { if (m && m.setMap) m.setMap(null); });
+  if (_bannerOverlay) { _bannerOverlay.setMap(null); _bannerOverlay = null; }
+  _bannerSavedMarkers.forEach(function(item) { if (item && item.marker && item.marker.setMap) item.marker.setMap(null); });
   _bannerSavedMarkers = [];
   _bannerList.forEach(function(b) {
     if (!b.lat || !b.lng) return;
     var pos = new kakao.maps.LatLng(b.lat, b.lng);
     var marker = new kakao.maps.Marker({ map: _bannerMapObj, position: pos });
-    _bannerSavedMarkers.push(marker);
+    _bannerSavedMarkers.push({ marker: marker, b: b });
+    (function(m, data) {
+      kakao.maps.event.addListener(m, 'click', function() {
+        if (_bannerOverlay) _bannerOverlay.setMap(null);
+        var addr = (data.address || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        var memo = (data.memo || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        var photoHtml = data.photoUrl ? '<div class="bm-photo"><img src="'+data.photoUrl+'" alt=""></div>' : '';
+        var content = document.createElement('div');
+        content.className = 'banner-marker-info';
+        content.innerHTML = '<div class="bm-addr">'+addr+'</div>' + (memo ? '<div class="bm-memo">'+memo+'</div>' : '') + photoHtml;
+        _bannerOverlay = new kakao.maps.CustomOverlay({ content: content, map: _bannerMapObj, position: m.getPosition(), yAnchor: 1.4, zIndex: 3 });
+      });
+    })(marker, b);
   });
 }
 
@@ -1424,18 +1452,18 @@ function renderBannerList() {
   var ul = document.getElementById('bannerList');
   if (!ul) return;
   if (_bannerList.length === 0) {
-    ul.innerHTML = '<li style="font-size:12px;color:var(--text-muted);padding:8px 0;">등록된 위치가 없어요.</li>';
+    ul.innerHTML = '<li class="banner-list-item" style="border:none;"><span class="banner-addr" style="color:var(--text-muted);font-weight:normal;">등록된 위치가 없어요.</span></li>';
     return;
   }
   ul.innerHTML = _bannerList.map(function(b) {
     var memo = (b.memo || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     var addr = (b.address || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    var photoHtml = b.photoUrl ? '<img src="'+b.photoUrl+'" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;margin-top:4px;">' : '';
-    return '<li style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface);">' +
-      '<div style="font-weight:500;">' + addr + '</div>' +
-      (memo ? '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + memo + '</div>' : '') +
-      photoHtml +
-      '<button type="button" class="btn btn-outline btn-sm btn-danger" style="margin-top:8px;font-size:11px;" onclick="deleteBanner(\'' + b.id.replace(/'/g,"\\'") + '\')">삭제</button>' +
+    var photoHtml = b.photoUrl ? '<img src="'+b.photoUrl+'" alt="">' : '';
+    return '<li class="banner-list-item">' +
+      '<span class="banner-addr">' + addr + '</span>' +
+      (b.photoUrl ? photoHtml : '') +
+      '<button type="button" class="btn btn-outline btn-sm btn-danger" style="font-size:10px;padding:2px 6px;" onclick="event.stopPropagation();deleteBanner(\'' + b.id.replace(/'/g,"\\'") + '\')">삭제</button>' +
+      (memo ? '<span class="banner-memo">' + memo + '</span>' : '') +
     '</li>';
   }).join('');
 }

@@ -118,7 +118,9 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .ad-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
 .dep-light{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;}
 .dep-light.on{background:#3a7ef6;box-shadow:0 0 6px rgba(58,126,246,0.7);}
-.table-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border);}
+.table-thumb{width:24px;height:24px;border-radius:4px;object-fit:cover;border:1px solid var(--border);display:block;}
+.table-wrap tbody tr{height:35px;box-sizing:border-box;}
+.table-wrap tbody td{vertical-align:middle;padding:5px 6px;}
 .ad-light.on{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);}
 .ad-light.dim1{background:#facc15;box-shadow:0 0 4px rgba(250,204,21,0.6);}
 .ad-light.dim2{background:#fde68a;box-shadow:none;}
@@ -1497,13 +1499,13 @@ function renderTable() {
   // 헤더 동적 렌더링
   var allColDefs = getColDefsCache();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
-  var colWidths = {propNo:'40px',photo:'50px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
+  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
   var visColKey = visibleCols.map(function(c){ return c.key; }).join(',') + '|mgmt:'+SHOW_MANAGEMENT_COLUMN;
   if(renderTable._lastColKey !== visColKey) {
     renderTable._lastColKey = visColKey;
     var headerHtml = visibleCols.map(function(c){
       if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
-      if(c.key==='photo') return '<th style="width:50px">사진</th>';
+      if(c.key==='photo') return '<th style="width:32px">사진</th>';
       if(!c.sortKey) return '<th style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
       return '<th onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
     }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px">관리</th>' : '');

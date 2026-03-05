@@ -225,9 +225,11 @@ th{position:relative;}
 .sites-banner-item{display:block;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--accent);font-size:16px;font-weight:500;transition:all 0.2s;text-align:left;}
 .sites-banner-item:hover{border-color:var(--accent);background:rgba(58,126,246,0.08);color:var(--accent);}
 .sites-banner-item .site-name{display:block;}
-/* 상세모달은 전체지도 위에 표시 */
+/* 상세모달/수정모달은 전체지도 위에 표시 */
 #detailModal{z-index:1000 !important;}
 #detailModal .modal{position:relative;z-index:1001;}
+#formModal{z-index:1000 !important;}
+#formModal .modal{position:relative;z-index:1001;}
 /* 지도 체크박스 필터 */
 .map-chk-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--text);user-select:none;}
 .map-chk-label input{width:14px;height:14px;cursor:pointer;}
@@ -1989,7 +1991,10 @@ function openAddModal(){
   document.querySelector('#formModal [data-price-grid]') && (document.querySelector('#formModal [data-price-grid]').style.display = 'none');
   document.getElementById('formDocSection').innerHTML=
     '<div style="font-size:12px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">📋 문서는 매물 저장 후 상세보기에서 업로드할 수 있어요.</div>';
-  document.getElementById('formModal').classList.add('active');
+  var formModal = document.getElementById('formModal');
+  // 전체지도 모달 위에 표시되도록 DOM 최상단으로 이동
+  document.body.appendChild(formModal);
+  formModal.classList.add('active');
   pushModalState();
   var formBody = document.querySelector('#formModal .modal-body');
   if(formBody) { formBody.scrollTop = 0; }
@@ -2081,7 +2086,10 @@ function openEditModal(id){
     '</div></div>';
   document.getElementById('formDocSection').innerHTML = docHtml;
   closeDetailModal();
-  document.getElementById('formModal').classList.add('active');
+  var formModal = document.getElementById('formModal');
+  // 전체지도 모달 위에 표시되도록 DOM 최상단으로 이동
+  document.body.appendChild(formModal);
+  formModal.classList.add('active');
   pushModalState();
   var formBody = document.querySelector('#formModal .modal-body');
   if(formBody) { formBody.scrollTop = 0; }

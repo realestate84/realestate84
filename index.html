@@ -333,6 +333,7 @@ th{position:relative;}
   </div>
   <div class="header-actions">
     <button class="btn btn-outline" onclick="openCustomers()">👥 고객문의</button>
+    <button class="btn btn-outline" onclick="openTodoModal()">📝 To-do</button>
     <button class="btn btn-outline" onclick="openSitesModal()">🔗 사이트</button>
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
@@ -344,7 +345,6 @@ th{position:relative;}
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
     <button class="btn btn-outline" onclick="downloadExcel()">📥 다운로드</button>
     <button class="btn btn-outline" onclick="openLogModal()">Log</button>
-    <button class="btn btn-outline" onclick="openTodoModal()">📝 To-do</button>
     <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
     <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
   </div>
@@ -361,6 +361,7 @@ th{position:relative;}
   </div>
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
+  <button class="btn btn-outline" onclick="openTodoModal();closeMobileMenu()">📝 To-do</button>
   <button class="btn btn-outline" onclick="openSitesModal();closeMobileMenu()">🔗 사이트</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계</button>
@@ -371,7 +372,6 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 업로드</button>
   <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 다운로드</button>
   <button class="btn btn-outline" onclick="openLogModal();closeMobileMenu()">Log</button>
-  <button class="btn btn-outline" onclick="openTodoModal();closeMobileMenu()">📝 To-do</button>
   <hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">
   <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
 </div>

@@ -3487,10 +3487,14 @@ function loadFieldSettings(callback) {
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
       PROP_TYPES.forEach(function(t){ if(fieldOrder[t]) fieldOrder[t] = dedupeOrder(fieldOrder[t]); });
-      // DEFAULT_FIELDS에 새로 추가된 항목(예: useZone)이 기존 저장값에 없으면 끝에 추가
+      // DEFAULT_FIELDS에 새로 추가된 항목이 기존 저장값에 없으면 끝에 추가
+      // 단, fieldSettings[t]가 이미 존재(=한 번이라도 저장된 타입)하면 추가하지 않음
+      // → 사용자가 직접 삭제한 항목이 새로고침 시 복원되는 버그 방지
       var defaultKeys = DEFAULT_FIELDS.map(function(f){ return f.key; });
       PROP_TYPES.forEach(function(t){
         if(!fieldOrder[t]) return;
+        // 한 번이라도 저장된 타입은 사용자 의도를 존중 → 자동 추가 안 함
+        if(fieldSettings[t] && Object.keys(fieldSettings[t]).length > 0) return;
         var order = fieldOrder[t].slice();
         defaultKeys.forEach(function(k){ if(order.indexOf(k)===-1) order.push(k); });
         fieldOrder[t] = dedupeOrder(order);

@@ -221,6 +221,15 @@ th{position:relative;}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:#1a1a1a;font-weight:600;margin-bottom:2px;}
 .map-marker-info .mi-price{color:var(--danger);font-weight:600;}
+.todo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface);cursor:pointer;}
+.todo-item:hover{background:var(--bg);}
+.todo-item-done{text-decoration:line-through;color:var(--text-muted);}
+.todo-item input[type="checkbox"]{flex-shrink:0;}
+.todo-item-text{flex:1;min-width:0;}
+.todo-item-del{flex-shrink:0;font-size:12px;color:var(--text-muted);padding:2px 6px;}
+.todo-item[draggable="true"]{cursor:grab;}
+.todo-item.todo-dragging{opacity:0.5;}
+.todo-item.todo-drag-over{border-color:var(--accent);background:var(--bg);}
 /* 관련사이트 모달 배너 그리드 */
 .sites-banner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
 .sites-banner-item{display:block;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--accent);font-size:16px;font-weight:500;transition:all 0.2s;text-align:left;}
@@ -307,12 +316,13 @@ th{position:relative;}
     <button class="btn btn-outline" onclick="toggleDarkMode()" id="darkModeBtn">🌙 다크</button>
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
-    <button class="btn btn-outline" onclick="openStats()">📊 통계보기</button>
-    <button class="btn btn-outline" onclick="openMapAll()">🗺 전체 지도</button>
-    <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 엑셀 업로드</button>
+    <button class="btn btn-outline" onclick="openStats()">📊 통계</button>
+    <button class="btn btn-outline" onclick="openMapAll()">🗺 지도</button>
+    <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 업로드</button>
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
-    <button class="btn btn-outline" onclick="downloadExcel()">📥 엑셀 다운로드</button>
+    <button class="btn btn-outline" onclick="downloadExcel()">📥 다운로드</button>
     <button class="btn btn-outline" onclick="openLogModal()">Log</button>
+    <button class="btn btn-outline" onclick="openTodoModal()">📝 To-do</button>
     <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
     <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
   </div>
@@ -331,13 +341,14 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
   <button class="btn btn-outline" onclick="openSitesModal();closeMobileMenu()">🔗 사이트</button>
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
-  <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계보기</button>
-  <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 전체 지도</button>
+  <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계</button>
+  <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 지도</button>
   <button class="btn btn-outline" onclick="openSettings();closeMobileMenu()">⚙️ 설정</button>
   <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
-  <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 엑셀 업로드</button>
-  <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 엑셀 다운로드</button>
+  <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 업로드</button>
+  <button class="btn btn-outline" onclick="downloadExcel();closeMobileMenu()">📥 다운로드</button>
   <button class="btn btn-outline" onclick="openLogModal();closeMobileMenu()">Log</button>
+  <button class="btn btn-outline" onclick="openTodoModal();closeMobileMenu()">📝 To-do</button>
   <hr style="border:none;border-top:1px solid var(--border);margin:6px 0;">
   <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
 </div>
@@ -765,6 +776,32 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- to-do 리스트 모달 -->
+<div class="modal-overlay" id="todoModal" onclick="if(event.target===this)closeTodoModal()">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">📝 to-do 리스트</div>
+      <button class="modal-close" onclick="closeTodoModal()">×</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input type="text" id="todoInput" class="form-input" placeholder="할 일 입력 후 Enter" style="flex:1;" onkeydown="if(event.key==='Enter')addTodoFromInput()">
+        <button type="button" class="btn btn-primary" onclick="addTodoFromInput()">추가</button>
+      </div>
+      <ul id="todoList" style="list-style:none;padding:0;margin:0;"></ul>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+        <button type="button" class="btn btn-outline btn-sm" id="todoCompletedToggle" onclick="toggleTodoCompletedList()" style="width:100%;justify-content:space-between;display:flex;align-items:center;">
+          <span>▼ 완료된 목록</span>
+          <span id="todoCompletedCount" style="color:var(--text-muted);font-size:12px;">0건</span>
+        </button>
+        <div id="todoCompletedWrap" style="display:none;margin-top:10px;">
+          <ul id="todoCompletedList" style="list-style:none;padding:0;margin:0;"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 고객관리 모달 -->
 <div class="modal-overlay" id="customersModal" onclick="if(event.target===this)closeCustomers()">
   <div class="modal" style="max-width:1150px;height:92vh;">
@@ -1115,6 +1152,170 @@ function openLogModal() {
 function closeLogModal() {
   if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('logModal').classList.remove('active');
+}
+
+// ── to-do 리스트 ─────────────────────────────
+var STORAGE_KEY_TODO = 'saerom_todoList';
+var todoList = [];
+var _todoCompletedOpen = false;
+
+function loadTodoList() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY_TODO);
+    todoList = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(todoList)) todoList = [];
+    // 기존 완료 항목에 completedAt 없으면 id 기반 타임스탬프 사용
+    todoList.forEach(function(item) {
+      if (item.done && item.completedAt == null) item.completedAt = parseInt(String(item.id).replace('todo_',''), 10) || 0;
+    });
+    // 정렬: 미완료(생성 최신순) 먼저, 완료(완료 최신순) 뒤로
+    var inc = todoList.filter(function(t) { return !t.done; });
+    var done = todoList.filter(function(t) { return t.done; });
+    inc.sort(function(a, b) {
+      var na = parseInt(String(a.id).replace('todo_',''), 10) || 0;
+      var nb = parseInt(String(b.id).replace('todo_',''), 10) || 0;
+      return nb - na;
+    });
+    done.sort(function(a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+    todoList = inc.concat(done);
+  } catch (e) { todoList = []; }
+}
+
+function saveTodoList() {
+  try { localStorage.setItem(STORAGE_KEY_TODO, JSON.stringify(todoList)); } catch (e) {}
+}
+
+function renderTodoList() {
+  var ul = document.getElementById('todoList');
+  if (!ul) return;
+  var incomplete = todoList.filter(function(t) { return !t.done; });
+  if (incomplete.length === 0) {
+    ul.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:12px;">등록된 할 일이 없어요.</li>';
+  } else {
+    ul.innerHTML = incomplete.map(function(item) {
+      var escaped = (item.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      var sid = String(item.id).replace(/'/g,"\\'");
+      return '<li class="todo-item" data-id="' + item.id + '" draggable="true" ondragstart="onTodoDragStart(event,\'' + sid + '\')" ondragover="onTodoDragOver(event)" ondrop="onTodoDrop(event,\'' + sid + '\')" ondragend="onTodoDragEnd(event)" onclick="toggleTodoItem(\'' + sid + '\')">' +
+        '<input type="checkbox" onclick="event.stopPropagation();toggleTodoItem(\'' + sid + '\')">' +
+        '<span class="todo-item-text">' + escaped + '</span>' +
+        '<button type="button" class="todo-item-del btn btn-outline btn-sm" onclick="event.stopPropagation();deleteTodoItem(\'' + sid + '\')">삭제</button>' +
+      '</li>';
+    }).join('');
+  }
+  var completed = todoList.filter(function(t) { return t.done; });
+  var countEl = document.getElementById('todoCompletedCount');
+  if (countEl) countEl.textContent = completed.length + '건';
+  var btnEl = document.getElementById('todoCompletedToggle');
+  if (btnEl) btnEl.querySelector('span:first-child').textContent = _todoCompletedOpen ? '▲ 완료된 목록' : '▼ 완료된 목록';
+  var wrap = document.getElementById('todoCompletedWrap');
+  var completedUl = document.getElementById('todoCompletedList');
+  if (wrap) wrap.style.display = _todoCompletedOpen ? 'block' : 'none';
+  if (completedUl && _todoCompletedOpen) {
+    var sorted = completed.slice().sort(function(a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+    if (sorted.length === 0) {
+      completedUl.innerHTML = '<li style="color:var(--text-muted);font-size:12px;padding:8px 12px;">완료된 할 일이 없어요.</li>';
+    } else {
+      completedUl.innerHTML = sorted.map(function(item) {
+        var escaped = (item.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        var sid = String(item.id).replace(/'/g,"\\'");
+        return '<li class="todo-item todo-item-done" data-id="' + item.id + '" onclick="toggleTodoItem(\'' + sid + '\')">' +
+          '<input type="checkbox" checked onclick="event.stopPropagation();toggleTodoItem(\'' + sid + '\')">' +
+          '<span class="todo-item-text">' + escaped + '</span>' +
+          '<button type="button" class="todo-item-del btn btn-outline btn-sm" onclick="event.stopPropagation();deleteTodoItem(\'' + sid + '\')">삭제</button>' +
+        '</li>';
+      }).join('');
+    }
+  }
+}
+
+function toggleTodoCompletedList() {
+  _todoCompletedOpen = !_todoCompletedOpen;
+  renderTodoList();
+}
+
+var _todoDragId = null;
+function onTodoDragStart(ev, id) {
+  _todoDragId = id;
+  ev.dataTransfer.setData('text/plain', id);
+  ev.dataTransfer.effectAllowed = 'move';
+  if (ev.target && ev.target.classList) ev.target.classList.add('todo-dragging');
+}
+
+function onTodoDragOver(ev) {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#todoList .todo-item').forEach(function(el) { el.classList.remove('todo-drag-over'); });
+  var li = ev.target && ev.target.closest ? ev.target.closest('li.todo-item') : null;
+  if (li && li.getAttribute('data-id') !== _todoDragId) li.classList.add('todo-drag-over');
+}
+
+function onTodoDragEnd(ev) {
+  document.querySelectorAll('#todoList .todo-item').forEach(function(el) { el.classList.remove('todo-dragging', 'todo-drag-over'); });
+  _todoDragId = null;
+}
+
+function onTodoDrop(ev, targetId) {
+  ev.preventDefault();
+  document.querySelectorAll('#todoList .todo-item').forEach(function(el) { el.classList.remove('todo-drag-over'); });
+  if (!_todoDragId || _todoDragId === targetId) return;
+  var fromIdx = todoList.findIndex(function(t) { return t.id === _todoDragId; });
+  var toIdx = todoList.findIndex(function(t) { return t.id === targetId; });
+  if (fromIdx === -1 || toIdx === -1) return;
+  var item = todoList.splice(fromIdx, 1)[0];
+  var insertIdx = fromIdx < toIdx ? toIdx - 1 : toIdx;
+  todoList.splice(insertIdx, 0, item);
+  saveTodoList();
+  renderTodoList();
+}
+
+function addTodoFromInput() {
+  var input = document.getElementById('todoInput');
+  if (!input) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+  var id = 'todo_' + Date.now();
+  todoList.unshift({ id: id, text: text, done: false });
+  saveTodoList();
+  input.value = '';
+  renderTodoList();
+}
+
+function toggleTodoItem(id) {
+  var idx = todoList.findIndex(function(t) { return t.id === id; });
+  if (idx === -1) return;
+  var item = todoList[idx];
+  item.done = !item.done;
+  if (item.done) {
+    item.completedAt = Date.now();
+    todoList.splice(idx, 1);
+    todoList.push(item);
+  } else {
+    delete item.completedAt;
+    todoList.splice(idx, 1);
+    todoList.unshift(item);
+  }
+  saveTodoList();
+  renderTodoList();
+}
+
+function deleteTodoItem(id) {
+  todoList = todoList.filter(function(t) { return t.id !== id; });
+  saveTodoList();
+  renderTodoList();
+}
+
+function openTodoModal() {
+  _todoCompletedOpen = false;
+  loadTodoList();
+  renderTodoList();
+  document.getElementById('todoModal').classList.add('active');
+  pushModalState();
+  setTimeout(function() { var el = document.getElementById('todoInput'); if (el) el.focus(); }, 100);
+}
+
+function closeTodoModal() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
+  document.getElementById('todoModal').classList.remove('active');
 }
 
 function doResetPw() {
@@ -3276,6 +3477,8 @@ window.addEventListener('popstate', function(e) {
   if (sitem && sitem.classList.contains('active')) { closeSitesModal(); return; }
   var lm = document.getElementById('logModal');
   if (lm && lm.classList.contains('active')) { closeLogModal(); return; }
+  var todom = document.getElementById('todoModal');
+  if (todom && todom.classList.contains('active')) { closeTodoModal(); return; }
   var mam = document.getElementById('mapAllModal');
   if (mam && mam.classList.contains('active')) { closeMapAll(); return; }
 });

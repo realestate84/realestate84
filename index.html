@@ -217,6 +217,12 @@ th{position:relative;}
 #mapAllModal.active{display:flex;}
 #mapAllModal .modal{max-width:1200px;width:100%;height:95vh;display:flex;flex-direction:column;}
 #mapAll{width:100%;flex:1;border-radius:10px;border:1px solid var(--border);}
+/* 현수막 모달: 전체지도와 동일 크기 */
+#bannerModal .modal{max-width:1200px;width:100%;height:95vh;display:flex;flex-direction:column;}
+#bannerModal .modal-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+#bannerMapWrap{position:relative;flex:1;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
+#bannerMap{width:100%;height:100%;min-height:280px;}
+.banner-map-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:10;pointer-events:none;font-size:42px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));}
 .map-marker-info{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:180px;font-family:'Noto Sans KR',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:#1a1a1a;font-weight:600;margin-bottom:2px;}
@@ -318,6 +324,7 @@ th{position:relative;}
     <button class="btn btn-outline" onclick="togglePCView()">🖥 PC버전</button>
     <button class="btn btn-outline" onclick="openStats()">📊 통계</button>
     <button class="btn btn-outline" onclick="openMapAll()">🗺 지도</button>
+    <button class="btn btn-outline" onclick="openBannerModal()">🏷 현수막</button>
     <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click()">📤 업로드</button>
     <input type="file" id="excelUpload" accept=".csv" style="display:none" onchange="uploadExcel(event)">
     <button class="btn btn-outline" onclick="downloadExcel()">📥 다운로드</button>
@@ -343,6 +350,7 @@ th{position:relative;}
   <button class="btn btn-outline" onclick="toggleDarkMode();closeMobileMenu()" id="darkModeBtnMobile">🌙 다크</button>
   <button class="btn btn-outline" onclick="openStats();closeMobileMenu()">📊 통계</button>
   <button class="btn btn-outline" onclick="openMapAll();closeMobileMenu()">🗺 지도</button>
+  <button class="btn btn-outline" onclick="openBannerModal();closeMobileMenu()">🏷 현수막</button>
   <button class="btn btn-outline" onclick="openSettings();closeMobileMenu()">⚙️ 설정</button>
   <button class="btn btn-outline" onclick="togglePCView();closeMobileMenu()">🖥 PC버전</button>
   <button class="btn btn-outline" onclick="document.getElementById('excelUpload').click();closeMobileMenu()">📤 업로드</button>
@@ -882,6 +890,47 @@ th{position:relative;}
   </div>
 </div>
 
+<!-- 현수막 위치 등록 모달 -->
+<div class="modal-overlay" id="bannerModal" onclick="if(event.target===this)closeBannerModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🏷 현수막 거는 위치</div>
+      <button class="modal-close" onclick="closeBannerModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;flex-shrink:0;">지도를 움직여 원하는 위치를 가운데 핀에 맞춘 뒤 등록해주세요.</p>
+      <div id="bannerMapWrap" style="margin-bottom:14px;">
+        <div id="bannerMap"></div>
+        <div class="banner-map-center-pin" aria-hidden="true">📍</div>
+      </div>
+      <div style="overflow-y:auto;flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">주소</label>
+            <input type="text" id="bannerAddress" class="form-input" placeholder="지도를 움직이면 자동 입력됩니다" readonly style="background:var(--bg);" />
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">메모</label>
+            <textarea id="bannerMemo" class="form-textarea" placeholder="간단한 메모 (선택)" rows="2" style="resize:vertical;"></textarea>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">사진 (1장)</label>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              📷 사진 선택
+              <input type="file" id="bannerPhoto" accept="image/*" style="display:none" onchange="onBannerPhotoChange(event)">
+            </label>
+            <span id="bannerPhotoName" style="font-size:12px;color:var(--text-muted);margin-left:8px;"></span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="registerBanner()">등록</button>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">등록된 현수막 위치</div>
+        <ul id="bannerList" style="list-style:none;padding:0;margin:0;"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── 전역 변수 ──────────────────────────────
 var db, storage, auth;
@@ -1316,6 +1365,169 @@ function openTodoModal() {
 function closeTodoModal() {
   if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   document.getElementById('todoModal').classList.remove('active');
+}
+
+// ── 현수막 위치 ─────────────────────────────
+var BANNER_COLLECTION = 'bannerLocations';
+var _bannerMapObj = null;
+var _bannerSavedMarkers = [];
+var _bannerList = [];
+var _bannerGeocodeTimer = null;
+
+function updateBannerAddressFromCenter() {
+  if (!_bannerMapObj) return;
+  var addressEl = document.getElementById('bannerAddress');
+  if (!addressEl) return;
+  var center = _bannerMapObj.getCenter();
+  var lat = center.getLat();
+  var lng = center.getLng();
+  addressEl.setAttribute('data-lat', lat);
+  addressEl.setAttribute('data-lng', lng);
+  var gc = new kakao.maps.services.Geocoder();
+  gc.coord2Address(lng, lat, function(result, status) {
+    if (status === kakao.maps.services.Status.OK) {
+      var addr = (result[0].road_address && result[0].road_address.address_name) ? result[0].road_address.address_name : (result[0].address && result[0].address.address_name) ? result[0].address.address_name : '';
+      addressEl.value = addr;
+    } else {
+      addressEl.value = '주소를 찾을 수 없음 (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+    }
+  });
+}
+
+function initBannerMap() {
+  var container = document.getElementById('bannerMap');
+  if (!container || !container.offsetParent) return;
+  if (typeof kakao === 'undefined' || typeof kakao.maps === 'undefined') return;
+  _bannerMapObj = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(37.5665, 126.9780), level: 6 });
+  function onCenterChanged() {
+    if (_bannerGeocodeTimer) clearTimeout(_bannerGeocodeTimer);
+    _bannerGeocodeTimer = setTimeout(updateBannerAddressFromCenter, 300);
+  }
+  kakao.maps.event.addListener(_bannerMapObj, 'dragend', onCenterChanged);
+  kakao.maps.event.addListener(_bannerMapObj, 'zoom_changed', onCenterChanged);
+  setTimeout(function() { updateBannerAddressFromCenter(); }, 400);
+}
+
+function renderBannerMarkers() {
+  if (!_bannerMapObj) return;
+  _bannerSavedMarkers.forEach(function(m) { if (m && m.setMap) m.setMap(null); });
+  _bannerSavedMarkers = [];
+  _bannerList.forEach(function(b) {
+    if (!b.lat || !b.lng) return;
+    var pos = new kakao.maps.LatLng(b.lat, b.lng);
+    var marker = new kakao.maps.Marker({ map: _bannerMapObj, position: pos });
+    _bannerSavedMarkers.push(marker);
+  });
+}
+
+function renderBannerList() {
+  var ul = document.getElementById('bannerList');
+  if (!ul) return;
+  if (_bannerList.length === 0) {
+    ul.innerHTML = '<li style="font-size:12px;color:var(--text-muted);padding:8px 0;">등록된 위치가 없어요.</li>';
+    return;
+  }
+  ul.innerHTML = _bannerList.map(function(b) {
+    var memo = (b.memo || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    var addr = (b.address || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var photoHtml = b.photoUrl ? '<img src="'+b.photoUrl+'" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;margin-top:4px;">' : '';
+    return '<li style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface);">' +
+      '<div style="font-weight:500;">' + addr + '</div>' +
+      (memo ? '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + memo + '</div>' : '') +
+      photoHtml +
+      '<button type="button" class="btn btn-outline btn-sm btn-danger" style="margin-top:8px;font-size:11px;" onclick="deleteBanner(\'' + b.id.replace(/'/g,"\\'") + '\')">삭제</button>' +
+    '</li>';
+  }).join('');
+}
+
+function onBannerPhotoChange(ev) {
+  var file = ev.target.files && ev.target.files[0];
+  var el = document.getElementById('bannerPhotoName');
+  if (el) el.textContent = file ? file.name : '';
+}
+
+function registerBanner() {
+  var addressEl = document.getElementById('bannerAddress');
+  var address = (addressEl && addressEl.value || '').trim();
+  if (!address) { alert('지도를 움직여 원하는 위치를 가운데에 맞춘 뒤 등록해주세요.'); return; }
+  var lat = addressEl.getAttribute('data-lat');
+  var lng = addressEl.getAttribute('data-lng');
+  if (!lat || !lng) { alert('위치를 다시 선택해주세요.'); return; }
+  var memo = (document.getElementById('bannerMemo') && document.getElementById('bannerMemo').value || '').trim();
+  var fileInput = document.getElementById('bannerPhoto');
+  var file = fileInput && fileInput.files && fileInput.files[0];
+  var data = { address: address, lat: parseFloat(lat), lng: parseFloat(lng), memo: memo, photoUrl: '', createdAt: (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && firebase.firestore.FieldValue.serverTimestamp) ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString() };
+  db.collection(BANNER_COLLECTION).add(data).then(function(ref) {
+    var docId = ref.id;
+    if (file) {
+      var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      if (ext === 'jpeg') ext = 'jpg';
+      var storageRef = storage.ref('banners/' + docId + '/photo.' + ext);
+      storageRef.put(file).then(function() {
+        return storageRef.getDownloadURL();
+      }).then(function(url) {
+        return db.collection(BANNER_COLLECTION).doc(docId).update({ photoUrl: url });
+      }).then(function() {
+        loadBannerList();
+      }).catch(function(err) { alert('사진 업로드 실패: ' + (err.message || err)); loadBannerList(); });
+    } else {
+      loadBannerList();
+    }
+    addressEl.value = '';
+    addressEl.removeAttribute('data-lat');
+    addressEl.removeAttribute('data-lng');
+    if (document.getElementById('bannerMemo')) document.getElementById('bannerMemo').value = '';
+    if (fileInput) { fileInput.value = ''; }
+    var nameEl = document.getElementById('bannerPhotoName');
+    if (nameEl) nameEl.textContent = '';
+  }).catch(function(err) { alert('등록 실패: ' + (err.message || err)); });
+}
+
+function loadBannerList() {
+  db.collection(BANNER_COLLECTION).get().then(function(snap) {
+    _bannerList = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    _bannerList.forEach(function(b) {
+      if (b.createdAt && b.createdAt.toDate) b.createdAt = b.createdAt.toDate().getTime();
+      else if (!b.createdAt) b.createdAt = 0;
+      if (typeof b.lat !== 'number' || typeof b.lng !== 'number') { b.lat = null; b.lng = null; }
+    });
+    _bannerList.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    renderBannerMarkers();
+    renderBannerList();
+  }).catch(function() { _bannerList = []; renderBannerList(); });
+}
+
+function deleteBanner(id) {
+  if (!confirm('이 현수막 위치를 삭제할까요?')) return;
+  var b = _bannerList.find(function(x) { return x.id === id; });
+  if (b && b.photoUrl) {
+    try { storage.refFromURL(b.photoUrl).delete().catch(function(){}); } catch(e) {}
+  }
+  db.collection(BANNER_COLLECTION).doc(id).delete().then(function() {
+    _bannerList = _bannerList.filter(function(x) { return x.id !== id; });
+    renderBannerMarkers();
+    renderBannerList();
+  }).catch(function(err) { alert('삭제 실패: ' + (err.message || err)); });
+}
+
+function openBannerModal() {
+  document.getElementById('bannerModal').classList.add('active');
+  pushModalState();
+  document.getElementById('bannerAddress').value = '';
+  document.getElementById('bannerAddress').removeAttribute('data-lat');
+  document.getElementById('bannerAddress').removeAttribute('data-lng');
+  if (document.getElementById('bannerMemo')) document.getElementById('bannerMemo').value = '';
+  var fileInput = document.getElementById('bannerPhoto');
+  if (fileInput) fileInput.value = '';
+  var nameEl = document.getElementById('bannerPhotoName');
+  if (nameEl) nameEl.textContent = '';
+  loadBannerList();
+  setTimeout(function() { initBannerMap(); renderBannerMarkers(); }, 350);
+}
+
+function closeBannerModal() {
+  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
+  document.getElementById('bannerModal').classList.remove('active');
 }
 
 function doResetPw() {
@@ -3479,6 +3691,8 @@ window.addEventListener('popstate', function(e) {
   if (lm && lm.classList.contains('active')) { closeLogModal(); return; }
   var todom = document.getElementById('todoModal');
   if (todom && todom.classList.contains('active')) { closeTodoModal(); return; }
+  var bannerm = document.getElementById('bannerModal');
+  if (bannerm && bannerm.classList.contains('active')) { closeBannerModal(); return; }
   var mam = document.getElementById('mapAllModal');
   if (mam && mam.classList.contains('active')) { closeMapAll(); return; }
 });

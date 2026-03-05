@@ -226,7 +226,8 @@ th{position:relative;}
 .sites-banner-item:hover{border-color:var(--accent);background:rgba(58,126,246,0.08);color:var(--accent);}
 .sites-banner-item .site-name{display:block;}
 /* 상세모달은 전체지도 위에 표시 */
-#detailModal{z-index:500;}
+#detailModal{z-index:1000 !important;}
+#detailModal .modal{position:relative;z-index:1001;}
 /* 지도 체크박스 필터 */
 .map-chk-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;color:var(--text);user-select:none;}
 .map-chk-label input{width:14px;height:14px;cursor:pointer;}
@@ -2366,7 +2367,10 @@ function openDetail(id){
   document.getElementById('detailCopyBtn').onclick=function(){ copyProperty(id); };
   updateAdBtn(p);
   updateDepBtn(p);
-  document.getElementById('detailModal').classList.add('active');
+  var detailModal = document.getElementById('detailModal');
+  // 전체지도 모달 위에 표시되도록 DOM 최상단으로 이동
+  document.body.appendChild(detailModal);
+  detailModal.classList.add('active');
   var detailBody = document.getElementById('detailBody');
   if(detailBody) { detailBody.scrollTop = 0; }
   setTimeout(function(){ if(detailBody) detailBody.scrollTop = 0; }, 0);

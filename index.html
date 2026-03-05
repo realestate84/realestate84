@@ -235,6 +235,9 @@ th{position:relative;}
 .banner-marker-info .bm-memo{color:var(--text-muted);font-size:11px;}
 .banner-marker-info .bm-photo{margin-top:6px;}
 .banner-marker-info .bm-photo img{width:64px;height:64px;object-fit:cover;border-radius:6px;}
+.banner-marker-thumb{background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,0.12);width:fit-content;line-height:0;}
+.banner-marker-thumb img{display:block;vertical-align:top;}
+.banner-marker-thumb .banner-thumb-none{font-size:11px;color:var(--text-muted);padding:6px 10px;}
 .map-marker-info{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:180px;font-family:'Noto Sans KR',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
 .map-marker-info .mi-title{font-weight:700;color:var(--accent);margin-bottom:4px;}
 .map-marker-info .mi-addr{color:#1a1a1a;font-weight:600;margin-bottom:2px;}
@@ -1390,6 +1393,7 @@ var _bannerList = [];
 var _bannerGeocodeTimer = null;
 var _bannerOverlay = null;
 var _editingBannerId = null;
+var _bannerMarkerJustClicked = false;
 
 function updateBannerAddressFromCenter() {
   if (!_bannerMapObj) return;
@@ -1492,6 +1496,16 @@ function initBannerMap() {
   }
   kakao.maps.event.addListener(_bannerMapObj, 'dragend', onCenterChanged);
   kakao.maps.event.addListener(_bannerMapObj, 'zoom_changed', onCenterChanged);
+  kakao.maps.event.addListener(_bannerMapObj, 'click', function() {
+    setTimeout(function() {
+      if (_bannerMarkerJustClicked) { _bannerMarkerJustClicked = false; return; }
+      if (_bannerOverlay) { _bannerOverlay.setMap(null); _bannerOverlay = null; }
+      _editingBannerId = null;
+      clearBannerForm();
+      updateBannerButtons();
+      updateBannerAddressFromCenter();
+    }, 50);
+  });
   setTimeout(function() { updateBannerAddressFromCenter(); }, 400);
 }
 
@@ -1507,27 +1521,35 @@ function renderBannerMarkers() {
     _bannerSavedMarkers.push({ marker: marker, b: b });
     (function(m, data) {
       kakao.maps.event.addListener(m, 'click', function() {
+        _bannerMarkerJustClicked = true;
         if (_bannerOverlay) { _bannerOverlay.setMap(null); _bannerOverlay = null; }
         _editingBannerId = data.id;
         fillBannerForm(data);
         updateBannerButtons();
         _bannerMapObj.panTo(m.getPosition());
         var content = document.createElement('div');
-        content.className = 'banner-marker-info';
+        content.className = 'banner-marker-thumb';
         if (data.photoUrl) {
           var thumb = document.createElement('img');
           thumb.src = data.photoUrl;
           thumb.alt = '';
-          thumb.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:2px solid var(--border);';
+          thumb.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;';
           thumb.onclick = function(e) { e.stopPropagation(); openLightbox([data.photoUrl], 0); };
           content.appendChild(thumb);
         } else {
-          content.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">사진 없음</span>';
+          content.innerHTML = '<span class="banner-thumb-none">사진 없음</span>';
         }
         _bannerOverlay = new kakao.maps.CustomOverlay({ content: content, map: _bannerMapObj, position: m.getPosition(), yAnchor: 1.4, zIndex: 3 });
       });
     })(marker, b);
   });
+  if (_bannerList.length > 0) {
+    var bounds = new kakao.maps.LatLngBounds();
+    _bannerList.forEach(function(b) {
+      if (b.lat != null && b.lng != null) bounds.extend(new kakao.maps.LatLng(b.lat, b.lng));
+    });
+    if (!bounds.isEmpty()) _bannerMapObj.setBounds(bounds);
+  }
 }
 
 function renderBannerList() {

@@ -121,6 +121,10 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .table-thumb{width:24px;height:24px;border-radius:4px;object-fit:cover;border:1px solid var(--border);display:block;}
 .table-wrap tbody tr{height:35px;box-sizing:border-box;}
 .table-wrap tbody td{vertical-align:middle;padding:5px 6px;}
+#tableHeader th[data-col-key]{cursor:grab;}
+#tableHeader th[data-col-key]:active{cursor:grabbing;}
+#tableHeader th.col-drag-source{opacity:0.6;}
+#tableHeader th.col-drag-over{border-left:3px solid var(--accent);background:rgba(58,126,246,0.08);}
 .ad-light.on{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);}
 .ad-light.dim1{background:#facc15;box-shadow:0 0 4px rgba(250,204,21,0.6);}
 .ad-light.dim2{background:#fde68a;box-shadow:none;}
@@ -932,6 +936,19 @@ function getListColumnSettings() {
   return s;
 }
 
+// 컬럼 순서 (null = 기본순서, 배열 = 사용자 지정 순서, 상업/주거 각각)
+var listColumnOrder = { residential: null, commercial: null };
+function applyColumnOrder(cols, order) {
+  if(!order || !order.length) return cols;
+  var orderMap = {};
+  order.forEach(function(k, i){ orderMap[k] = i; });
+  return cols.slice().sort(function(a, b) {
+    var ia = orderMap[a.key] !== undefined ? orderMap[a.key] : 9999;
+    var ib = orderMap[b.key] !== undefined ? orderMap[b.key] : 9999;
+    return ia - ib;
+  });
+}
+
 var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라','원룸','1.5룸','투룸','오피스텔','절대농지','단독주택','펜션','건물'];
 var GEORAE_TYPES = ['매매','전세','월세'];
 var filterTypeChecked = {};
@@ -951,6 +968,7 @@ var DEFAULT_FIELDS = [
   {key:'roadShare',           label:'도로지분',          section:'상세정보', suffix:' 평'},
   {key:'totalLandArea',       label:'총토지면적',        section:'상세정보', suffix:' 평'},
   {key:'roadArea',            label:'도로부지면적',      section:'상세정보', suffix:' 평'},
+  {key:'useZone',             label:'용도지역',          section:'상세정보', suffix:''},
   {key:'jimok',               label:'지목',              section:'상세정보', suffix:''},
   {key:'access',              label:'진출입로',          section:'상세정보', suffix:''},
   {key:'floorArea',           label:'연면적',            section:'상세정보', suffix:' 평'},
@@ -1499,15 +1517,20 @@ function renderTable() {
   // 헤더 동적 렌더링
   var allColDefs = getColDefsCache();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
+  var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
+  window._currentColOrder = orderedCols.map(function(c){ return c.key; });
   var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
-  var visColKey = visibleCols.map(function(c){ return c.key; }).join(',') + '|mgmt:'+SHOW_MANAGEMENT_COLUMN;
+  var orderKey = listColumnOrder[currentSector] ? listColumnOrder[currentSector].join(',') : 'default';
+  var visColKey = orderedCols.map(function(c){ return c.key; }).join(',') + '|mgmt:'+SHOW_MANAGEMENT_COLUMN + '|order:'+orderKey;
   if(renderTable._lastColKey !== visColKey) {
     renderTable._lastColKey = visColKey;
-    var headerHtml = visibleCols.map(function(c){
-      if(c.key==='address') return '<th onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
-      if(c.key==='photo') return '<th style="width:32px">사진</th>';
-      if(!c.sortKey) return '<th style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
-      return '<th onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
+    var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
+    var headerHtml = orderedCols.map(function(c){
+      var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
+      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
+      if(c.key==='photo') return '<th '+keyAttr+' style="width:32px">사진</th>';
+      if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
+      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
     }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px">관리</th>' : '');
     document.getElementById('tableHeader').innerHTML = headerHtml;
     // 주소 컬럼 리사이저 재연결
@@ -1529,7 +1552,7 @@ function renderTable() {
       var thumb = p.photos&&p.photos.length>0
         ? '<img class="table-thumb" src="'+p.photos[0]+'" alt="사진">'
         : '<span class="muted">—</span>';
-      var rowCells = visibleCols.map(function(c){
+      var rowCells = orderedCols.map(function(c){
         switch(c.key) {
           case 'propNo':    return '<td style="font-weight:700;color:var(--accent)">'+(p.propNo||'-')+'</td>';
           case 'photo':     return '<td>'+thumb+'</td>';
@@ -1577,6 +1600,43 @@ function renderTable() {
     }).join('');
   }
   renderStats();
+}
+
+function onColDragStart(e) {
+  var key = e.currentTarget.getAttribute('data-col-key');
+  if(!key) return;
+  e.dataTransfer.setData('text/plain', key);
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('col-drag-source');
+}
+function onColDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#tableHeader th[data-col-key]').forEach(function(el){ el.classList.remove('col-drag-over'); });
+  if(e.currentTarget.getAttribute('data-col-key')) e.currentTarget.classList.add('col-drag-over');
+}
+function onColDragEnd(e) {
+  document.querySelectorAll('.col-drag-source,.col-drag-over').forEach(function(el){ el.classList.remove('col-drag-source','col-drag-over'); });
+}
+function onColDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('col-drag-over');
+  var sourceKey = e.dataTransfer.getData('text/plain');
+  var targetKey = e.currentTarget.getAttribute('data-col-key');
+  if(!sourceKey || !targetKey || sourceKey === targetKey) return;
+  var order = window._currentColOrder;
+  if(!order || !order.length) return;
+  var si = order.indexOf(sourceKey);
+  var ti = order.indexOf(targetKey);
+  if(si === -1 || ti === -1) return;
+  if(!listColumnOrder[currentSector]) listColumnOrder[currentSector] = order.slice();
+  var newOrder = listColumnOrder[currentSector].slice();
+  newOrder.splice(si, 1);
+  newOrder.splice(newOrder.indexOf(targetKey), 0, sourceKey);
+  listColumnOrder[currentSector] = newOrder;
+  saveFieldSettings();
+  renderTable();
+  showToast('컬럼 순서가 변경됐어요.');
 }
 
 var sortKey = 'propNo';
@@ -1869,7 +1929,13 @@ function renderCustomFieldsInForm(type, propData) {
   if(!area) return;
 
   // 커스텀 항목: 선택한 매물종류(type)의 항목설정 사용 (타입 미선택 시 빈 목록)
-  var customs = customFields[type] || [];
+  // 용도지역(useZone)은 DEFAULT_FIELDS에 있어 고정 폼에 이미 있으므로, 라벨이 '용도지역'인 커스텀 항목은 중복 표시하지 않음
+  var defaultLabels = {};
+  DEFAULT_FIELDS.forEach(function(f){ defaultLabels[f.label] = true; });
+  var customs = (customFields[type] || []).filter(function(cf) {
+    var lbl = getFieldLabel(cf.key, cf.label);
+    return !defaultLabels[lbl];
+  });
   var html = '';
   customs.forEach(function(cf) {
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
@@ -1937,7 +2003,13 @@ function openEditModal(id){
   document.getElementById('f_roadShare').value=p.roadShare||'';
   document.getElementById('f_totalLandArea').value=p.totalLandArea||'';
   document.getElementById('f_roadArea').value=p.roadArea||'';
-  document.getElementById('f_useZone').value=p.useZone||'';
+  var useZoneVal = p.useZone;
+  if(!useZoneVal && p.type) {
+    var customs = customFields[p.type] || [];
+    var cfUse = customs.find(function(cf){ return getFieldLabel(cf.key, cf.label) === '용도지역'; });
+    if(cfUse && p[cfUse.key]) useZoneVal = p[cfUse.key];
+  }
+  document.getElementById('f_useZone').value=useZoneVal||'';
   document.getElementById('f_jimok').value=p.jimok||'';
   document.getElementById('f_access').value=p.access||'';
   document.getElementById('f_floorArea').value=p.floorArea||'';
@@ -3358,6 +3430,14 @@ function loadFieldSettings(callback) {
       customFields = data.customFields || {};
       fieldOrder = data.fieldOrder || {};
       PROP_TYPES.forEach(function(t){ if(fieldOrder[t]) fieldOrder[t] = dedupeOrder(fieldOrder[t]); });
+      // DEFAULT_FIELDS에 새로 추가된 항목(예: useZone)이 기존 저장값에 없으면 끝에 추가
+      var defaultKeys = DEFAULT_FIELDS.map(function(f){ return f.key; });
+      PROP_TYPES.forEach(function(t){
+        if(!fieldOrder[t]) return;
+        var order = fieldOrder[t].slice();
+        defaultKeys.forEach(function(k){ if(order.indexOf(k)===-1) order.push(k); });
+        fieldOrder[t] = dedupeOrder(order);
+      });
       var fs = data.fieldSections;
       if (fs && fs.residential !== undefined && fs.commercial !== undefined) {
         fieldSections = { residential: fs.residential || {}, commercial: fs.commercial || {} };
@@ -3385,6 +3465,10 @@ function loadFieldSettings(callback) {
           listColumnSettings.residential = Object.assign({}, _defaultListColumnSettings, lcs);
           listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, lcs);
         }
+      }
+      if(data.listColumnOrder && typeof data.listColumnOrder === 'object') {
+        listColumnOrder.residential = Array.isArray(data.listColumnOrder.residential) ? data.listColumnOrder.residential : null;
+        listColumnOrder.commercial = Array.isArray(data.listColumnOrder.commercial) ? data.listColumnOrder.commercial : null;
       }
     } else {
       fieldSettings = {};
@@ -3482,7 +3566,8 @@ function saveFieldSettings() {
     fieldSections: fieldSections,
     fieldLabelOverrides: fieldLabelOverrides,
     fieldSuffixOverrides: fieldSuffixOverrides,
-    listColumnSettings: listColumnSettings
+    listColumnSettings: listColumnSettings,
+    listColumnOrder: listColumnOrder
   });
 }
 
@@ -3520,13 +3605,13 @@ function buildAllColDefs() {
   return [
     {key:'propNo',   label:'No.',      sortKey:'propNo',   fixed:true},
     {key:'photo',    label:'사진',     sortKey:null,       fixed:true},
+    {key:'departure',label:'출발',     sortKey:'departure',fixed:true},
     {key:'type',     label:'매물종류', sortKey:'type',     fixed:true},
     {key:'georae',   label:'거래유형', sortKey:'georae',   fixed:true},
     {key:'address',  label:'주소',     sortKey:'address',  fixed:true},
     {key:'price',    label:'가격',     sortKey:'price',    fixed:true},
   ].concat(selectableCols).concat([
     {key:'adStatus', label:'광고',     sortKey:'adStatus', fixed:true},
-    {key:'departure',label:'출발',     sortKey:'departure',fixed:true},
   ]);
 }
 

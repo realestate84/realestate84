@@ -2193,12 +2193,12 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="event.stopPropagation(); copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
-          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')||' 평'):'-')+'</td>';
-          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')||' 평'):'-')+'</td>';
-          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')||' 평'):'-')+'</td>';
-          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+(getFieldSuffix('exclusiveArea')||' 평'):'-')+'</td>';
-          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+(getFieldSuffix('tempArea')||' 평'):'-')+'</td>';
-          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+(getFieldSuffix('roadArea')||' 평'):'-')+'</td>';
+          case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+getFieldSuffix('landArea'):'-')+'</td>';
+          case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+getFieldSuffix('totalArea'):'-')+'</td>';
+          case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+getFieldSuffix('supplyArea'):'-')+'</td>';
+          case 'exclusiveArea':return '<td class="muted">'+((p.exclusiveArea||p.rentArea)?(p.exclusiveArea||p.rentArea)+getFieldSuffix('exclusiveArea'):'-')+'</td>';
+          case 'tempArea':  return '<td class="muted">'+(p.tempArea?p.tempArea+getFieldSuffix('tempArea'):'-')+'</td>';
+          case 'roadArea':  return '<td class="muted">'+(p.roadArea?p.roadArea+getFieldSuffix('roadArea'):'-')+'</td>';
           case 'electric':  return '<td class="muted">'+(p.electric?p.electric+(getFieldSuffix('electric')||'kw'):'-')+'</td>';
           case 'height':    return '<td class="muted">'+(p.height?p.height+(getFieldSuffix('height')||'m'):'-')+'</td>';
           case 'useZone':   return '<td class="muted">'+(p.useZone?(p.useZone+(getFieldSuffix('useZone')?' '+getFieldSuffix('useZone'):'')):'-')+'</td>';

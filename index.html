@@ -898,9 +898,16 @@ th{position:relative;}
         </div>
       </div>
       <div id="mapAll"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+      <!-- 로드뷰 컨테이너 -->
+      <div id="mapAllRoadview" style="display:none;flex:1;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;flex-wrap:wrap;">
         <div id="mapAllInfo" style="font-size:12px;color:var(--text-muted);"></div>
-        <button onclick="toggleCadastral('all')" id="btnCadastralAll" class="btn btn-outline btn-sm" style="font-size:11px;">지적도</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="switchMapAllView('map')" id="btnMapAllMap" class="btn btn-outline btn-sm" style="font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent);font-weight:bold;">🗺 일반</button>
+          <button onclick="switchMapAllView('sky')" id="btnMapAllSky" class="btn btn-outline btn-sm" style="font-size:11px;">🛰 스카이뷰</button>
+          <button onclick="toggleCadastral('all')" id="btnCadastralAll" class="btn btn-outline btn-sm" style="font-size:11px;">지적도</button>
+          <button onclick="switchMapAllView('roadview')" id="btnMapAllRv" class="btn btn-outline btn-sm" style="font-size:11px;">🚶 로드뷰</button>
+        </div>
       </div>
     </div>
   </div>
@@ -5379,6 +5386,19 @@ function openMapAll() {
   if(properties.length === 0) { alert('등록된 매물이 없습니다.'); return; }
   document.querySelectorAll('.map-chk').forEach(function(c){ c.checked = true; });
   document.getElementById('mapAllModal').classList.add('active');
+  // 뷰 상태 초기화
+  _mapAllCurrentView = 'map';
+  _mapAllRvCoords = null;
+  var rvEl = document.getElementById('mapAllRoadview');
+  if(rvEl) { rvEl.style.display = 'none'; rvEl.innerHTML = ''; }
+  var mapEl = document.getElementById('mapAll');
+  if(mapEl) mapEl.style.display = '';
+  ['btnMapAllMap','btnMapAllSky','btnMapAllRv','btnCadastralAll'].forEach(function(id){
+    var b = document.getElementById(id); if(b){ b.style.background=''; b.style.color=''; b.style.fontWeight=''; b.style.borderColor=''; }
+  });
+  var bm = document.getElementById('btnMapAllMap');
+  if(bm){ bm.style.background='var(--accent)'; bm.style.color='#fff'; bm.style.fontWeight='bold'; bm.style.borderColor='var(--accent)'; }
+  _cadastralOn['all'] = false;
   pushModalState();
 
   setTimeout(function(){
@@ -5412,6 +5432,12 @@ function openMapAll() {
         (function(marker, p) {
           kakao.maps.event.addListener(marker, 'click', function() {
             if(window._mapOverlay) window._mapOverlay.setMap(null);
+            // 로드뷰용 좌표 저장
+            _mapAllRvCoords = marker.getPosition();
+            // 로드뷰 모드 중이면 즉시 갱신
+            if(_mapAllCurrentView === 'roadview') {
+              _openMapAllRoadview(_mapAllRvCoords);
+            }
             var color = _georaeColor[p.georae] || '#3a7ef6';
             var content = document.createElement('div');
             content.className = 'map-marker-info';
@@ -5462,6 +5488,67 @@ function updateMapInfo() {
     return (cg.length===0||cg.indexOf(item.p.georae)!==-1) && (ct.length===0||ct.indexOf(item.p.type)!==-1);
   }).length;
   document.getElementById('mapAllInfo').textContent = '총 '+v+'개 매물 표시 중';
+}
+
+
+// ── 전체지도 뷰 전환 (일반/스카이뷰/로드뷰) ──────────────────
+var _mapAllCurrentView = 'map';
+var _mapAllRvInitialized = false;
+var _mapAllRvCoords = null; // 로드뷰 기준 좌표 (마커 클릭 위치)
+
+function switchMapAllView(mode) {
+  var mapEl  = document.getElementById('mapAll');
+  var rvEl   = document.getElementById('mapAllRoadview');
+  var btnMap = document.getElementById('btnMapAllMap');
+  var btnSky = document.getElementById('btnMapAllSky');
+  var btnRv  = document.getElementById('btnMapAllRv');
+
+  // 버튼 스타일 초기화
+  [btnMap, btnSky, btnRv].forEach(function(b){
+    if(b){ b.style.background=''; b.style.color=''; b.style.fontWeight=''; b.style.borderColor=''; }
+  });
+
+  _mapAllCurrentView = mode;
+
+  if(mode === 'map') {
+    mapEl.style.display = '';
+    rvEl.style.display  = 'none';
+    if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+    if(btnMap){ btnMap.style.background='var(--accent)'; btnMap.style.color='#fff'; btnMap.style.fontWeight='bold'; btnMap.style.borderColor='var(--accent)'; }
+  } else if(mode === 'sky') {
+    mapEl.style.display = '';
+    rvEl.style.display  = 'none';
+    if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+    if(btnSky){ btnSky.style.background='var(--accent)'; btnSky.style.color='#fff'; btnSky.style.fontWeight='bold'; btnSky.style.borderColor='var(--accent)'; }
+    // 스카이뷰 전환 시 지적도 상태 재적용
+    if(_cadastralOn['all'] && _mapObj) _mapObj.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+  } else if(mode === 'roadview') {
+    if(!_mapAllRvCoords) {
+      // 좌표 없으면 현재 지도 중심 사용
+      _mapAllRvCoords = _mapObj ? _mapObj.getCenter() : null;
+    }
+    if(!_mapAllRvCoords) { alert('먼저 지도에서 매물 마커를 클릭하면 해당 위치의 로드뷰가 열립니다.'); return; }
+    mapEl.style.display = 'none';
+    rvEl.style.display  = '';
+    rvEl.style.flex     = '1';
+    if(btnRv){ btnRv.style.background='var(--accent)'; btnRv.style.color='#fff'; btnRv.style.fontWeight='bold'; btnRv.style.borderColor='var(--accent)'; }
+    _openMapAllRoadview(_mapAllRvCoords);
+  }
+}
+
+function _openMapAllRoadview(coords) {
+  var rvEl = document.getElementById('mapAllRoadview');
+  if(!rvEl) return;
+  rvEl.innerHTML = '';
+  var rvClient = new kakao.maps.RoadviewClient();
+  var roadview  = new kakao.maps.Roadview(rvEl);
+  rvClient.getNearestPanoId(coords, 50, function(panoId) {
+    if(panoId) {
+      roadview.setPanoId(panoId, coords);
+    } else {
+      rvEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;">이 위치의 로드뷰를 찾을 수 없어요</div>';
+    }
+  });
 }
 
 function closeMapAll() {

@@ -5438,7 +5438,7 @@ function openMapAll() {
       gc.addressSearch(mapDefaultCenterAddress, function(result, status) {
         if(status === kakao.maps.services.Status.OK) {
           _mapObj.setCenter(new kakao.maps.LatLng(result[0].y, result[0].x));
-          _mapObj.setLevel(5);
+          _mapObj.setLevel(4);
         }
       });
     }
@@ -5463,7 +5463,7 @@ function openMapAll() {
         var marker = new kakao.maps.Marker({map:_mapObj, position:coords, image:getMarkerImage(p)});
         _mapMarkers.push({marker:marker, p:p});
         bounds.extend(coords);
-        _mapObj.setBounds(bounds);
+        if(!mapDefaultCenterAddress) _mapObj.setBounds(bounds);
 
         (function(marker, p) {
           kakao.maps.event.addListener(marker, 'click', function() {

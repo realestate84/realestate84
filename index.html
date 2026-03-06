@@ -915,7 +915,7 @@ th{position:relative;}
 </div>
 
 <!-- 현수막 위치 등록 모달 -->
-<div class="modal-overlay" id="bannerModal" onclick="if(event.target===this)closeBannerModal()">
+<div class="modal-overlay" id="bannerModal" onclick="onBannerOverlayClick(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">🏷 현수막 거는 위치</div>
@@ -1456,6 +1456,13 @@ var _bannerGeocodeTimer = null;
 var _bannerOverlay = null;
 var _editingBannerId = null;
 var _bannerMarkerJustClicked = false;
+var _bannerModalMouseDownTarget = null;
+
+document.addEventListener('mousedown', function(e) {
+  if (document.getElementById('bannerModal') && document.getElementById('bannerModal').classList.contains('active')) {
+    _bannerModalMouseDownTarget = e.target;
+  }
+}, true);
 
 function updateBannerAddressFromCenter() {
   if (!_bannerMapObj) return;
@@ -1739,6 +1746,17 @@ function openBannerModal() {
   updateBannerButtons();
   loadBannerList();
   setTimeout(function() { initBannerMap(); renderBannerMarkers(); updateBannerAddressFromCenter(); }, 350);
+}
+
+function onBannerOverlayClick(event) {
+  if (event.target !== event.currentTarget) return;
+  var modal = document.querySelector('#bannerModal .modal');
+  if (modal && _bannerModalMouseDownTarget && modal.contains(_bannerModalMouseDownTarget)) {
+    _bannerModalMouseDownTarget = null;
+    return;
+  }
+  closeBannerModal();
+  _bannerModalMouseDownTarget = null;
 }
 
 function closeBannerModal() {

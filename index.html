@@ -5428,7 +5428,7 @@ function openMapAll() {
   pushModalState();
 
   setTimeout(function(){
-    _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), {center: new kakao.maps.LatLng(36.5,127.5), level:13});
+    _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), {center: new kakao.maps.LatLng(36.5,127.5), level: mapDefaultCenterAddress ? 5 : 13});
     _mapMarkers = [];
     var gc = new kakao.maps.services.Geocoder();
     var bounds = new kakao.maps.LatLngBounds();

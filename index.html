@@ -221,7 +221,7 @@ th{position:relative;}
 /* 현수막 모달: 전체지도와 동일 크기 */
 #bannerModal .modal{max-width:1200px;width:100%;height:95vh;display:flex;flex-direction:column;}
 #bannerModal .modal-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
-#bannerMapWrap{position:relative;flex:2;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
+#bannerMapWrap{position:relative;flex:1;min-height:0;max-height:42vh;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
 #bannerMap{width:100%;height:100%;min-height:280px;}
 .banner-map-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:10;pointer-events:none;font-size:42px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));}
 #bannerModal #bannerMemo{min-height:0;height:28px;line-height:1.35;padding:4px 10px;font-size:13px;resize:none;}
@@ -2496,7 +2496,6 @@ document.addEventListener('keydown',function(e){
   if(!document.getElementById('lightbox').classList.contains('active')) return;
   if(e.key==='ArrowLeft') lightboxPrev();
   if(e.key==='ArrowRight') lightboxNext();
-  if(e.key==='Escape') closeLightbox();
 });
 
 // 매물종류에 따라 폼 항목 표시/숨김 + 라벨명 업데이트
@@ -3741,45 +3740,31 @@ function updateAdBtn(p) {
   var isOn = left !== null && left > 0;
 
   if(isOn) {
-    // 켜진 상태
+    // 켜진 상태 → 표시: 🟢 30일
     if(left === 1) {
-      btn.textContent = '⚠️ 1일 전 (끄기)';
+      btn.textContent = '⚠️ 1일';
       btn.style.color = '#ef4444';
     } else {
-      btn.textContent = '🟢 ' + left + '일 (끄기)';
+      btn.textContent = '🟢 ' + left + '일';
       btn.style.color = '#22c55e';
     }
     btn.style.background = 'rgba(34,197,94,0.08)';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'on';
   } else if(p.adReady) {
-    // 광고준비 상태
-    btn.textContent = '🔵 광고준비 (시작)';
+    // 광고준비 상태 → 표시: 🔵 광고준비
+    btn.textContent = '🔵 광고준비';
     btn.style.color = '#3a7ef6';
     btn.style.background = 'rgba(58,126,246,0.10)';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'ready';
-  } else if(p.adEnd) {
-    // 수동 종료
-    btn.textContent = '⚫ 광고종료 (준비)';
-    btn.style.color = '#7a85a8';
-    btn.style.background = 'transparent';
-    btn.style.borderColor = 'transparent';
-    btn.dataset.state = 'ended';
-  } else if(p.adStart && left <= 0) {
-    // 30일 만료 자동 종료
-    btn.textContent = '⚫ 광고만료 (준비)';
-    btn.style.color = '#7a85a8';
-    btn.style.background = 'transparent';
-    btn.style.borderColor = 'transparent';
-    btn.dataset.state = 'expired';
   } else {
-    // 꺼진 상태 (시작 안함)
-    btn.textContent = '⚫ 광고시작 (준비)';
+    // 꺼진/종료/만료 → 표시: ⚫ 광고종료
+    btn.textContent = '⚫ 광고종료';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
-    btn.dataset.state = 'off';
+    btn.dataset.state = p.adEnd ? 'ended' : (p.adStart ? 'expired' : 'off');
   }
 }
 
@@ -3861,9 +3846,7 @@ function closePdfModal() {
   document.getElementById('pdfFrame').src = '';
 }
 
-document.addEventListener('keydown', function(e) {
-  if(e.key === 'Escape' && document.getElementById('pdfModal').style.display !== 'none') closePdfModal();
-});
+
 
 // 전체지도 상세보기 버튼 전역 클릭 핸들러
 document.addEventListener('click', function(e) {
@@ -5529,6 +5512,64 @@ document.addEventListener('click', function(e) {
     if(!popup.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
       popup.style.display = 'none';
     }
+  }
+});
+
+
+// ── ESC 키로 모달 닫기 ──────────────────────
+document.addEventListener('keydown', function(e) {
+  if(e.key !== 'Escape') return;
+  // 라이트박스
+  if(document.getElementById('lightbox') && document.getElementById('lightbox').classList.contains('active')) {
+    closeLightbox(); return;
+  }
+  // 전체지도
+  if(document.getElementById('mapAllModal') && document.getElementById('mapAllModal').classList.contains('active')) {
+    closeMapAll(); return;
+  }
+  // 상세보기
+  if(document.getElementById('detailModal') && document.getElementById('detailModal').classList.contains('active')) {
+    closeDetailModal(); return;
+  }
+  // 등록/수정 폼
+  if(document.getElementById('formModal') && document.getElementById('formModal').classList.contains('active')) {
+    closeFormModal(); return;
+  }
+  // 인쇄 미리보기
+  if(document.getElementById('printModal') && document.getElementById('printModal').classList.contains('active')) {
+    closePrintModal(); return;
+  }
+  // PDF
+  if(document.getElementById('pdfModal') && document.getElementById('pdfModal').style.display !== 'none') {
+    closePdfModal(); return;
+  }
+  // 고객문의
+  if(document.getElementById('customersModal') && document.getElementById('customersModal').classList.contains('active')) {
+    closeCustomers(); return;
+  }
+  // To-do
+  if(document.getElementById('todoModal') && document.getElementById('todoModal').classList.contains('active')) {
+    closeTodoModal(); return;
+  }
+  // 현수막
+  if(document.getElementById('bannerModal') && document.getElementById('bannerModal').classList.contains('active')) {
+    closeBannerModal(); return;
+  }
+  // 사이트
+  if(document.getElementById('sitesModal') && document.getElementById('sitesModal').classList.contains('active')) {
+    closeSitesModal(); return;
+  }
+  // 통계
+  if(document.getElementById('statsModal') && document.getElementById('statsModal').classList.contains('active')) {
+    closeStats(); return;
+  }
+  // 설정
+  if(document.getElementById('settingsModal') && document.getElementById('settingsModal').classList.contains('active')) {
+    closeSettings(); return;
+  }
+  // 로그
+  if(document.getElementById('logModal') && document.getElementById('logModal').classList.contains('active')) {
+    closeLogModal(); return;
   }
 });
 

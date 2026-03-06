@@ -5482,9 +5482,11 @@ function applyMapFilter() {
   var cg=[], ct=[];
   document.querySelectorAll('.map-chk[data-filter="georae"]:checked').forEach(function(c){cg.push(c.getAttribute('data-value'));});
   document.querySelectorAll('.map-chk[data-filter="type"]:checked').forEach(function(c){ct.push(c.getAttribute('data-value'));});
+  var totalGeorae = document.querySelectorAll('.map-chk[data-filter="georae"]').length;
+  var totalType   = document.querySelectorAll('.map-chk[data-filter="type"]').length;
   _mapMarkers.forEach(function(item){
-    var sg = cg.length===0 || cg.indexOf(item.p.georae)!==-1;
-    var st = ct.length===0 || ct.indexOf(item.p.type)!==-1;
+    var sg = cg.length===totalGeorae || cg.indexOf(item.p.georae)!==-1; // 전체선택이면 통과, 아니면 목록 확인
+    var st = ct.length===totalType   || ct.indexOf(item.p.type)!==-1;
     item.marker.setMap(sg&&st?_mapObj:null);
   });
   // 버튼 텍스트 동기화
@@ -5500,8 +5502,10 @@ function updateMapInfo() {
   var cg=[], ct=[];
   document.querySelectorAll('.map-chk[data-filter="georae"]:checked').forEach(function(c){cg.push(c.getAttribute('data-value'));});
   document.querySelectorAll('.map-chk[data-filter="type"]:checked').forEach(function(c){ct.push(c.getAttribute('data-value'));});
+  var totalGeorae = document.querySelectorAll('.map-chk[data-filter="georae"]').length;
+  var totalType   = document.querySelectorAll('.map-chk[data-filter="type"]').length;
   var v = _mapMarkers.filter(function(item){
-    return (cg.length===0||cg.indexOf(item.p.georae)!==-1) && (ct.length===0||ct.indexOf(item.p.type)!==-1);
+    return (cg.length===totalGeorae||cg.indexOf(item.p.georae)!==-1) && (ct.length===totalType||ct.indexOf(item.p.type)!==-1);
   }).length;
   document.getElementById('mapAllInfo').textContent = '총 '+v+'개 매물 표시 중';
 }

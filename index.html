@@ -3886,7 +3886,7 @@ function openDetailOverMap(id) {
 }
 
 document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
-document.getElementById('settingsModal').addEventListener('click',function(e){ if(e.target===this) forceCloseSettings(); });
+document.getElementById('settingsModal').addEventListener('click',function(e){ /* 바깥 클릭으로 닫기 비활성화 */ });
 
 var _modalStatePushed = false;
 function pushModalState() {

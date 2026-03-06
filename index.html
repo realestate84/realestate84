@@ -1292,9 +1292,17 @@ function renderTodoList() {
     ul.innerHTML = incomplete.map(function(item) {
       var escaped = (item.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       var sid = String(item.id).replace(/'/g,"\\'");
+      var ts = parseInt(String(item.id).replace('todo_',''), 10);
+      var dateStr = '', timeStr = '';
+      if(ts) {
+        var d = new Date(ts);
+        dateStr = d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+        timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
       return '<li class="todo-item" data-id="' + item.id + '" draggable="true" ondragstart="onTodoDragStart(event,\'' + sid + '\')" ondragover="onTodoDragOver(event)" ondrop="onTodoDrop(event,\'' + sid + '\')" ondragend="onTodoDragEnd(event)" onclick="toggleTodoItem(\'' + sid + '\')">' +
         '<input type="checkbox" onclick="event.stopPropagation();toggleTodoItem(\'' + sid + '\')">' +
         '<span class="todo-item-text">' + escaped + '</span>' +
+        (dateStr ? '<span style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-right:4px;"><span style="font-size:10px;color:var(--text-muted);line-height:1.4;">' + dateStr + '</span><span style="font-size:10px;color:var(--text-muted);line-height:1.4;">' + timeStr + '</span></span>' : '') +
         '<button type="button" class="todo-item-del btn btn-outline btn-sm" onclick="event.stopPropagation();deleteTodoItem(\'' + sid + '\')">삭제</button>' +
       '</li>';
     }).join('');
@@ -1315,9 +1323,17 @@ function renderTodoList() {
       completedUl.innerHTML = sorted.map(function(item) {
         var escaped = (item.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         var sid = String(item.id).replace(/'/g,"\\'");
+        var ts = parseInt(String(item.id).replace('todo_',''), 10);
+        var dateStr = '', timeStr = '';
+        if(ts) {
+          var d = new Date(ts);
+          dateStr = d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+          timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        }
         return '<li class="todo-item todo-item-done" data-id="' + item.id + '" onclick="toggleTodoItem(\'' + sid + '\')">' +
           '<input type="checkbox" checked onclick="event.stopPropagation();toggleTodoItem(\'' + sid + '\')">' +
           '<span class="todo-item-text">' + escaped + '</span>' +
+          (dateStr ? '<span style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-right:4px;"><span style="font-size:10px;color:var(--text-muted);line-height:1.4;">' + dateStr + '</span><span style="font-size:10px;color:var(--text-muted);line-height:1.4;">' + timeStr + '</span></span>' : '') +
           '<button type="button" class="todo-item-del btn btn-outline btn-sm" onclick="event.stopPropagation();deleteTodoItem(\'' + sid + '\')">삭제</button>' +
         '</li>';
       }).join('');

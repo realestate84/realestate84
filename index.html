@@ -865,7 +865,7 @@ th{position:relative;}
   </div>
 </div>
 
-<div id="mapAllModal" onclick="if(event.target===this)closeMapAll()">
+<div id="mapAllModal" onmousedown="_mapModalDragStart(event)" onmouseup="_mapModalDragEnd(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">📍 전체 매물 지도</div>
@@ -5610,6 +5610,18 @@ function _openMapAllRoadview(coords) {
       rvEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;">이 위치의 로드뷰를 찾을 수 없어요</div>';
     }
   });
+}
+
+var _mapModalMouseDownTarget = null;
+function _mapModalDragStart(e) {
+  _mapModalMouseDownTarget = e.target;
+}
+function _mapModalDragEnd(e) {
+  // mousedown과 mouseup 둘 다 overlay 자신이어야 진짜 클릭으로 인식
+  if(e.target === e.currentTarget && _mapModalMouseDownTarget === e.currentTarget) {
+    closeMapAll();
+  }
+  _mapModalMouseDownTarget = null;
 }
 
 function closeMapAll() {

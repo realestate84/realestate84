@@ -968,6 +968,7 @@ var currentPhotos = [];
 var lightboxPhotos = [];
 var lightboxIndex = 0;
 var SETTINGS_DOC = 'fieldSettings';
+var mapDefaultCenterAddress = ''; // 전체지도 초기 위치 주소
 var STORAGE_KEY_COLUMNS = 'mh_listColumnSettings';
 var STORAGE_KEY_SECTOR = 'mh_sector';
 var SECTOR_RESIDENTIAL = 'residential';
@@ -4167,6 +4168,9 @@ function loadFieldSettings(callback) {
           listColumnSettings.commercial = Object.assign({}, _defaultListColumnSettings, lcs);
         }
       }
+      if(data.mapDefaultCenterAddress !== undefined) {
+        mapDefaultCenterAddress = data.mapDefaultCenterAddress || '';
+      }
       if(data.listColumnOrder && typeof data.listColumnOrder === 'object') {
         listColumnOrder.residential = Array.isArray(data.listColumnOrder.residential) ? data.listColumnOrder.residential : null;
         listColumnOrder.commercial = Array.isArray(data.listColumnOrder.commercial) ? data.listColumnOrder.commercial : null;
@@ -4268,7 +4272,8 @@ function saveFieldSettings() {
     fieldLabelOverrides: fieldLabelOverrides,
     fieldSuffixOverrides: fieldSuffixOverrides,
     listColumnSettings: listColumnSettings,
-    listColumnOrder: listColumnOrder
+    listColumnOrder: listColumnOrder,
+    mapDefaultCenterAddress: mapDefaultCenterAddress
   });
 }
 
@@ -4939,10 +4944,18 @@ function confirmSettings() {
   if(!fieldSuffixOverrides.commercial) fieldSuffixOverrides.commercial = {};
   fieldLabelOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
   fieldSuffixOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
+  // 지도 초기 위치 저장
+  var mapInput = document.getElementById('mapCenterInput');
+  if(mapInput) mapDefaultCenterAddress = mapInput.value.trim();
   invalidateSuffixCache();
   invalidateColDefsCache();
   saveFieldSettings();
   showToast('✅ 설정이 저장됐어요!');
+}
+
+function clearMapCenterInput() {
+  var el = document.getElementById('mapCenterInput');
+  if(el) el.value = '';
 }
 
 function closeAllFilterPopups() {
@@ -5185,6 +5198,18 @@ function renderSettingsPanel() {
       '</div>';
   }
 
+  // 지도 초기 위치 설정 (전체 탭에서만 표시)
+  if(isAll) {
+    html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">🗺 전체매물지도 초기 위치</div>'+
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">지도를 열 때 이 주소로 먼저 이동합니다. 비워두면 전체 매물 기준으로 자동 조정됩니다.</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;">'+
+        '<input id="mapCenterInput" type="text" class="form-input" style="flex:1;font-size:13px;" placeholder="예) 검단사거리역, 인천광역시 서구 왕길동" value="'+((mapDefaultCenterAddress||'').replace(/"/g,'&quot;'))+'">'+
+        '<button class="btn btn-outline btn-sm" onclick="clearMapCenterInput()" style="white-space:nowrap;">초기화</button>'+
+      '</div>'+
+    '</div>';
+  }
+
   // 저장/취소 버튼
   html += '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:12px;border-top:2px solid var(--border);">'+
     '<button class="btn btn-outline" onclick="closeSettings()" style="min-width:80px;">취소</button>'+
@@ -5407,6 +5432,16 @@ function openMapAll() {
     _mapMarkers = [];
     var gc = new kakao.maps.services.Geocoder();
     var bounds = new kakao.maps.LatLngBounds();
+
+    // 초기 위치 설정
+    if(mapDefaultCenterAddress) {
+      gc.addressSearch(mapDefaultCenterAddress, function(result, status) {
+        if(status === kakao.maps.services.Status.OK) {
+          _mapObj.setCenter(new kakao.maps.LatLng(result[0].y, result[0].x));
+          _mapObj.setLevel(5);
+        }
+      });
+    }
 
     window._mapClickTimer = null;
     kakao.maps.event.addListener(_mapObj, 'click', function() {

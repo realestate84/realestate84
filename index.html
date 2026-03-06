@@ -879,6 +879,7 @@ th{position:relative;}
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="매매" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>매매</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="전세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>전세</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="월세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#f0a030"></span>월세</label>
+          <button onclick="toggleAllMapChk()" id="btnMapChkToggle" class="btn btn-outline btn-sm" style="font-size:11px;margin-left:auto;">모두해제</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
           <span style="font-size:12px;color:var(--text-muted);font-weight:600;min-width:30px">종류</span>
@@ -5466,6 +5467,15 @@ function openMapAll() {
   }, 300);
 }
 
+function toggleAllMapChk() {
+  var btn = document.getElementById('btnMapChkToggle');
+  var allChecked = Array.from(document.querySelectorAll('.map-chk')).every(function(c){ return c.checked; });
+  var newState = !allChecked; // 하나라도 해제돼 있으면 → 모두선택, 모두 선택이면 → 모두해제
+  document.querySelectorAll('.map-chk').forEach(function(c){ c.checked = newState; });
+  if(btn) btn.textContent = newState ? '모두해제' : '모두선택';
+  applyMapFilter();
+}
+
 function applyMapFilter() {
   if(!_mapObj) return;
   if(window._mapOverlay){window._mapOverlay.setMap(null);window._mapOverlay=null;}
@@ -5477,6 +5487,12 @@ function applyMapFilter() {
     var st = ct.length===0 || ct.indexOf(item.p.type)!==-1;
     item.marker.setMap(sg&&st?_mapObj:null);
   });
+  // 버튼 텍스트 동기화
+  var btn = document.getElementById('btnMapChkToggle');
+  if(btn) {
+    var allChecked = Array.from(document.querySelectorAll('.map-chk')).every(function(c){ return c.checked; });
+    btn.textContent = allChecked ? '모두해제' : '모두선택';
+  }
   updateMapInfo();
 }
 

@@ -56,7 +56,7 @@ body.dark .search-input, body.dark .filter-select { background:var(--bg); color:
 body.dark thead { background:var(--surface2); }
 body.dark .detail-section { border-color:var(--border); }
 body.dark .doc-row { background:var(--bg); }
-body.dark .ad-light:not(.on):not(.dim1):not(.dim2):not(.warn) { background:#3a3f55; }
+body.dark .ad-light:not(.on):not(.dim1):not(.dim2):not(.warn):not(.ready) { background:#3a3f55; }
 body.dark .dep-light:not(.on) { background:#3a3f55; }
 body.dark .table-wrap { background:var(--surface); border-color:var(--border); }
 body.dark td { border-bottom-color:var(--border); }
@@ -130,6 +130,7 @@ tr:hover td{background:rgba(58,126,246,0.03);}
 .ad-light.dim1{background:#facc15;box-shadow:0 0 4px rgba(250,204,21,0.6);}
 .ad-light.dim2{background:#fde68a;box-shadow:none;}
 .ad-light.warn{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.7);animation:blink 1s infinite;}
+.ad-light.ready{background:#3a7ef6;box-shadow:0 0 6px rgba(58,126,246,0.7);animation:blink 1s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 @keyframes spin{to{transform:rotate(360deg);}}
 .action-btns{display:flex;gap:5px;}
@@ -2199,7 +2200,7 @@ function renderTable() {
           case 'ownerName': return '<td class="muted">'+(p.ownerName||'-')+'</td>';
           case 'createdDate': return '<td class="muted" style="font-size:11px">'+(p.createdDate||'-')+'</td>';
           case 'updatedDate': return '<td class="muted" style="font-size:11px">'+(p.updatedDate||'-')+'</td>';
-          case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd)+'"></span></td>';
+          case 'adStatus':  return '<td style="text-align:center"><span class="ad-light '+getAdLightClass(p.adStart, p.adEnd, p.adReady)+'"></span></td>';
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
           default: {
             var sv = p[c.key]||''; var ss = getSuffixCached(c.key);
@@ -3714,9 +3715,19 @@ function getAdDaysLeft(adStart, adEnd) {
   return 30 - diff;
 }
 
-function getAdLightClass(adStart, adEnd) {
+function getAdLightClass(adStart, adEnd, adReady) {
+  if(adReady && !adStart) return 'ready';
+  if(adStart && !adEnd) {
+    var left = getAdDaysLeft(adStart, adEnd);
+    if(left !== null && left > 0) {
+      // adReady는 이미 켜진 상태이므로 무시
+    }
+  }
   var left = getAdDaysLeft(adStart, adEnd);
-  if(left === null || left <= 0) return '';
+  if(left === null || left <= 0) {
+    if(adReady) return 'ready';
+    return '';
+  }
   if(left === 1) return 'warn';
   if(left === 2) return 'dim2';
   if(left <= 4) return 'dim1';
@@ -3741,23 +3752,30 @@ function updateAdBtn(p) {
     btn.style.background = 'rgba(34,197,94,0.08)';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'on';
+  } else if(p.adReady) {
+    // 광고준비 상태
+    btn.textContent = '🔵 광고준비 (시작)';
+    btn.style.color = '#3a7ef6';
+    btn.style.background = 'rgba(58,126,246,0.10)';
+    btn.style.borderColor = 'transparent';
+    btn.dataset.state = 'ready';
   } else if(p.adEnd) {
     // 수동 종료
-    btn.textContent = '⚫ 광고종료 (재시작)';
+    btn.textContent = '⚫ 광고종료 (준비)';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'ended';
   } else if(p.adStart && left <= 0) {
     // 30일 만료 자동 종료
-    btn.textContent = '⚫ 광고만료 (재시작)';
+    btn.textContent = '⚫ 광고만료 (준비)';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
     btn.dataset.state = 'expired';
   } else {
     // 꺼진 상태 (시작 안함)
-    btn.textContent = '⚫ 광고시작';
+    btn.textContent = '⚫ 광고시작 (준비)';
     btn.style.color = '#7a85a8';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'transparent';
@@ -3772,20 +3790,28 @@ function toggleAd(id) {
   var state = btn.dataset.state;
 
   if(state === 'on') {
-    // 켜진 상태 → 끄기
-    if(!confirm('광고를 종료하시겠습니까?')) return;
-    db.collection(getPropertiesCollection()).doc(id).update({ adEnd: new Date().toISOString().split('T')[0] }).then(function() {
-      p.adEnd = new Date().toISOString().split('T')[0];
+    // 🟢 켜기 → ⚫ 끄기
+    var today = new Date().toISOString().split('T')[0];
+    db.collection(getPropertiesCollection()).doc(id).update({ adEnd: today, adReady: false }).then(function() {
+      p.adEnd = today;
+      p.adReady = false;
+      updateAdBtn(p);
+      renderTable();
+    });
+  } else if(state === 'ready') {
+    // 🔵 광고준비 → 🟢 켜기 (30일)
+    var today = new Date().toISOString().split('T')[0];
+    db.collection(getPropertiesCollection()).doc(id).update({ adStart: today, adEnd: '', adReady: false }).then(function() {
+      p.adStart = today;
+      p.adEnd = '';
+      p.adReady = false;
       updateAdBtn(p);
       renderTable();
     });
   } else {
-    // 꺼진/종료/만료 상태 → 켜기 (새로 30일 시작)
-    if(!confirm('네이버 광고를 시작하시겠습니까? (30일)')) return;
-    var today = new Date().toISOString().split('T')[0];
-    db.collection(getPropertiesCollection()).doc(id).update({ adStart: today, adEnd: '' }).then(function() {
-      p.adStart = today;
-      p.adEnd = '';
+    // ⚫ 꺼짐/종료/만료 → 🔵 광고준비
+    db.collection(getPropertiesCollection()).doc(id).update({ adReady: true }).then(function() {
+      p.adReady = true;
       updateAdBtn(p);
       renderTable();
     });

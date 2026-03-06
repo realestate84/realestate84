@@ -5534,20 +5534,18 @@ function switchMapAllView(mode) {
     mapEl.style.display = '';
     rvEl.style.display  = 'none';
     if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-    // 지적도 상태 명시적 동기화
     if(_mapObj) {
+      _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT); // 항상 먼저 제거
       if(_cadastralOn['all']) _mapObj.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-      else _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
     }
     if(btnMap){ btnMap.style.background='var(--accent)'; btnMap.style.color='#fff'; btnMap.style.fontWeight='bold'; btnMap.style.borderColor='var(--accent)'; }
   } else if(mode === 'sky') {
     mapEl.style.display = '';
     rvEl.style.display  = 'none';
     if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-    // 지적도 상태 명시적 동기화
     if(_mapObj) {
+      _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT); // 항상 먼저 제거
       if(_cadastralOn['all']) _mapObj.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-      else _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
     }
     if(btnSky){ btnSky.style.background='var(--accent)'; btnSky.style.color='#fff'; btnSky.style.fontWeight='bold'; btnSky.style.borderColor='var(--accent)'; }
   } else if(mode === 'roadview') {

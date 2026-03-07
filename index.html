@@ -5249,11 +5249,11 @@ function confirmSettings() {
     return;
   }
   saveFieldSettings();
-  renderTable();
   renderAdvSearchPanel();
-  // 컬럼설정 팝업이 열려 있으면 재렌더
+  // 항목설정 → 리스트 직접 반영 차단. 컬럼설정 팝업에만 반영(열려 있으면 즉시 갱신)
   var colPopup = document.getElementById('colSettingPopup');
   if(colPopup && colPopup.style.display !== 'none') renderColumnPopup();
+  // 리스트는 컬럼설정(표시/순서) 변경 시에만 renderTable()로 갱신됨
   // 상세모달이 열려 있으면 재렌더
   var detailModal = document.getElementById('detailModal');
   if(detailModal && detailModal.classList.contains('active') && window._currentDetailId) {

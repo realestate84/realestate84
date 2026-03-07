@@ -4581,12 +4581,9 @@ function buildAllColDefs() {
 
   var ordered;
   if (currentSector === SECTOR_COMMERCIAL) {
-    // 상업용: 반드시 master schema 기준 (특정 타입 기준 금지)
-    ordered = getMasterOrderedFields();
+    ordered = getMasterOrderedFields();  // 상업용: commercial master schema
   } else {
-    var sectorTypes = getPropTypesForSector(currentSector);
-    var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
-    ordered = getOrderedFields(refType);
+    ordered = getResidentialMasterOrderedFields();  // 주거용: residential master schema
   }
 
   var selectableCols = ordered

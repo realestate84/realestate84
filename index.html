@@ -2001,7 +2001,7 @@ function renderTable() {
           case 'photo':     return '<td>'+thumb+'</td>';
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
-          case 'address':   return '<td class="address-text" onclick="event.stopPropagation(); copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
+          case 'address':   return '<td class="address-text">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
@@ -2194,18 +2194,11 @@ function getDisplayAddress(p) {
   if(!a && !d) return '';
   return d ? a + ' ' + d : a;
 }
-function copyAddress(addr, e) {
+// 상세보기 모달 주소 복사 전용 함수 (리스트 주소 셀 복사는 제거됨)
+function copyAddress(addr) {
   navigator.clipboard.writeText(addr).then(function() {
-    if(e && e.currentTarget) {
-      var el = e.currentTarget;
-      var orig = el.style.color;
-      el.style.color = 'var(--accent)';
-      setTimeout(function(){ el.style.color = orig; }, 1000);
-    } else if(event && event.currentTarget) {
-      var el = event.currentTarget;
-      var badge = el.querySelector('.copy-badge');
-      if(badge){ badge.textContent='복사됨!'; badge.style.color='var(--accent)'; setTimeout(function(){ badge.textContent='복사'; badge.style.color=''; },1500); }
-    }
+    var badge = document.querySelector('#detailModal .copy-badge');
+    if(badge){ badge.textContent='복사됨!'; badge.style.color='var(--accent)'; setTimeout(function(){ badge.textContent='복사'; badge.style.color=''; },1500); }
   });
 }
 

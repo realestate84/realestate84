@@ -4247,9 +4247,12 @@ function loadFieldSettings(callback) {
     if(needsSave) saveFieldSettings();
     persistListColumnSettings();
     if(callback) callback();
+    // 새로고침 직후: 컬럼 설정(Firestore) 적용 후 리스트를 한 번 갱신 (상업용에서 체크해둔 항목이 반영되도록)
+    renderTable();
   }).catch(function(e){
     console.error('fieldSettings 로드 실패:', e);
     if(callback) callback();
+    renderTable();
   });
 }
 
@@ -5315,6 +5318,8 @@ function toggleColumnPopup() {
   closeAllFilterPopups();
   popup.style.display = 'block';
   renderColumnPopup();
+  // 컬럼설정 팝업과 리스트 동기화: 항목설정 저장 후 리스트를 안 그리므로, 팝업을 열 때 리스트를 한 번 갱신해 체크 상태가 리스트에 반영되게 함
+  renderTable();
 }
 
 function updateFilterTypeButtonText() {

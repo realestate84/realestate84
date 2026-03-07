@@ -1880,7 +1880,6 @@ document.addEventListener('click', function(e) {
 
 // ── 테이블 ────────────────────────────────
 function renderTable() {
-  renderTable._lastColKey = null; //테스트용 캐시 초기화
   var q = document.getElementById('searchInput').value.toLowerCase();
   var selectedTypes = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
   var selectedGeorae = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });

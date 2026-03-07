@@ -5893,8 +5893,8 @@ async function runAiAutoFill() {
           updateFormFieldVisibility(detectedType);
         }
 
-        // 고정 필드 채우기
-        var fixedFields = ['address','price','maintenance','premium','landArea','roadShare','totalLandArea',
+        // 고정 필드 채우기 (주소는 Geocoder로 정제 후 입력)
+        var fixedFields = ['price','maintenance','premium','landArea','roadShare','totalLandArea',
           'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
           'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
           'elevator','rooms','bathrooms','waterIn','drain','toilet','regOwnerName','ownerName','ownerPhone','memo'];
@@ -5917,6 +5917,28 @@ async function runAiAutoFill() {
             if(el) el.value = parsed[k];
           }
         });
+
+        // 주소 Geocoder로 정제 후 입력
+        var rawAddr = parsed.address || '';
+        if(rawAddr) {
+          var gc = new kakao.maps.services.Geocoder();
+          gc.addressSearch(rawAddr, function(result, status) {
+            var addrEl = document.getElementById('f_address');
+            if(!addrEl) return;
+            if(status === kakao.maps.services.Status.OK && result.length > 0) {
+              // 도로명 주소 우선, 없으면 지번 주소
+              var full = (result[0].road_address && result[0].road_address.address_name)
+                ? result[0].road_address.address_name
+                : (result[0].address && result[0].address.address_name)
+                ? result[0].address.address_name
+                : rawAddr;
+              addrEl.value = full;
+            } else {
+              // Geocoder 실패 시 AI가 파악한 주소 그대로 사용
+              addrEl.value = rawAddr;
+            }
+          });
+        }
 
         showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
       }, 400);

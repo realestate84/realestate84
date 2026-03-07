@@ -5826,7 +5826,9 @@ async function runAiAutoFill() {
   var prompt = '다음 매물 정보 텍스트를 분석해서 아래 JSON 형식으로만 응답해주세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.\n\n매물 정보:\n' + text + '\n\n응답 JSON 형식:\n{\n  "georae": "매매|전세|월세 중 하나",\n  "type": "토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나",\n  "address": "주소",\n  "price": "가격 (예: 5억, 3억5000만, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD 형식)",\n  "floors": "층수",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "특이사항/메모"\n}';
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    // Cloudflare Workers 프록시를 통해 Anthropic API 호출 (CORS 우회)
+    var PROXY_URL = 'https://realestate84.gsr365i.workers.dev';
+    var resp = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

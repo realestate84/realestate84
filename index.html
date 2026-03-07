@@ -1884,11 +1884,26 @@ document.addEventListener('click', function(e) {
   if(e.target === document.getElementById('sitesModal')) closeSitesModal();
 });
 
+// 현재 섹터(상업용/주거용) 기준 검색 가능한 모든 항목 키: 마스터 스키마 전체 + 해당 섹터 커스텀 항목
+function getSearchableKeys() {
+  var seen = {};
+  var keys = [];
+  function add(k){ if(!seen[k]){ seen[k]=true; keys.push(k); } }
+  ['propNo','address','type','georae','price','memo','note','naver','ownerName','regOwnerName','ownerPhone'].forEach(add);
+  var ordered = currentSector === SECTOR_COMMERCIAL ? getMasterOrderedFields() : getResidentialMasterOrderedFields();
+  ordered.forEach(function(f){ add(f.key); });
+  getPropTypesForSector(currentSector).forEach(function(t){
+    (customFields[t]||[]).forEach(function(cf){ add(cf.key); });
+  });
+  return keys;
+}
+
 // ── 테이블 ────────────────────────────────
 function renderTable() {
   var q = document.getElementById('searchInput').value.toLowerCase();
   var selectedTypes = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
   var selectedGeorae = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });
+  var searchKeys = getSearchableKeys();
   // 상세검색 (섹터별로 항목·필터 다름)
   var getAdv = function(id){ var el = document.getElementById(id); return el ? el.value : ''; };
   var priceMin = parseFloat(getAdv('adv_priceMin')) || null;
@@ -1911,7 +1926,10 @@ function renderTable() {
   var list = properties.filter(function(p){
     if(selectedGeorae.length > 0 && selectedGeorae.indexOf(p.georae) === -1) return false;
     if(selectedTypes.length > 0 && selectedTypes.indexOf(p.type) === -1) return false;
-    if(q){var hay=[p.address,p.georae,p.type,p.price,p.maintenance,p.premium,p.landArea,p.totalArea,p.supplyArea,p.exclusiveArea,p.tempArea,p.roadArea,p.useZone,p.jimok,p.buildingUse,p.approvalDate,p.floors,p.electric,p.hoist,p.direction,p.height,p.parking,p.toilet,p.elevator,p.factoryReg,p.access,p.regOwnerName,p.ownerName,p.ownerPhone,p.memo,p.note,p.naver,p.propNo].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
+    if(q){
+      var hay = searchKeys.map(function(k){ var v = p[k]; return (v != null && v !== '') ? String(v) : ''; }).join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
     // 가격 범위
     var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
     if(priceMin && price < priceMin) return false;

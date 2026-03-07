@@ -2028,6 +2028,17 @@ function renderTable() {
     // 주소 컬럼 리사이저 재연결
     var resizer = document.getElementById('addressResizer');
     if(resizer) initColResizer(resizer);
+  } else if (list.length > 0) {
+    // 헤더는 그대로지만 데이터가 들어온 경우: 첫 렌더가 빈 리스트였을 수 있으므로, 계산된 colWidths로 기존 th 너비 동기화 (새로고침 직후 상업용 컬럼 비정상 길이 방지)
+    var ths = document.querySelectorAll('#tableHeader th[data-col-key]');
+    orderedCols.forEach(function(c, i) {
+      var th = ths[i];
+      if (!th) return;
+      var w = colWidths[c.key];
+      if (!w || w === 'auto') w = (c.key === 'photo' ? '32px' : '100px'); // 미지정 컬럼도 auto 제거
+      th.style.width = w;
+      th.style.minWidth = w;
+    });
   }
   // 정렬 아이콘 복원
   if(sortKey) {

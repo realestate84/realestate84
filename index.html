@@ -4025,6 +4025,7 @@ function loadFieldSettings(callback) {
     });
     // 사용자가 삭제한 항목을 다시 넣지 않음 (DEFAULT_FIELDS 자동 추가 제거)
     // '총토지면적삭제' 항목 제거 (커스텀 항목으로 등록된 경우)
+    var needsSave = false;
     var keysToRemove = {};
     PROP_TYPES.forEach(function(t){
       (customFields[t]||[]).forEach(function(cf){
@@ -4047,6 +4048,7 @@ function loadFieldSettings(callback) {
       if(fieldSections.commercial) delete fieldSections.commercial[key];
       needsSave=true;
     });
+    cleanupFieldSettings();
     if(needsSave) saveFieldSettings();
     persistListColumnSettings();
     if(callback) callback();
@@ -4056,7 +4058,51 @@ function loadFieldSettings(callback) {
   });
 }
 
+function cleanupFieldSettings() {
+  // 1. fieldOrder에 있지만 fieldSettings에 없는 key 제거
+  PROP_TYPES.forEach(function(t) {
+    if (!fieldOrder[t]) return;
+    fieldOrder[t] = fieldOrder[t].filter(function(k) {
+      return fieldSettings[t] && fieldSettings[t].hasOwnProperty(k);
+    });
+  });
+
+  // 2. 존재하지 않는 key의 override/section orphan 제거
+  ['residential','commercial'].forEach(function(sec) {
+    var allValidKeys = {};
+    PROP_TYPES.forEach(function(t) {
+      if (fieldSettings[t]) Object.keys(fieldSettings[t]).forEach(function(k) { allValidKeys[k] = true; });
+      if (customFields[t]) customFields[t].forEach(function(cf) { allValidKeys[cf.key] = true; });
+    });
+
+    if (fieldLabelOverrides[sec]) {
+      Object.keys(fieldLabelOverrides[sec]).forEach(function(k) {
+        if (!allValidKeys[k]) delete fieldLabelOverrides[sec][k];
+      });
+    }
+    if (fieldSuffixOverrides[sec]) {
+      Object.keys(fieldSuffixOverrides[sec]).forEach(function(k) {
+        if (!allValidKeys[k]) delete fieldSuffixOverrides[sec][k];
+      });
+    }
+    if (fieldSections[sec]) {
+      Object.keys(fieldSections[sec]).forEach(function(k) {
+        if (!allValidKeys[k]) delete fieldSections[sec][k];
+      });
+    }
+  });
+
+  // 3. customFields와 fieldSettings 간 불일치 정리
+  PROP_TYPES.forEach(function(t) {
+    if (!customFields[t]) return;
+    customFields[t] = customFields[t].filter(function(cf) {
+      return fieldSettings[t] && fieldSettings[t].hasOwnProperty(cf.key);
+    });
+  });
+}
+
 function saveFieldSettings() {
+  cleanupFieldSettings();
   persistListColumnSettings();
   var orderToSave = {};
   PROP_TYPES.forEach(function(t){
@@ -5074,6 +5120,12 @@ function tmpDeleteField(activeType, key, isCustom) {
     if (_tmpFieldOrder[t]) _tmpFieldOrder[t] = _tmpFieldOrder[t].filter(function(k){ return k !== key; });
     if (_tmpFieldSettings[t]) delete _tmpFieldSettings[t][key];
     if (isCustom && _tmpCustomFields[t]) _tmpCustomFields[t] = _tmpCustomFields[t].filter(function(f){ return f.key !== key; });
+    // override 및 section 데이터 완전 제거
+    ['residential','commercial'].forEach(function(sec) {
+      if (_tmpFieldLabelOverrides && _tmpFieldLabelOverrides[sec]) delete _tmpFieldLabelOverrides[sec][key];
+      if (_tmpFieldSuffixOverrides && _tmpFieldSuffixOverrides[sec]) delete _tmpFieldSuffixOverrides[sec][key];
+      if (_tmpFieldSections && _tmpFieldSections[sec]) delete _tmpFieldSections[sec][key];
+    });
   });
   renderSettingsPanel();
 }

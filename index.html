@@ -5881,146 +5881,158 @@ async function runAiAutoFill() {
 
   btn.disabled = true;
   btn.textContent = '⏳ 분석 중...';
-  status.textContent = hasImage ? '① 이미지에서 매물 정보 읽는 중...' : '① 매물 종류 파악 중...';
+
+  // 모든 커스텀 필드를 매물종류별로 정리
+  var allCustomSpec = '';
+  var allTypeNames = ['토지','공장창고','상가/사무실','아파트','빌라','상가주택','원룸','1.5룸','투룸','오피스텔','절대농지','단독주택','펜션','건물'];
+  allTypeNames.forEach(function(t) {
+    var cfs = customFields[t] || [];
+    if(cfs.length > 0) {
+      allCustomSpec += '\n[' + t + ' 커스텀 항목]: ' + cfs.map(function(cf){ return (cf.label||cf.key) + '(key:custom__'+cf.key+')'; }).join(', ');
+    }
+  });
+
+  // 고정 필드 JSON 스펙
+  var fixedSpec = '"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나","extractedText":"읽은 전체 텍스트(이미지일때만)","address":"주소(동호수포함)","price":"가격","maintenance":"관리비","premium":"권리금","landArea":"토지면적(숫자만)","roadShare":"도로지분(숫자만)","totalLandArea":"총토지면적(숫자만)","roadArea":"도로부지(숫자만)","useZone":"용도지역","jimok":"지목","access":"진입로","totalArea":"건축면적(숫자만)","tempArea":"가설면적(숫자만)","supplyArea":"공급면적(숫자만)","exclusiveArea":"전용면적(숫자만)","buildingUse":"건물용도","approvalDate":"사용승인일(YYYY-MM-DD)","floors":"층수","electric":"전기용량","hoist":"호이스트","direction":"방향","parking":"주차","factoryReg":"공장등록","elevator":"엘리베이터","rooms":"방개수","bathrooms":"욕실개수","waterIn":"수도","drain":"하수","toilet":"화장실","regOwnerName":"등기부소유자","ownerName":"소유자명","ownerPhone":"소유자연락처","memo":"입주가능일,기타특이사항"';
 
   try {
-    // ── 1단계: type/georae 파악 (이미지 or 텍스트) ──
-    var step1content;
+    var messages;
     if(hasImage) {
-      // 이미지인 경우: 이미지에서 텍스트 추출 + type/georae 파악 동시에
-      step1content = [
-        { type:'image', source:{ type:'base64', media_type:_aiImageMime, data:_aiImageBase64 } },
-        { type:'text', text:'이 이미지에서 매물 정보를 읽어서 매물종류와 거래유형만 JSON으로 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나","extractedText":"이미지에서 읽은 전체 텍스트"}' }
-      ];
+      status.textContent = '이미지에서 매물 정보 읽는 중...';
+      messages = [{
+        role: 'user',
+        content: [
+          { type:'image', source:{ type:'base64', media_type:_aiImageMime, data:_aiImageBase64 } },
+          { type:'text', text:'이 이미지의 모든 글씨를 읽고 매물 정보를 분석해서 아래 JSON 형식으로만 응답하세요. 모르거나 없는 항목은 빈 문자열로 두세요. JSON 외 텍스트 절대 금지.\n\n매물종류별 커스텀 항목(해당되는 것만 포함):' + allCustomSpec + '\n\n응답JSON형식:{' + fixedSpec + ',(해당 매물종류의 커스텀 항목들 추가)}' }
+        ]
+      }];
     } else {
-      step1content = '다음 매물 정보에서 매물종류와 거래유형만 파악해서 JSON으로만 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n매물 정보:\n' + text + '\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나"}';
-    }
-
-    var r1 = await fetch(PROXY_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:500, messages:[{role:'user', content:step1content}] })
-    });
-    var d1 = await r1.json();
-    var raw1 = d1.content && d1.content[0] && d1.content[0].text;
-    if(!raw1) throw new Error('1단계 응답 없음');
-    var m1 = raw1.match(/\{[\s\S]*\}/);
-    if(!m1) throw new Error('1단계 JSON 파싱 실패');
-    var step1 = JSON.parse(m1[0]);
-    var detectedType = step1.type || '';
-
-    // 이미지에서 추출된 텍스트가 있으면 텍스트창에 표시
-    if(hasImage && step1.extractedText) {
-      document.getElementById('aiInputText').value = step1.extractedText;
-      text = step1.extractedText;
-    }
-
-    // ── 2단계: 해당 type의 커스텀 필드 목록 수집 ──
-    status.textContent = '② ' + (detectedType||'매물') + ' 항목 분석 중...';
-    var customs = customFields[detectedType] || [];
-
-    // 고정 필드 JSON 스펙
-    var fixedSpec = '  "address": "주소(동호수 포함)",\n  "price": "가격 (예: 5억, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD)",\n  "floors": "층수 (예: 3층, 엘베없음)",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "elevator": "엘리베이터 (예: 있음, 없음)",\n  "rooms": "방 개수",\n  "bathrooms": "욕실 개수",\n  "waterIn": "수도",\n  "drain": "하수",\n  "toilet": "화장실",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "입주가능일, 기타 특이사항 (옵션 제외)"';
-
-    // 커스텀 필드 JSON 스펙 동적 생성
-    var customSpec = '';
-    var customNotes = '';
-    if(customs.length > 0) {
-      customNotes = '\n\n[' + detectedType + ' 전용 커스텀 항목 - 반드시 채워주세요]\n';
-      customs.forEach(function(cf) {
-        var label = cf.label || cf.key;
-        customSpec += ',\n  "custom__' + cf.key + '": "' + label + ' 값"';
-        customNotes += '- ' + label + ' (key: custom__' + cf.key + ')\n';
+      status.textContent = '① 매물 종류 파악 중...';
+      // 텍스트만 있을 때는 기존 2단계 방식 유지
+      var step1prompt = '다음 매물 정보에서 매물종류와 거래유형만 파악해서 JSON으로만 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n매물 정보:\n' + text + '\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나"}';
+      var r1 = await fetch(PROXY_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:100, messages:[{role:'user',content:step1prompt}] })
       });
+      var d1 = await r1.json();
+      var raw1 = d1.content && d1.content[0] && d1.content[0].text;
+      if(!raw1) throw new Error('1단계 응답 없음');
+      var m1 = raw1.match(/\{[\s\S]*\}/);
+      if(!m1) throw new Error('1단계 JSON 파싱 실패');
+      var step1 = JSON.parse(m1[0]);
+      var detectedType = step1.type || '';
+      var detectedGeorae = step1.georae || '';
+
+      status.textContent = '② ' + (detectedType||'매물') + ' 항목 분석 중...';
+      var customs = customFields[detectedType] || [];
+      var customSpec = '';
+      var customNotes = '';
+      if(customs.length > 0) {
+        customNotes = '\n\n[' + detectedType + ' 전용 커스텀 항목]\n';
+        customs.forEach(function(cf) {
+          var label = cf.label || cf.key;
+          customSpec += ',\n  "custom__' + cf.key + '": "' + label + ' 값"';
+          customNotes += '- ' + label + ' (key: custom__' + cf.key + ')\n';
+        });
+      }
+      var step2prompt = '다음 매물 정보를 분석해서 JSON으로만 응답하세요. 없는 항목은 빈 문자열. JSON 외 텍스트 절대 금지.\n\n매물종류: ' + detectedType + '\n거래유형: ' + detectedGeorae + customNotes + '\n\n매물 정보:\n' + text + '\n\n응답 JSON:\n{\n  ' + fixedSpec + customSpec + '\n}';
+      messages = [{role:'user', content:step2prompt}];
+
+      var r2 = await fetch(PROXY_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:messages })
+      });
+      var d2 = await r2.json();
+      var raw2 = d2.content && d2.content[0] && d2.content[0].text;
+      if(!raw2) throw new Error('2단계 응답 없음');
+      var m2 = raw2.match(/\{[\s\S]*\}/);
+      if(!m2) throw new Error('2단계 JSON 파싱 실패');
+      var parsed = JSON.parse(m2[0]);
+      applyAiParsed(parsed, RES_TYPES);
+      return;
     }
 
-    var step2prompt = '다음 매물 정보를 분석해서 JSON으로만 응답하세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트 절대 금지.\n\n매물종류: ' + detectedType + '\n거래유형: ' + (step1.georae||'') + customNotes + '\n\n매물 정보:\n' + text + '\n\n응답 JSON:\n{\n' + fixedSpec + customSpec + '\n}';
-
-    var r2 = await fetch(PROXY_URL, {
+    // 이미지 단일 호출 처리
+    var resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:step2prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:messages })
     });
-    var d2 = await r2.json();
-    var raw2 = d2.content && d2.content[0] && d2.content[0].text;
-    if(!raw2) throw new Error('2단계 응답 없음');
-    var m2 = raw2.match(/\{[\s\S]*\}/);
-    if(!m2) throw new Error('2단계 JSON 파싱 실패');
-    var parsed = JSON.parse(m2[0]);
+    var data = await resp.json();
+    var raw = data.content && data.content[0] && data.content[0].text;
+    if(!raw) throw new Error('응답 없음');
+    var jm = raw.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error('JSON 파싱 실패');
+    var parsed = JSON.parse(jm[0]);
 
-    // ── 3단계: 섹터 전환 → 폼 열기 → 필드 채우기 ──
-    closeAiInputModal();
-    var needSector = RES_TYPES.indexOf(detectedType) !== -1 ? 'residential' : 'commercial';
-    if(currentSector !== needSector) switchSector(needSector);
+    // 이미지에서 추출된 텍스트를 텍스트창에 표시
+    if(parsed.extractedText) {
+      document.getElementById('aiInputText').value = parsed.extractedText;
+    }
 
-    setTimeout(function(){
-      openAddModal();
-      setTimeout(function(){
-
-        // 거래유형/매물종류 선택
-        var gs = document.getElementById('f_georae');
-        if(gs && step1.georae) gs.value = step1.georae;
-        var ts = document.getElementById('f_type');
-        if(ts && detectedType) {
-          ts.value = detectedType;
-          renderCustomFieldsInForm(detectedType, null);
-          updateFormFieldVisibility(detectedType);
-        }
-
-        // 고정 필드 채우기 (주소는 Geocoder로 정제 후 입력)
-        var fixedFields = ['price','maintenance','premium','landArea','roadShare','totalLandArea',
-          'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
-          'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
-          'elevator','rooms','bathrooms','waterIn','drain','toilet','regOwnerName','ownerName','ownerPhone','memo'];
-        fixedFields.forEach(function(key) {
-          if(parsed[key]) {
-            var el = document.getElementById('f_' + key);
-            if(el) el.value = parsed[key];
-          }
-        });
-        if(parsed.approvalDate) {
-          var ad = document.getElementById('f_approvalDate');
-          if(ad) ad.value = parsed.approvalDate;
-        }
-
-        // 커스텀 필드 채우기 (fc_[key])
-        Object.keys(parsed).forEach(function(k) {
-          if(k.indexOf('custom__') === 0 && parsed[k]) {
-            var cfKey = k.replace('custom__', '');
-            var el = document.getElementById('fc_' + cfKey);
-            if(el) el.value = parsed[k];
-          }
-        });
-
-        // 주소 Geocoder로 정제 후 입력
-        var rawAddr = parsed.address || '';
-        if(rawAddr) {
-          var gc = new kakao.maps.services.Geocoder();
-          gc.addressSearch(rawAddr, function(result, status) {
-            var addrEl = document.getElementById('f_address');
-            if(!addrEl) return;
-            if(status === kakao.maps.services.Status.OK && result.length > 0) {
-              // 도로명 주소 우선, 없으면 지번 주소
-              var full = (result[0].road_address && result[0].road_address.address_name)
-                ? result[0].road_address.address_name
-                : (result[0].address && result[0].address.address_name)
-                ? result[0].address.address_name
-                : rawAddr;
-              addrEl.value = full;
-            } else {
-              // Geocoder 실패 시 AI가 파악한 주소 그대로 사용
-              addrEl.value = rawAddr;
-            }
-          });
-        }
-
-        showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
-      }, 400);
-    }, 150);
+    applyAiParsed(parsed, RES_TYPES);
 
   } catch(err) {
-    status.textContent = '❌ 오류: ' + (err.message || '분석에 실패했어요. 다시 시도해주세요.');
+    document.getElementById('aiInputStatus').textContent = '❌ 오류: ' + (err.message || '분석에 실패했어요. 다시 시도해주세요.');
     btn.disabled = false;
     btn.textContent = '✨ 자동입력 시작';
   }
+}
+
+function applyAiParsed(parsed, RES_TYPES) {
+  var detectedType = parsed.type || '';
+  closeAiInputModal();
+  var needSector = RES_TYPES.indexOf(detectedType) !== -1 ? 'residential' : 'commercial';
+  if(currentSector !== needSector) switchSector(needSector);
+
+  setTimeout(function(){
+    openAddModal();
+    setTimeout(function(){
+      var gs = document.getElementById('f_georae');
+      if(gs && parsed.georae) gs.value = parsed.georae;
+      var ts = document.getElementById('f_type');
+      if(ts && detectedType) {
+        ts.value = detectedType;
+        renderCustomFieldsInForm(detectedType, null);
+        updateFormFieldVisibility(detectedType);
+      }
+
+      var fixedFields = ['price','maintenance','premium','landArea','roadShare','totalLandArea',
+        'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
+        'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
+        'elevator','rooms','bathrooms','waterIn','drain','toilet','regOwnerName','ownerName','ownerPhone','memo'];
+      fixedFields.forEach(function(key) {
+        if(parsed[key]) { var el = document.getElementById('f_'+key); if(el) el.value = parsed[key]; }
+      });
+      if(parsed.approvalDate) { var ad = document.getElementById('f_approvalDate'); if(ad) ad.value = parsed.approvalDate; }
+
+      // 커스텀 필드
+      Object.keys(parsed).forEach(function(k) {
+        if(k.indexOf('custom__') === 0 && parsed[k]) {
+          var el = document.getElementById('fc_' + k.replace('custom__',''));
+          if(el) el.value = parsed[k];
+        }
+      });
+
+      // 주소 Geocoder 정제
+      var rawAddr = parsed.address || '';
+      if(rawAddr) {
+        var gc = new kakao.maps.services.Geocoder();
+        gc.addressSearch(rawAddr, function(result, status) {
+          var addrEl = document.getElementById('f_address');
+          if(!addrEl) return;
+          if(status === kakao.maps.services.Status.OK && result.length > 0) {
+            var full = (result[0].road_address && result[0].road_address.address_name)
+              ? result[0].road_address.address_name
+              : (result[0].address && result[0].address.address_name)
+              ? result[0].address.address_name : rawAddr;
+            addrEl.value = full;
+          } else { addrEl.value = rawAddr; }
+        });
+      }
+
+      showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
+    }, 400);
+  }, 150);
 }
 // ── AI 자동입력 끝 ────────────────────────────
 

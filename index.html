@@ -27,6 +27,11 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/modal.css">
 <link rel="stylesheet" href="css/responsive.css">
+<style>
+  /* 테이블 컬럼 폭 안정화: fixed layout */
+  .table-wrap table { table-layout: fixed; }
+  .table-wrap td.address-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -840,6 +845,23 @@ function getListColumnSettings() {
 
 // 컬럼 순서 (null = 기본순서, 배열 = 사용자 지정 순서, 상업/주거 각각)
 var listColumnOrder = { residential: null, commercial: null };
+// 컬럼 폭 px (섹터별 저장, 리사이즈 시 저장)
+var listColumnWidths = { residential: {}, commercial: {} };
+// 기본 컬럼 width (px). width:auto 사용 금지.
+var DEFAULT_COL_WIDTHS = {
+  propNo: 60, photo: 70, georae: 80, type: 120, address: 240, price: 140, pricePerPyeong: 110,
+  landArea: 75, totalArea: 60, supplyArea: 80, exclusiveArea: 80, tempArea: 70, roadArea: 70,
+  useZone: 120, jimok: 50, buildingUse: 100, approvalDate: 90, floors: 60, hoist: 50,
+  direction: 80, parking: 70, toilet: 50, elevator: 70, factoryReg: 90, access: 90,
+  electric: 70, height: 50, ownerName: 120, ownerPhone: 130, createdDate: 70, updatedDate: 70,
+  adStatus: 30, departure: 30
+};
+var RESIZE_DISABLED_KEYS = ['propNo', 'photo', 'adStatus', 'departure'];
+function getColWidthPx(key) {
+  var sector = listColumnWidths[currentSector];
+  if (sector && sector[key] != null) return sector[key];
+  return DEFAULT_COL_WIDTHS[key] != null ? DEFAULT_COL_WIDTHS[key] : 100;
+}
 function applyColumnOrder(cols, order) {
   if(!order || !order.length) return cols;
   var orderMap = {};
@@ -1987,7 +2009,6 @@ function renderTable() {
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
-  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
   var orderKey = listColumnOrder[currentSector] ? listColumnOrder[currentSector].join(',') : 'default';
   var visColKey = orderedCols.map(function(c){ return c.key; }).join(',') + '|mgmt:'+SHOW_MANAGEMENT_COLUMN + '|order:'+orderKey;
   if(renderTable._lastColKey !== visColKey) {
@@ -1995,15 +2016,18 @@ function renderTable() {
     var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
     var headerHtml = orderedCols.map(function(c){
       var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
-      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
-      if(c.key==='photo') return '<th '+keyAttr+' style="width:32px">사진</th>';
-      if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
-      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
-    }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px">관리</th>' : '');
+      var w = getColWidthPx(c.key);
+      var widthStyle = 'width:'+w+'px;min-width:'+w+'px';
+      var canResize = RESIZE_DISABLED_KEYS.indexOf(c.key) === -1;
+      var resizerHtml = canResize ? '<div class="col-resizer" data-col-key="'+(c.key||'').replace(/"/g,'&quot;')+'" onclick="event.stopPropagation()"></div>' : '';
+      var posRel = canResize ? 'position:relative;' : '';
+      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;'+posRel+widthStyle+'" id="thAddress">주소 <span id="sort_address"></span>'+resizerHtml+'</th>';
+      if(c.key==='photo') return '<th '+keyAttr+' style="'+widthStyle+'">사진</th>';
+      if(!c.sortKey) return '<th '+keyAttr+' style="'+posRel+widthStyle+'">'+c.label+resizerHtml+'</th>';
+      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;'+posRel+widthStyle+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span>'+resizerHtml+'</th>';
+    }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px;min-width:80px">관리</th>' : '');
     document.getElementById('tableHeader').innerHTML = headerHtml;
-    // 주소 컬럼 리사이저 재연결
-    var resizer = document.getElementById('addressResizer');
-    if(resizer) initColResizer(resizer);
+    document.querySelectorAll('#tableHeader .col-resizer').forEach(function(resizer){ initColResizer(resizer); });
   }
   // 정렬 아이콘 복원
   if(sortKey) {
@@ -4067,6 +4091,10 @@ function loadFieldSettings(callback) {
         listColumnOrder.residential = Array.isArray(data.listColumnOrder.residential) ? data.listColumnOrder.residential : null;
         listColumnOrder.commercial = Array.isArray(data.listColumnOrder.commercial) ? data.listColumnOrder.commercial : null;
       }
+      if(data.listColumnWidths && typeof data.listColumnWidths === 'object') {
+        listColumnWidths.residential = (data.listColumnWidths.residential && typeof data.listColumnWidths.residential === 'object') ? data.listColumnWidths.residential : {};
+        listColumnWidths.commercial = (data.listColumnWidths.commercial && typeof data.listColumnWidths.commercial === 'object') ? data.listColumnWidths.commercial : {};
+      }
       // 상업용 master schema 복원
       if (data.fieldSchema_commercial_master && data.fieldSchema_commercial_master.order) {
         fieldSchema.commercial.master = data.fieldSchema_commercial_master;
@@ -4409,6 +4437,7 @@ function saveFieldSettings() {
     fieldSuffixOverrides: fieldSuffixOverrides,
     listColumnSettings: listColumnSettings,
     listColumnOrder: listColumnOrder,
+    listColumnWidths: listColumnWidths,
     mapDefaultCenterAddress: mapDefaultCenterAddress,
     fieldSchema_commercial_master: fieldSchema.commercial.master,
     fieldSchema_commercial_visibilityByType: fieldSchema.commercial.visibilityByType,
@@ -6027,16 +6056,22 @@ function closeMapAll() {
   document.getElementById('mapAllModal').classList.remove('active');
 }
 
-// ── 주소 컬럼 리사이즈 ───────────────────
+// ── 컬럼 리사이즈 (저장형) ───────────────────
 function initColResizer(resizer) {
   if(!resizer) return;
-  var th = document.getElementById('thAddress');
-  if(!th) return;
-  // 기존 이벤트 중복 방지
+  var th = resizer.parentNode;
+  if(!th || th.nodeName !== 'TH') return;
+  var key = th.getAttribute('data-col-key');
+  if(!key) return;
   var newResizer = resizer.cloneNode(true);
   resizer.parentNode.replaceChild(newResizer, resizer);
   resizer = newResizer;
   var startX, startW;
+  function saveColWidth(w) {
+    if(!listColumnWidths[currentSector]) listColumnWidths[currentSector] = {};
+    listColumnWidths[currentSector][key] = w;
+    saveFieldSettings();
+  }
   resizer.addEventListener('mousedown', function(e) {
     startX = e.pageX;
     startW = th.offsetWidth;
@@ -6044,7 +6079,7 @@ function initColResizer(resizer) {
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     function onMove(e) {
-      var w = Math.max(80, startW + (e.pageX - startX));
+      var w = Math.max(60, startW + (e.pageX - startX));
       th.style.width = w + 'px';
       th.style.minWidth = w + 'px';
     }
@@ -6054,6 +6089,7 @@ function initColResizer(resizer) {
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      saveColWidth(th.offsetWidth);
     }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -6063,20 +6099,20 @@ function initColResizer(resizer) {
     startX = e.touches[0].pageX;
     startW = th.offsetWidth;
     function onMove(e) {
-      var w = Math.max(80, startW + (e.touches[0].pageX - startX));
+      var w = Math.max(60, startW + (e.touches[0].pageX - startX));
       th.style.width = w + 'px';
       th.style.minWidth = w + 'px';
     }
     function onEnd() {
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
+      saveColWidth(th.offsetWidth);
     }
     document.addEventListener('touchmove', onMove);
     document.addEventListener('touchend', onEnd);
     e.preventDefault();
   });
 }
-initColResizer(document.getElementById('addressResizer'));
 
 // 컬럼 팝업 바깥 클릭 시 닫기
 document.addEventListener('click', function(e) {

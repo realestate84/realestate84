@@ -906,6 +906,22 @@ var DEFAULT_FIELDS = [
 var fieldSettings = {}; // { '토지': { price: true, landArea: true, ... }, ... }
 var customFields = {};  // { '토지': [{key:'custom_xxx', label:'커스텀항목'}], ... }
 var fieldOrder = {};    // { '토지': ['price','landArea',...], ... }
+
+// ── 상업용 마스터 스키마 (전체 항목의 단일 정의 소스) ──────────────────────
+// fieldSchema.commercial.master : 항목 key/label/suffix/section/순서 관리
+// fieldSchema.commercial.visibilityByType : 각 매물종류의 표시 여부 관리
+var fieldSchema = {
+  commercial: {
+    master: {
+      fields: {},  // { fieldKey: { label, suffix, section } }
+      order: []    // [fieldKey, ...]
+    },
+    visibilityByType: {
+      '토지': {}, '공장창고': {}, '상가/사무실': {},
+      '절대농지': {}, '펜션': {}, '건물': {}, '단독주택': {}
+    }
+  }
+};
 var fieldSections = { residential: {}, commercial: {} }; // 섹터별 항목 섹션(기본정보/상세정보/소유자정보)
 var fieldLabelOverrides = { residential: {}, commercial: {} }; // 섹터별 항목명 변경
 var fieldSuffixOverrides = { residential: {}, commercial: {} }; // 섹터별 단위 설정
@@ -2001,7 +2017,7 @@ function renderTable() {
           case 'photo':     return '<td>'+thumb+'</td>';
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
-          case 'address':   return '<td class="address-text">'+(p.address||'-')+'</td>';
+          case 'address':   return '<td class="address-text" onclick="event.stopPropagation(); copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
@@ -2194,11 +2210,18 @@ function getDisplayAddress(p) {
   if(!a && !d) return '';
   return d ? a + ' ' + d : a;
 }
-// 상세보기 모달 주소 복사 전용 함수 (리스트 주소 셀 복사는 제거됨)
-function copyAddress(addr) {
+function copyAddress(addr, e) {
   navigator.clipboard.writeText(addr).then(function() {
-    var badge = document.querySelector('#detailModal .copy-badge');
-    if(badge){ badge.textContent='복사됨!'; badge.style.color='var(--accent)'; setTimeout(function(){ badge.textContent='복사'; badge.style.color=''; },1500); }
+    if(e && e.currentTarget) {
+      var el = e.currentTarget;
+      var orig = el.style.color;
+      el.style.color = 'var(--accent)';
+      setTimeout(function(){ el.style.color = orig; }, 1000);
+    } else if(event && event.currentTarget) {
+      var el = event.currentTarget;
+      var badge = el.querySelector('.copy-badge');
+      if(badge){ badge.textContent='복사됨!'; badge.style.color='var(--accent)'; setTimeout(function(){ badge.textContent='복사'; badge.style.color=''; },1500); }
+    }
   });
 }
 
@@ -2363,14 +2386,36 @@ function renderCustomFieldsInForm(type, propData) {
   var area = document.getElementById('customFieldsArea');
   if(!area) return;
 
-  // 커스텀 항목: 선택한 매물종류(type)의 항목설정 사용 (타입 미선택 시 빈 목록)
-  // key 기준으로 DEFAULT_FIELDS와 중복 여부 확인 (label이 같아도 key가 다르면 별도 항목으로 표시)
   var defaultKeys = {};
   DEFAULT_FIELDS.forEach(function(f){ defaultKeys[f.key] = true; });
+  var html = '';
+
+  if (type && COMMERCIAL_TYPES.indexOf(type) !== -1) {
+    // 상업용: master.order 기준, visibilityByType[type]이 true인 커스텀 항목만 렌더
+    var master = fieldSchema.commercial.master;
+    var vbt = fieldSchema.commercial.visibilityByType[type] || {};
+    (master.order || []).forEach(function(key) {
+      if (defaultKeys[key]) return; // DEFAULT_FIELDS는 HTML에서 처리
+      var fd = master.fields[key];
+      if (!fd) return;
+      var visible = vbt.hasOwnProperty(key) ? vbt[key] : true;
+      if (!visible) return;
+      var val = (propData && propData[key]) ? propData[key] : '';
+      var lbl = getFieldLabel(key, fd.label);
+      html += '<div class="form-group" data-field-key="'+key+'">'+
+        '<label>'+lbl+'</label>'+
+        '<input class="form-input" type="text" id="fc_'+key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
+        '</div>';
+    });
+    area.innerHTML = html;
+    updateFormFieldVisibility(type);
+    return;
+  }
+
+  // 주거용: 기존 로직
   var customs = (customFields[type] || []).filter(function(cf) {
     return !defaultKeys[cf.key];
   });
-  var html = '';
   customs.forEach(function(cf) {
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
@@ -2388,6 +2433,22 @@ function renderCustomFieldsInForm(type, propData) {
 // 커스텀 항목 값 수집
 function collectCustomFieldValues(type) {
   var result = {};
+  var defaultKeys = {};
+  DEFAULT_FIELDS.forEach(function(f){ defaultKeys[f.key] = true; });
+
+  if (type && COMMERCIAL_TYPES.indexOf(type) !== -1) {
+    // 상업용: master.fields에 존재하는 field만 허용
+    var master = fieldSchema.commercial.master;
+    (master.order || []).forEach(function(key) {
+      if (defaultKeys[key]) return; // DEFAULT_FIELDS 항목은 이미 saveProperty에서 처리
+      if (!master.fields[key]) return; // master에 없는 key는 저장 불허
+      var el = document.getElementById('fc_'+key);
+      if (el) result[key] = el.value.trim();
+    });
+    return result;
+  }
+
+  // 주거용: 기존 로직
   var customs = customFields[type] || [];
   customs.forEach(function(cf) {
     var el = document.getElementById('fc_'+cf.key);
@@ -3968,6 +4029,14 @@ function loadFieldSettings(callback) {
         listColumnOrder.residential = Array.isArray(data.listColumnOrder.residential) ? data.listColumnOrder.residential : null;
         listColumnOrder.commercial = Array.isArray(data.listColumnOrder.commercial) ? data.listColumnOrder.commercial : null;
       }
+      // 상업용 master schema 복원
+      if (data.fieldSchema_commercial_master && data.fieldSchema_commercial_master.order) {
+        fieldSchema.commercial.master = data.fieldSchema_commercial_master;
+        fieldSchema.commercial.visibilityByType = data.fieldSchema_commercial_visibilityByType || fieldSchema.commercial.visibilityByType;
+      } else {
+        // 마이그레이션: 기존 fieldOrder/fieldSettings/customFields → master schema 생성
+        _migrateToMasterSchema();
+      }
     } else {
       fieldSettings = {};
       customFields = {};
@@ -3983,6 +4052,8 @@ function loadFieldSettings(callback) {
         fieldSections.residential[f.key] = f.section;
         fieldSections.commercial[f.key] = f.section;
       });
+      // master schema 초기화 (신규)
+      _migrateToMasterSchema();
       saveFieldSettings();
     }
     // 같은 섹터 내에서, 아예 설정이 비어 있는 타입만 참조 타입 기준으로 채움 (삭제한 항목 복원 방지)
@@ -4048,6 +4119,55 @@ function loadFieldSettings(callback) {
     console.error('fieldSettings 로드 실패:', e);
     if(callback) callback();
   });
+}
+
+// ── 상업용 마스터 스키마 마이그레이션 ──────────────────────────────────────
+// 기존 fieldOrder/fieldSettings/customFields → fieldSchema.commercial.master + visibilityByType
+function _migrateToMasterSchema() {
+  var refType = COMMERCIAL_TYPES.find(function(t){ return fieldOrder[t] && fieldOrder[t].length > 0; }) || COMMERCIAL_TYPES[0];
+  var refOrder = (fieldOrder[refType] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
+  var refCustoms = customFields[refType] || [];
+
+  // master.fields 생성
+  var masterFields = {};
+  var seen = {};
+  refOrder.forEach(function(key) {
+    if (seen[key]) return;
+    seen[key] = true;
+    var defField = DEFAULT_FIELDS.find(function(f){ return f.key === key; });
+    var cfField = refCustoms.find(function(cf){ return cf.key === key; });
+    var label = (fieldLabelOverrides.commercial && fieldLabelOverrides.commercial[key]) ||
+      (cfField ? cfField.label : (defField ? defField.label : key));
+    var suffix = (fieldSuffixOverrides.commercial && fieldSuffixOverrides.commercial.hasOwnProperty(key))
+      ? fieldSuffixOverrides.commercial[key]
+      : (defField ? (defField.suffix || '') : '');
+    var section = (fieldSections.commercial && fieldSections.commercial[key]) ||
+      (defField ? defField.section : '상세정보');
+    masterFields[key] = { label: label, suffix: suffix, section: section, custom: !!cfField };
+  });
+
+  // master.order (중복 제거)
+  var masterOrder = [];
+  var seenOrder = {};
+  refOrder.forEach(function(k){ if (!seenOrder[k] && masterFields[k]) { masterOrder.push(k); seenOrder[k] = true; } });
+
+  fieldSchema.commercial.master = { fields: masterFields, order: masterOrder };
+
+  // visibilityByType 생성
+  var vbt = {};
+  COMMERCIAL_TYPES.forEach(function(t) {
+    vbt[t] = {};
+    var settings = fieldSettings[t] || {};
+    masterOrder.forEach(function(key) {
+      if (settings.hasOwnProperty(key)) {
+        vbt[t][key] = settings[key];
+      } else {
+        vbt[t][key] = true; // 미설정 시 표시
+      }
+    });
+  });
+  fieldSchema.commercial.visibilityByType = vbt;
+  console.log('[Master Schema] 마이그레이션 완료: ' + masterOrder.length + '개 항목');
 }
 
 function cleanupFieldSettings() {
@@ -4132,7 +4252,9 @@ function saveFieldSettings() {
     fieldSuffixOverrides: fieldSuffixOverrides,
     listColumnSettings: listColumnSettings,
     listColumnOrder: listColumnOrder,
-    mapDefaultCenterAddress: mapDefaultCenterAddress
+    mapDefaultCenterAddress: mapDefaultCenterAddress,
+    fieldSchema_commercial_master: fieldSchema.commercial.master,
+    fieldSchema_commercial_visibilityByType: fieldSchema.commercial.visibilityByType
   });
 }
 
@@ -4156,13 +4278,54 @@ function getFieldSection(key, defaultSection) {
   return (o && o[key]) || defaultSection || '상세정보';
 }
 
+// ── 상업용 마스터 스키마 헬퍼 함수들 ─────────────────────────────────────
+// 마스터 스키마에서 상업용 항목 순서대로 field 목록 반환
+function getMasterOrderedFields() {
+  var master = fieldSchema.commercial.master;
+  var order = master.order || [];
+  var fields = master.fields || {};
+  var result = [];
+  order.forEach(function(key) {
+    var fd = fields[key];
+    if (!fd) return;
+    var defField = DEFAULT_FIELDS.find(function(f){ return f.key === key; });
+    var label = (fieldLabelOverrides.commercial && fieldLabelOverrides.commercial[key]) || fd.label || (defField ? defField.label : key);
+    var suffix;
+    if (fieldSuffixOverrides.commercial && fieldSuffixOverrides.commercial.hasOwnProperty(key)) {
+      suffix = fieldSuffixOverrides.commercial[key];
+    } else {
+      suffix = fd.suffix !== undefined ? fd.suffix : (defField ? (defField.suffix||'') : '');
+    }
+    var section = (fieldSections.commercial && fieldSections.commercial[key]) || fd.section || '상세정보';
+    result.push({ key: key, label: label, suffix: suffix, section: section, custom: !!fd.custom });
+  });
+  return result.filter(function(f){ return f.label !== '총토지면적삭제'; });
+}
+
+// 상업용 마스터 스키마에서 특정 타입의 visibility 반환
+function getMasterFieldVisible(type, key) {
+  if (!type) return true;
+  var vbt = fieldSchema.commercial.visibilityByType[type];
+  if (!vbt) return true;
+  if (vbt.hasOwnProperty(key)) return vbt[key];
+  return true; // 미설정 시 표시
+}
+
 // 해당 타입의 전체 항목 순서대로 반환
 // 리스트 컬럼 전체 목록: 고정(No. 사진 매물종류 거래유형 주소 가격 광고 출발) + 나머지는 현재 섹터 항목설정 최신 데이터만 사용 (상업용↔주거용 완전 분리)
 function buildAllColDefs() {
   var FIXED_KEYS = ['propNo','photo','type','georae','address','price','adStatus','departure'];
-  var sectorTypes = getPropTypesForSector(currentSector);
-  var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
-  var ordered = getOrderedFields(refType); // 현재 섹터 항목설정(fieldOrder/customFields/라벨) 기준
+
+  var ordered;
+  if (currentSector === SECTOR_COMMERCIAL) {
+    // 상업용: 반드시 master schema 기준 (특정 타입 기준 금지)
+    ordered = getMasterOrderedFields();
+  } else {
+    var sectorTypes = getPropTypesForSector(currentSector);
+    var refType = sectorTypes.find(function(t){ return fieldOrder[t] && fieldOrder[t].length>0; }) || sectorTypes[0];
+    ordered = getOrderedFields(refType);
+  }
+
   var selectableCols = ordered
     .filter(function(f){ return FIXED_KEYS.indexOf(f.key)===-1; })
     .map(function(f){
@@ -4185,6 +4348,11 @@ function buildAllColDefs() {
 }
 
 function getOrderedFields(type) {
+  // 상업용: master schema 기준
+  if (type && COMMERCIAL_TYPES.indexOf(type) !== -1) {
+    return getMasterOrderedFields();
+  }
+  // 주거용: 기존 로직
   var order = (fieldOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
   var customs = customFields[type] || [];
   // 커스텀 항목 key도 order에 없으면 끝에 추가
@@ -4208,6 +4376,16 @@ function getOrderedFields(type) {
 var RESIDENTIAL_DEFAULT_VISIBLE_KEYS = ['price','pricePerPyeong','officialBuildingPrice','officialLandPrice','maintenance','premium','supplyArea','exclusiveArea','direction','toilet','parking','elevator','floors','rooms','bathrooms','approvalDate','regOwnerName','ownerName','ownerPhone','createdDate','updatedDate'];
 function isFieldVisible(type, key) {
   if(!type) return true; // 매물종류 미선택 시 전체 표시
+
+  // 상업용: master schema visibilityByType 기준
+  if (COMMERCIAL_TYPES.indexOf(type) !== -1) {
+    // master에 해당 key가 없으면 숨김
+    var master = fieldSchema.commercial.master;
+    if (!master.fields[key]) return false;
+    return getMasterFieldVisible(type, key);
+  }
+
+  // 주거용: 기존 로직 유지
   var order = fieldOrder[type];
   var settings = fieldSettings[type];
   if(!order || !settings) return true; // 해당 타입 설정 없으면 전체 표시 (폐쇄 전)
@@ -4231,6 +4409,7 @@ var _tmpFieldOrder = null;
 var _tmpFieldSections = null;
 var _tmpFieldLabelOverrides = null;
 var _tmpFieldSuffixOverrides = null;
+var _tmpMasterSchema = null; // 상업용 master schema 임시 복사
 
 function openSettings() {
   // 현재 섹터 타입만 _tmp에 로드 → 상업용↔주거용 설정이 서로 영향을 주지 않도록 분리
@@ -4249,6 +4428,10 @@ function openSettings() {
   _tmpFieldLabelOverrides = JSON.parse(JSON.stringify(lo || {}));
   _tmpFieldSuffixOverrides = JSON.parse(JSON.stringify(so || {}));
   _tmpFieldSections = JSON.parse(JSON.stringify(fs || {}));
+  // 상업용: master schema 임시 복사
+  if (currentSector === SECTOR_COMMERCIAL) {
+    _tmpMasterSchema = JSON.parse(JSON.stringify(fieldSchema.commercial));
+  }
   window._settingsActiveType = '전체';
   renderSettingsPanel();
   // 드래그 중 리스트 밖(빈 영역)에서도 스크롤되도록 모달 본문에 dragover 연결
@@ -4805,6 +4988,10 @@ function confirmSettings() {
   if(!fieldSuffixOverrides.commercial) fieldSuffixOverrides.commercial = {};
   fieldLabelOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldLabelOverrides));
   fieldSuffixOverrides[currentSector] = JSON.parse(JSON.stringify(_tmpFieldSuffixOverrides));
+  // 상업용: master schema 반영
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    fieldSchema.commercial = JSON.parse(JSON.stringify(_tmpMasterSchema));
+  }
   // 지도 초기 위치 저장
   var mapInput = document.getElementById('mapCenterInput');
   if(mapInput) mapDefaultCenterAddress = mapInput.value.trim();
@@ -4997,13 +5184,45 @@ function renderSettingsPanel() {
   var tmpCustoms  = _tmpCustomFields;
   var tmpOrder    = _tmpFieldOrder;
 
+  // 상업용 master schema 임시 참조
+  var isMasterMode = (currentSector === SECTOR_COMMERCIAL) && !!_tmpMasterSchema;
+  var tmpMaster = isMasterMode ? _tmpMasterSchema.master : null;
+  var tmpVbt = isMasterMode ? _tmpMasterSchema.visibilityByType : null;
+
   function tmpIsVisible(type, key) {
+    if (isMasterMode) {
+      if (type === '전체') {
+        return sectorTypes.every(function(t){
+          var v = tmpVbt[t];
+          return !v || !v.hasOwnProperty(key) || v[key];
+        });
+      }
+      var v = tmpVbt[type];
+      if (!v) return true;
+      return v.hasOwnProperty(key) ? v[key] : true;
+    }
     if(!tmpSettings[type]) return true;
     if(tmpSettings[type][key] === undefined) return true;
     return tmpSettings[type][key];
   }
 
   function tmpGetOrderedFields(type) {
+    if (isMasterMode) {
+      var masterOrder = (tmpMaster && tmpMaster.order) ? tmpMaster.order : [];
+      var masterFields = (tmpMaster && tmpMaster.fields) ? tmpMaster.fields : {};
+      var result = [];
+      masterOrder.forEach(function(key) {
+        var fd = masterFields[key];
+        if (!fd) return;
+        var label = (_tmpFieldLabelOverrides && _tmpFieldLabelOverrides[key]) || fd.label || key;
+        var suffix = (_tmpFieldSuffixOverrides && _tmpFieldSuffixOverrides.hasOwnProperty(key))
+          ? _tmpFieldSuffixOverrides[key]
+          : (fd.suffix !== undefined ? fd.suffix : '');
+        var section = (_tmpFieldSections && _tmpFieldSections[key]) || fd.section || '상세정보';
+        result.push({ key: key, label: label, suffix: suffix, section: section, custom: !!fd.custom });
+      });
+      return result.filter(function(f){ return f.label !== '총토지면적삭제'; });
+    }
     var order = (tmpOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
     var customs = tmpCustoms[type] || [];
     customs.forEach(function(cf){ if(order.indexOf(cf.key)===-1) order.push(cf.key); });
@@ -5109,6 +5328,20 @@ function renderSettingsPanel() {
 
 // 임시 상태 변경 함수들
 function tmpToggleField(type, key, val) {
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    // 상업용: visibilityByType 업데이트
+    if (type === '전체') {
+      getPropTypesForSector(currentSector).forEach(function(t) {
+        if (!_tmpMasterSchema.visibilityByType[t]) _tmpMasterSchema.visibilityByType[t] = {};
+        _tmpMasterSchema.visibilityByType[t][key] = val;
+      });
+    } else {
+      if (!_tmpMasterSchema.visibilityByType[type]) _tmpMasterSchema.visibilityByType[type] = {};
+      _tmpMasterSchema.visibilityByType[type][key] = val;
+    }
+    return;
+  }
+  // 주거용: 기존 로직
   if(type === '전체') {
     // 전체 탭: 현재 섹터(주거용/상업용)의 매물종류에만 적용
     getPropTypesForSector(currentSector).forEach(function(t) {
@@ -5126,8 +5359,24 @@ function tmpAddCustomField() {
   var label = input.value.trim();
   if(!label) return;
   var key = 'custom_' + Date.now();
-  // 새 항목은 상세정보 섹션에 자동 등록 (현재 섹터 타입에만 추가)
   _tmpFieldSections[key] = '상세정보';
+
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    // 상업용: master schema에만 추가 (타입별 독립 추가 금지)
+    _tmpMasterSchema.master.fields[key] = { label: label, suffix: '', section: '상세정보', custom: true };
+    _tmpMasterSchema.master.order.push(key);
+    // 각 타입에 visibility false 초기화
+    COMMERCIAL_TYPES.forEach(function(t) {
+      if (!_tmpMasterSchema.visibilityByType[t]) _tmpMasterSchema.visibilityByType[t] = {};
+      _tmpMasterSchema.visibilityByType[t][key] = false;
+    });
+    input.value = '';
+    renderSettingsPanel();
+    showToast('항목 추가됐어요. 각 매물종류별로 체크 후 저장하세요!');
+    return;
+  }
+
+  // 주거용: 기존 로직
   getPropTypesForSector(currentSector).forEach(function(t) {
     if(!_tmpCustomFields[t]) _tmpCustomFields[t] = [];
     if(!_tmpFieldSettings[t]) _tmpFieldSettings[t] = {};
@@ -5156,6 +5405,24 @@ function tmpDeleteField(activeType, key, isCustom) {
     }
   }
   if (!confirm(msg)) return;
+
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    // 상업용: master.fields, master.order, 모든 타입 visibilityByType에서 삭제
+    if (_tmpMasterSchema.master.fields) delete _tmpMasterSchema.master.fields[key];
+    if (_tmpMasterSchema.master.order) {
+      _tmpMasterSchema.master.order = _tmpMasterSchema.master.order.filter(function(k){ return k !== key; });
+    }
+    COMMERCIAL_TYPES.forEach(function(t) {
+      if (_tmpMasterSchema.visibilityByType[t]) delete _tmpMasterSchema.visibilityByType[t][key];
+    });
+    if (_tmpFieldLabelOverrides) delete _tmpFieldLabelOverrides[key];
+    if (_tmpFieldSuffixOverrides) delete _tmpFieldSuffixOverrides[key];
+    if (_tmpFieldSections) delete _tmpFieldSections[key];
+    renderSettingsPanel();
+    return;
+  }
+
+  // 주거용: 기존 로직
   var types = (activeType === '전체') ? getPropTypesForSector(currentSector) : [activeType];
   types.forEach(function(t) {
     if (_tmpFieldOrder[t]) _tmpFieldOrder[t] = _tmpFieldOrder[t].filter(function(k){ return k !== key; });
@@ -5207,6 +5474,11 @@ function confirmLabelEdit(key) {
   if(!newLabel) { renderSettingsPanel(); return; }
   _tmpFieldLabelOverrides[key]  = newLabel;
   _tmpFieldSuffixOverrides[key] = newSuffix;
+  // 상업용: master.fields label/suffix도 동기화
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema && _tmpMasterSchema.master.fields[key]) {
+    _tmpMasterSchema.master.fields[key].label = newLabel;
+    _tmpMasterSchema.master.fields[key].suffix = newSuffix;
+  }
   // 커스텀 항목 label도 동기화 (현재 섹터 타입만)
   getPropTypesForSector(currentSector).forEach(function(t){
     if(_tmpCustomFields[t]) {
@@ -5250,20 +5522,42 @@ function onFieldDrop(e) {
   if(!targetKey || targetKey === _dragSrcKey) return;
 
   // 섹션 이동: 드래그한 항목을 타겟의 섹션으로 변경
-  var targetSection = _tmpFieldSections[targetKey] || '상세정보';
+  var targetSection;
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    var tfd = _tmpMasterSchema.master.fields[targetKey];
+    targetSection = (_tmpFieldSections && _tmpFieldSections[targetKey]) || (tfd && tfd.section) || '상세정보';
+  } else {
+    targetSection = _tmpFieldSections[targetKey] || '상세정보';
+  }
   _tmpFieldSections[_dragSrcKey] = targetSection;
 
-  // 현재 섹터(주거용/상업용) 타입 순서만 업데이트
-  getPropTypesForSector(currentSector).forEach(function(t) {
-    var tOrder = (_tmpFieldOrder[t] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
-    var fi = tOrder.indexOf(_dragSrcKey);
-    var ti = tOrder.indexOf(targetKey);
-    if(fi!==-1 && ti!==-1) {
-      tOrder.splice(fi,1);
-      tOrder.splice(ti,0,_dragSrcKey);
-      _tmpFieldOrder[t] = tOrder;
+  if (currentSector === SECTOR_COMMERCIAL && _tmpMasterSchema) {
+    // 상업용: master.order 단일 업데이트 (타입별 order 사용 금지)
+    var mOrder = _tmpMasterSchema.master.order.slice();
+    var fi = mOrder.indexOf(_dragSrcKey);
+    var ti = mOrder.indexOf(targetKey);
+    if (fi !== -1 && ti !== -1) {
+      mOrder.splice(fi, 1);
+      mOrder.splice(ti, 0, _dragSrcKey);
+      _tmpMasterSchema.master.order = mOrder;
     }
-  });
+    // master.fields의 section도 업데이트
+    if (_tmpMasterSchema.master.fields[_dragSrcKey]) {
+      _tmpMasterSchema.master.fields[_dragSrcKey].section = targetSection;
+    }
+  } else {
+    // 주거용: 타입별 order 업데이트
+    getPropTypesForSector(currentSector).forEach(function(t) {
+      var tOrder = (_tmpFieldOrder[t] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
+      var fi = tOrder.indexOf(_dragSrcKey);
+      var ti = tOrder.indexOf(targetKey);
+      if(fi!==-1 && ti!==-1) {
+        tOrder.splice(fi,1);
+        tOrder.splice(ti,0,_dragSrcKey);
+        _tmpFieldOrder[t] = tOrder;
+      }
+    });
+  }
   renderSettingsPanel();
 }
 

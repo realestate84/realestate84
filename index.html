@@ -153,8 +153,9 @@
       <div id="colSettingPopup" style="display:none;position:absolute;left:0;top:36px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:260px;">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:600;">표시할 컬럼 선택</div>
         <div id="colCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;"></div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border);">
           <button class="btn btn-outline btn-sm" onclick="toggleColumnPopup()">닫기</button>
+          <button class="btn btn-outline btn-sm" onclick="resetColumnOrder()" title="헤더 드래그로 바꾼 순서를 컬럼설정 기본 순서로 되돌립니다">🔄 순서초기화</button>
           <button class="btn btn-primary btn-sm" onclick="saveListColumnSettings()">💾 저장</button>
         </div>
       </div>
@@ -1990,6 +1991,7 @@ function renderTable() {
   // 헤더 동적 렌더링
   var allColDefs = getColDefsCache();
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
+  // 기본: 컬럼설정 팝업 순서. listColumnOrder가 있으면 헤더 드래그로 저장된 순서 적용
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
   var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'240px',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
@@ -5424,6 +5426,14 @@ function saveListColumnSettings() {
   renderTable();
   document.getElementById('colSettingPopup').style.display = 'none';
   showToast('✅ 컬럼 설정이 저장됐어요!');
+}
+
+function resetColumnOrder() {
+  listColumnOrder[currentSector] = null;
+  saveFieldSettings();
+  invalidateColDefsCache();
+  renderTable();
+  showToast('✅ 컬럼 순서가 초기화됐어요.');
 }
 
 function renderSettingsPanel() {

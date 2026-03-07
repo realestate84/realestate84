@@ -1987,20 +1987,28 @@ function renderTable() {
   var visibleCols = allColDefs.filter(function(c){ return c.fixed || getListColumnSettings()[c.key]!==false; });
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
-  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
-  // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만)
-  var CONTENT_FIT_KEYS = ['pricePerPyeong','floorArea','structure','buildingUse','supplyArea','exclusiveArea','electric','height','hoist','access','useZone','jimok','approvalDate','factoryReg'];
+  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'240px',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
+  // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만, address 포함)
+  var CONTENT_FIT_KEYS = ['address','pricePerPyeong','floorArea','structure','buildingUse','supplyArea','exclusiveArea','electric','height','hoist','access','useZone','jimok','approvalDate','factoryReg'];
   if (list.length > 0) {
     var pxPerChar = 10, minW = 60, maxW = 220;
+    var addressMin = 160, addressMax = 380;
     CONTENT_FIT_KEYS.forEach(function(key) {
       var maxLen = 0;
       list.forEach(function(p) {
         var s = String(p[key] != null ? p[key] : '');
-        var suffix = getFieldSuffix(key);
-        if (suffix) s += (suffix.length > 0 ? ' ' + suffix : '');
+        if (key !== 'address') {
+          var suffix = getFieldSuffix(key);
+          if (suffix) s += (suffix.length > 0 ? ' ' + suffix : '');
+        }
         if (s.length > maxLen) maxLen = s.length;
       });
-      var w = Math.min(maxW, Math.max(minW, maxLen * pxPerChar));
+      var w;
+      if (key === 'address') {
+        w = Math.min(addressMax, Math.max(addressMin, maxLen * pxPerChar));
+      } else {
+        w = Math.min(maxW, Math.max(minW, maxLen * pxPerChar));
+      }
       colWidths[key] = w + 'px';
     });
   }
@@ -2011,7 +2019,7 @@ function renderTable() {
     var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
     var headerHtml = orderedCols.map(function(c){
       var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
-      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
+      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;width:'+colWidths.address+';min-width:'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
       if(c.key==='photo') return '<th '+keyAttr+' style="width:32px">사진</th>';
       if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
       return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';

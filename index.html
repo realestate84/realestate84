@@ -5823,7 +5823,7 @@ async function runAiAutoFill() {
   btn.textContent = '⏳ 분석 중...';
   status.textContent = 'AI가 매물 정보를 분석하고 있어요...';
 
-  var prompt = '다음 매물 정보 텍스트를 분석해서 아래 JSON 형식으로만 응답해주세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.\n\n매물 정보:\n' + text + '\n\n응답 JSON 형식:\n{\n  "georae": "매매|전세|월세 중 하나",\n  "type": "토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나",\n  "address": "주소",\n  "price": "가격 (예: 5억, 3억5000만, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD 형식)",\n  "floors": "층수",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "특이사항/메모"\n}';
+  var prompt = '다음 매물 정보 텍스트를 분석해서 아래 JSON 형식으로만 응답해주세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.\n\n주의사항:\n- type은 반드시 다음 중 하나: 토지, 공장창고, 상가/사무실, 아파트, 빌라, 상가주택, 원룸, 1.5룸, 투룸, 오피스텔, 절대농지, 단독주택, 펜션, 건물\n- georae는 반드시 매매, 전세, 월세 중 하나\n- address에 동호수 포함 (예: 불로동 777-4 301호)\n- floors에 층수 및 엘베유무 포함 (예: 3층, 엘베없음)\n- memo에 옵션목록, 입주가능일, 엘리베이터 유무, 기타 특이사항 모두 포함\n\n매물 정보:\n' + text + '\n\n응답 JSON 형식:\n{\n  "georae": "매매|전세|월세 중 하나",\n  "type": "위 목록 중 하나",\n  "address": "주소(동호수 포함)",\n  "price": "가격 (예: 5억, 3억5000만, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD 형식)",\n  "floors": "층수/엘베유무 (예: 3층, 엘베없음)",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "옵션목록, 입주가능일, 기타 특이사항 모두 포함"\n}';
 
   try {
     // Cloudflare Workers 프록시를 통해 Anthropic API 호출 (CORS 우회)
@@ -5846,9 +5846,21 @@ async function runAiAutoFill() {
     var parsed = JSON.parse(jsonMatch[0]);
 
     closeAiInputModal();
-    openAddModal();
 
+    // 1. 매물종류에 따라 섹터 먼저 전환
+    var detectedType = parsed.type || '';
+    var RES_TYPES = ['아파트','빌라','상가주택','원룸','1.5룸','투룸','오피스텔'];
+    var needSector = RES_TYPES.indexOf(detectedType) !== -1 ? 'residential' : 'commercial';
+    if(currentSector !== needSector) {
+      switchSector(needSector);
+    }
+
+    // 2. 섹터 전환 후 폼 열기 (렌더링 대기)
     setTimeout(function(){
+      openAddModal();
+
+      // 3. 폼 열린 후 필드 채우기
+      setTimeout(function(){
       var fields = ['address','price','maintenance','premium','landArea','roadShare','totalLandArea',
         'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
         'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
@@ -5878,7 +5890,8 @@ async function runAiAutoFill() {
       });
 
       showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
-    }, 400);
+      }, 400);
+    }, 150); // 섹터 전환 렌더링 대기
 
   } catch(err) {
     status.textContent = '❌ 오류: ' + (err.message || '분석에 실패했어요. 다시 시도해주세요.');

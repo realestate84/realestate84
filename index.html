@@ -4172,7 +4172,11 @@ function buildAllColDefs() {
   var ordered = getOrderedFields(refType); // 현재 섹터 항목설정(fieldOrder/customFields/라벨) 기준
   var selectableCols = ordered
     .filter(function(f){ return FIXED_KEYS.indexOf(f.key)===-1; })
-    .map(function(f){ return {key:f.key, label:f.label, sortKey:f.key, fixed:false}; });
+    .map(function(f){
+      var suffix = getFieldSuffix(f.key);
+      var colLabel = suffix ? (f.label + ' (' + suffix + ')') : f.label;
+      return { key:f.key, label:colLabel, sortKey:f.key, fixed:false };
+    });
 
   return [
     {key:'propNo',   label:'No.',      sortKey:'propNo',   fixed:true},
@@ -4819,6 +4823,24 @@ function confirmSettings() {
     return;
   }
   saveFieldSettings();
+  renderTable();
+  // 컬럼설정 팝업이 열려 있으면 재렌더
+  var colPopup = document.getElementById('colSettingPopup');
+  if(colPopup && colPopup.style.display !== 'none') renderColumnPopup();
+  // 상세모달이 열려 있으면 재렌더
+  var detailModal = document.getElementById('detailModal');
+  if(detailModal && detailModal.classList.contains('active') && window._currentDetailId) {
+    openDetailModal(window._currentDetailId);
+  }
+  // 폼모달이 열려 있으면 필드 재렌더
+  var formModal = document.getElementById('formModal');
+  if(formModal && formModal.classList.contains('active')) {
+    var fType = document.getElementById('f_type');
+    if(fType && fType.value) {
+      updateFormFieldVisibility(fType.value);
+      renderCustomFieldsInForm(fType.value, null);
+    }
+  }
   showToast('✅ 설정이 저장됐어요!');
 }
 
@@ -4843,14 +4865,7 @@ function isInsidePopupOrTrigger(el) {
   }
   return false;
 }
-function toggleColumnPopup() {
-  var popup = document.getElementById('colSettingPopup');
-  if(!popup) return;
-  var isOpen = popup.style.display !== 'none';
-  if(isOpen) { popup.style.display='none'; return; }
-  closeAllFilterPopups();
-  popup.style.display = 'block';
-  // 컬럼 목록 = 고정 + 현재 섹터 항목설정 최신 데이터만 (상업용/주거용 각각 적용, 상호 영향 없음)
+function renderColumnPopup() {
   invalidateColDefsCache();
   var allCols = getColDefsCache();
   var html = '';
@@ -4863,6 +4878,16 @@ function toggleColumnPopup() {
       '</label>';
   });
   document.getElementById('colCheckboxes').innerHTML = html;
+}
+
+function toggleColumnPopup() {
+  var popup = document.getElementById('colSettingPopup');
+  if(!popup) return;
+  var isOpen = popup.style.display !== 'none';
+  if(isOpen) { popup.style.display='none'; return; }
+  closeAllFilterPopups();
+  popup.style.display = 'block';
+  renderColumnPopup();
 }
 
 function updateFilterTypeButtonText() {
@@ -4955,6 +4980,7 @@ function persistListColumnSettings() {
 function saveListColumnSettings() {
   persistListColumnSettings();
   saveFieldSettings();
+  renderTable();
   document.getElementById('colSettingPopup').style.display = 'none';
   showToast('✅ 컬럼 설정이 저장됐어요!');
 }

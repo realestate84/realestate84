@@ -5120,7 +5120,7 @@ function tmpDeleteField(activeType, key, isCustom) {
     if (_tmpFieldOrder[t]) _tmpFieldOrder[t] = _tmpFieldOrder[t].filter(function(k){ return k !== key; });
     if (_tmpFieldSettings[t]) delete _tmpFieldSettings[t][key];
     if (isCustom && _tmpCustomFields[t]) _tmpCustomFields[t] = _tmpCustomFields[t].filter(function(f){ return f.key !== key; });
-    // override 및 section 데이터 완전 제거 (flat 구조)
+    // override 및 section 데이터 완전 제거
     if (_tmpFieldLabelOverrides) delete _tmpFieldLabelOverrides[key];
     if (_tmpFieldSuffixOverrides) delete _tmpFieldSuffixOverrides[key];
     if (_tmpFieldSections) delete _tmpFieldSections[key];

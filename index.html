@@ -1988,6 +1988,22 @@ function renderTable() {
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
   var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'min-width:160px;width:auto',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
+  // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만)
+  var CONTENT_FIT_KEYS = ['pricePerPyeong','floorArea','structure','buildingUse','supplyArea','exclusiveArea','electric','height','hoist','access','useZone','jimok','approvalDate','factoryReg'];
+  if (list.length > 0) {
+    var pxPerChar = 10, minW = 60, maxW = 220;
+    CONTENT_FIT_KEYS.forEach(function(key) {
+      var maxLen = 0;
+      list.forEach(function(p) {
+        var s = String(p[key] != null ? p[key] : '');
+        var suffix = getFieldSuffix(key);
+        if (suffix) s += (suffix.length > 0 ? ' ' + suffix : '');
+        if (s.length > maxLen) maxLen = s.length;
+      });
+      var w = Math.min(maxW, Math.max(minW, maxLen * pxPerChar));
+      colWidths[key] = w + 'px';
+    });
+  }
   var orderKey = listColumnOrder[currentSector] ? listColumnOrder[currentSector].join(',') : 'default';
   var visColKey = orderedCols.map(function(c){ return c.key; }).join(',') + '|mgmt:'+SHOW_MANAGEMENT_COLUMN + '|order:'+orderKey;
   if(renderTable._lastColKey !== visColKey) {

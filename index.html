@@ -448,10 +448,27 @@ th{position:relative;}
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
       <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-        매물 정보를 자유롭게 입력하세요. AI가 분석해서 등록 폼에 자동으로 채워드립니다.<br>
+        매물 정보를 자유롭게 입력하거나, 📷 사진을 찍어 글씨를 자동으로 읽어올 수 있어요.<br>
         <span style="color:var(--accent);font-weight:500;">예) 검단 왕길동 토지 300평 매매 5억, 2종일반, 지목 전, 도로접함, 소유자 홍길동 010-1234-5678</span>
       </div>
-      <textarea id="aiInputText" class="form-textarea" style="min-height:200px;font-size:14px;line-height:1.8;" placeholder="매물 정보를 자유롭게 입력하세요...&#10;&#10;예시)&#10;인천 서구 왕길동 토지 250평 매매 4억 5천&#10;용도지역: 계획관리, 지목: 전&#10;도로 접함, 전기 인입&#10;소유자: 김철수 010-1234-5678&#10;특이사항: 남측 도로접함, 개발행위허가 가능"></textarea>
+      <!-- 카메라/이미지 업로드 영역 -->
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline" onclick="document.getElementById('aiCameraInput').click()" style="font-size:13px;gap:6px;display:flex;align-items:center;">
+          📷 카메라로 찍기
+        </button>
+        <button class="btn btn-outline" onclick="document.getElementById('aiImageInput').click()" style="font-size:13px;gap:6px;display:flex;align-items:center;">
+          🖼 사진에서 불러오기
+        </button>
+        <span id="aiImageName" style="font-size:12px;color:var(--text-muted);"></span>
+        <input type="file" id="aiCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleAiImage(this)">
+        <input type="file" id="aiImageInput" accept="image/*" style="display:none" onchange="handleAiImage(this)">
+      </div>
+      <!-- 이미지 미리보기 -->
+      <div id="aiImagePreview" style="display:none;position:relative;">
+        <img id="aiImagePreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border);object-fit:contain;" />
+        <button onclick="clearAiImage()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+      </div>
+      <textarea id="aiInputText" class="form-textarea" style="min-height:160px;font-size:14px;line-height:1.8;" placeholder="매물 정보를 자유롭게 입력하세요...&#10;&#10;예시)&#10;인천 서구 왕길동 토지 250평 매매 4억 5천&#10;용도지역: 계획관리, 지목: 전&#10;도로 접함, 전기 인입&#10;소유자: 김철수 010-1234-5678&#10;특이사항: 남측 도로접함, 개발행위허가 가능"></textarea>
       <div id="aiInputStatus" style="font-size:12px;color:var(--text-muted);min-height:18px;"></div>
     </div>
     <div class="modal-footer">
@@ -5797,6 +5814,9 @@ document.addEventListener('keydown', function(e) {
 
 // ── AI 자동입력 ───────────────────────────────
 var _aiModalDsTarget = null;
+var _aiImageBase64 = null;
+var _aiImageMime = null;
+
 function _aiModalDs(e){ _aiModalDsTarget = e.target; }
 function _aiModalDe(e){ if(e.target===e.currentTarget && _aiModalDsTarget===e.currentTarget) closeAiInputModal(); _aiModalDsTarget=null; }
 
@@ -5806,6 +5826,7 @@ function openAiInputModal() {
   document.getElementById('aiInputStatus').textContent = '';
   document.getElementById('aiInputRunBtn').disabled = false;
   document.getElementById('aiInputRunBtn').textContent = '✨ 자동입력 시작';
+  clearAiImage();
   setTimeout(function(){ document.getElementById('aiInputText').focus(); }, 100);
 }
 
@@ -5813,9 +5834,45 @@ function closeAiInputModal() {
   document.getElementById('aiInputModal').classList.remove('active');
 }
 
+function handleAiImage(input) {
+  var file = input.files && input.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    var mime = file.type || 'image/jpeg';
+    _aiImageBase64 = dataUrl.split(',')[1];
+    _aiImageMime = mime;
+    // 미리보기
+    document.getElementById('aiImagePreviewImg').src = dataUrl;
+    document.getElementById('aiImagePreview').style.display = 'block';
+    document.getElementById('aiImageName').textContent = file.name;
+    document.getElementById('aiInputStatus').textContent = '📷 이미지가 준비됐어요. 자동입력 시작을 눌러주세요.';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function clearAiImage() {
+  _aiImageBase64 = null;
+  _aiImageMime = null;
+  document.getElementById('aiImagePreview').style.display = 'none';
+  document.getElementById('aiImagePreviewImg').src = '';
+  document.getElementById('aiImageName').textContent = '';
+  var ci = document.getElementById('aiCameraInput');
+  var ii = document.getElementById('aiImageInput');
+  if(ci) ci.value = '';
+  if(ii) ii.value = '';
+}
+
 async function runAiAutoFill() {
   var text = document.getElementById('aiInputText').value.trim();
-  if(!text) { document.getElementById('aiInputStatus').textContent = '⚠️ 매물 정보를 입력해주세요.'; return; }
+  var hasImage = !!_aiImageBase64;
+
+  if(!text && !hasImage) {
+    document.getElementById('aiInputStatus').textContent = '⚠️ 매물 정보를 입력하거나 사진을 첨부해주세요.';
+    return;
+  }
 
   var btn = document.getElementById('aiInputRunBtn');
   var status = document.getElementById('aiInputStatus');
@@ -5824,15 +5881,24 @@ async function runAiAutoFill() {
 
   btn.disabled = true;
   btn.textContent = '⏳ 분석 중...';
-  status.textContent = '① 매물 종류 파악 중...';
+  status.textContent = hasImage ? '① 이미지에서 매물 정보 읽는 중...' : '① 매물 종류 파악 중...';
 
   try {
-    // ── 1단계: type만 먼저 파악 ──────────────────
-    var step1prompt = '다음 매물 정보에서 매물종류와 거래유형만 파악해서 JSON으로만 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n매물 정보:\n' + text + '\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나"}';
+    // ── 1단계: type/georae 파악 (이미지 or 텍스트) ──
+    var step1content;
+    if(hasImage) {
+      // 이미지인 경우: 이미지에서 텍스트 추출 + type/georae 파악 동시에
+      step1content = [
+        { type:'image', source:{ type:'base64', media_type:_aiImageMime, data:_aiImageBase64 } },
+        { type:'text', text:'이 이미지에서 매물 정보를 읽어서 매물종류와 거래유형만 JSON으로 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나","extractedText":"이미지에서 읽은 전체 텍스트"}' }
+      ];
+    } else {
+      step1content = '다음 매물 정보에서 매물종류와 거래유형만 파악해서 JSON으로만 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n매물 정보:\n' + text + '\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나"}';
+    }
 
     var r1 = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:100, messages:[{role:'user',content:step1prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:500, messages:[{role:'user', content:step1content}] })
     });
     var d1 = await r1.json();
     var raw1 = d1.content && d1.content[0] && d1.content[0].text;
@@ -5841,6 +5907,12 @@ async function runAiAutoFill() {
     if(!m1) throw new Error('1단계 JSON 파싱 실패');
     var step1 = JSON.parse(m1[0]);
     var detectedType = step1.type || '';
+
+    // 이미지에서 추출된 텍스트가 있으면 텍스트창에 표시
+    if(hasImage && step1.extractedText) {
+      document.getElementById('aiInputText').value = step1.extractedText;
+      text = step1.extractedText;
+    }
 
     // ── 2단계: 해당 type의 커스텀 필드 목록 수집 ──
     status.textContent = '② ' + (detectedType||'매물') + ' 항목 분석 중...';

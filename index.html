@@ -4953,7 +4953,7 @@ function openCustomerDetail(id, keep) {
     '<div class="detail-section"><div class="detail-section-title">🏠 고객에게 보여준 매물</div>'+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">'+
         '<div style="position:relative;max-width:520px;min-width:240px;flex:1;">'+
-          '<input id="customerShownPropSearch" class="form-input" placeholder="주소, 번호(예: 101), 종류, 메모 등으로 검색" style="width:100%;font-size:12px;padding:6px 10px;" autocomplete="off" oninput="updateCustomerShownSuggestions(\''+id+'\')">'+
+          '<input id="customerShownPropSearch" class="form-input" placeholder="주소, 번호, 종류, 가격, 메모, 소유자 등 모든 항목 검색" style="width:100%;font-size:12px;padding:6px 10px;" autocomplete="off" oninput="updateCustomerShownSuggestions(\''+id+'\')">'+
           '<div id="customerShownPropSuggestions" style="position:absolute;left:0;right:0;top:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:4px;box-shadow:0 6px 18px rgba(0,0,0,0.08);max-height:260px;overflow-auto;font-size:12px;z-index:30;display:none;"></div>'+
         '</div>'+
         '<button class="btn btn-primary btn-sm" onclick="addShownPropertyToCustomer(\''+id+'\')">추가</button>'+
@@ -5022,18 +5022,11 @@ function getPropertySearchCandidates(custId, query) {
   var already = {};
   (c.shownProps||[]).forEach(function(pid){ already[pid] = true; });
 
+  var searchKeys = getSearchableKeys();
   return properties.filter(function(p){
     if(already[p.id]) return false;
-    var txt = '';
-    if(p.propNo) txt += 'No.'+p.propNo+' ';
-    if(p.address) txt += p.address+' ';
-    if(p.type) txt += p.type+' ';
-    if(p.georae) txt += p.georae+' ';
-    if(p.price) txt += p.price+' ';
-    if(p.jimok) txt += p.jimok+' ';
-    if(p.useZone) txt += p.useZone+' ';
-    if(p.memo) txt += p.memo+' ';
-    return txt.toLowerCase().indexOf(lowerQ) !== -1;
+    var hay = searchKeys.map(function(k){ var v = p[k]; return (v != null && v !== '') ? String(v) : ''; }).join(' ').toLowerCase();
+    return hay.indexOf(lowerQ) !== -1;
   });
 }
 

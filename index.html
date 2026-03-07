@@ -4560,13 +4560,12 @@ function getOrderedFieldsLegacyResidential(type) {
 }
 
 // 해당 타입의 전체 항목 순서대로 반환
-// 리스트 컬럼 전체 목록: 고정(No. 사진 매물종류 거래유형 주소 가격 광고 출발) + 나머지는 현재 섹터 항목설정 최신 데이터만 사용 (상업용↔주거용 완전 분리)
+// 고정 순서: No., 사진, 출발, 광고, 매물종류, 거래유형, 주소, 가격 → 그 다음 항목설정 전체 탭 순서
 function buildAllColDefs() {
-  var FIXED_KEYS = ['propNo','photo','type','georae','address','price','adStatus','departure'];
+  var FIXED_KEYS = ['propNo','photo','departure','adStatus','type','georae','address','price'];
 
   var ordered;
   if (currentSector === SECTOR_COMMERCIAL) {
-    // 상업용: 반드시 master schema 기준 (특정 타입 기준 금지)
     ordered = getMasterOrderedFields();
   } else {
     var sectorTypes = getPropTypesForSector(currentSector);
@@ -4586,13 +4585,12 @@ function buildAllColDefs() {
     {key:'propNo',   label:'No.',      sortKey:'propNo',   fixed:true},
     {key:'photo',    label:'사진',     sortKey:null,       fixed:true},
     {key:'departure',label:'출발',     sortKey:'departure',fixed:true},
+    {key:'adStatus', label:'광고',     sortKey:'adStatus', fixed:true},
     {key:'type',     label:'매물종류', sortKey:'type',     fixed:true},
     {key:'georae',   label:'거래유형', sortKey:'georae',   fixed:true},
     {key:'address',  label:'주소',     sortKey:'address',  fixed:true},
     {key:'price',    label:'가격',     sortKey:'price',    fixed:true},
-  ].concat(selectableCols).concat([
-    {key:'adStatus', label:'광고',     sortKey:'adStatus', fixed:true},
-  ]);
+  ].concat(selectableCols);
 }
 
 function getOrderedFields(type) {

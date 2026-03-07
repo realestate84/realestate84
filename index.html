@@ -4130,15 +4130,24 @@ function loadFieldSettings(callback) {
         if(!fieldSections[sec][f.key]) fieldSections[sec][f.key] = f.section;
       });
     });
-    // 사용자가 삭제한 항목을 다시 넣지 않음 (DEFAULT_FIELDS 자동 추가 제거)
-    // '총토지면적삭제' 항목 제거 (커스텀 항목으로 등록된 경우)
+    // '총토지면적삭제' 및 커스텀 '총토지면적' 필드 완전 제거
+    // (공식 필드 totalLandArea 하나만 유지)
     var needsSave = false;
     var keysToRemove = {};
+    var totalLandAreaMigrationMap = {}; // { customKey: type } → totalLandArea로 이동할 매물 데이터
     PROP_TYPES.forEach(function(t){
       (customFields[t]||[]).forEach(function(cf){
         var lblRes = (fieldLabelOverrides.residential && fieldLabelOverrides.residential[cf.key]) || cf.label;
         var lblCom = (fieldLabelOverrides.commercial && fieldLabelOverrides.commercial[cf.key]) || cf.label;
-        if(lblRes==='총토지면적삭제' || lblCom==='총토지면적삭제') keysToRemove[cf.key]=true;
+        var effectiveLabel = lblRes || lblCom || cf.label;
+        // 제거 조건 1: label === '총토지면적삭제'
+        // 제거 조건 2: label === '총토지면적' AND key !== 'totalLandArea' (커스텀 중복)
+        if(lblRes==='총토지면적삭제' || lblCom==='총토지면적삭제') {
+          keysToRemove[cf.key] = true;
+        } else if(cf.key !== 'totalLandArea' && (lblRes==='총토지면적' || lblCom==='총토지면적' || cf.label==='총토지면적')) {
+          keysToRemove[cf.key] = true;
+          totalLandAreaMigrationMap[cf.key] = true; // 데이터 이전 대상
+        }
       });
     });
     Object.keys(keysToRemove).forEach(function(key){
@@ -4155,6 +4164,50 @@ function loadFieldSettings(callback) {
       if(fieldSections.commercial) delete fieldSections.commercial[key];
       needsSave=true;
     });
+    // master schema에서도 제거
+    if(Object.keys(keysToRemove).length > 0) {
+      ['commercial','residential'].forEach(function(sec){
+        var master = fieldSchema[sec] && fieldSchema[sec].master;
+        if(!master) return;
+        Object.keys(keysToRemove).forEach(function(key){
+          if(master.fields) delete master.fields[key];
+          if(master.order) master.order = master.order.filter(function(k){ return k !== key; });
+        });
+        var vbt = fieldSchema[sec].visibilityByType;
+        if(vbt) {
+          Object.keys(vbt).forEach(function(type){
+            Object.keys(keysToRemove).forEach(function(key){ delete vbt[type][key]; });
+          });
+        }
+      });
+    }
+    // 데이터 마이그레이션: custom 총토지면적 → totalLandArea
+    if(Object.keys(totalLandAreaMigrationMap).length > 0) {
+      properties.forEach(function(p){
+        var changed = false;
+        Object.keys(totalLandAreaMigrationMap).forEach(function(customKey){
+          if(p[customKey] && String(p[customKey]).trim() !== '') {
+            if(!p.totalLandArea || String(p.totalLandArea).trim() === '') {
+              p.totalLandArea = p[customKey];
+            }
+            delete p[customKey];
+            changed = true;
+          } else if(p.hasOwnProperty(customKey)) {
+            delete p[customKey];
+            changed = true;
+          }
+        });
+        if(changed && p.id) {
+          var updateData = { totalLandArea: p.totalLandArea || '' };
+          Object.keys(totalLandAreaMigrationMap).forEach(function(k){ updateData[k] = firebase.firestore.FieldValue.delete(); });
+          db.collection(getPropertiesCollection()).doc(p.id).update(updateData).catch(function(e){
+            console.warn('총토지면적 마이그레이션 오류 (id='+p.id+'):', e);
+          });
+        }
+      });
+      needsSave = true;
+      console.log('[총토지면적 정리] 커스텀 필드 → totalLandArea 마이그레이션 완료:', Object.keys(totalLandAreaMigrationMap));
+    }
     cleanupFieldSettings();
     if(needsSave) saveFieldSettings();
     persistListColumnSettings();
@@ -4405,7 +4458,7 @@ function getMasterOrderedFields() {
     var section = (fieldSections.commercial && fieldSections.commercial[key]) || fd.section || '상세정보';
     result.push({ key: key, label: label, suffix: suffix, section: section, custom: !!fd.custom });
   });
-  return result.filter(function(f){ return f.label !== '총토지면적삭제'; });
+  return result;
 }
 
 // 상업용 마스터 스키마에서 특정 타입의 visibility 반환
@@ -4442,7 +4495,7 @@ function getResidentialMasterOrderedFields() {
     var section = (fieldSections.residential && fieldSections.residential[key]) || fd.section || '상세정보';
     result.push({ key: key, label: label, suffix: suffix, section: section, custom: !!fd.custom });
   });
-  return result.filter(function(f){ return f.label !== '총토지면적삭제'; });
+  return result;
 }
 
 // 주거용 마스터 스키마에서 특정 타입의 visibility 반환
@@ -4468,7 +4521,7 @@ function getOrderedFieldsLegacyResidential(type) {
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:getFieldSection(f.key,f.section), suffix:f.suffix}; });
   customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:getFieldSection(cf.key,'상세정보'), suffix:'', custom:true}; });
-  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
 }
 
 // 해당 타입의 전체 항목 순서대로 반환
@@ -5381,7 +5434,7 @@ function renderSettingsPanel() {
         var section = (_tmpFieldSections && _tmpFieldSections[key]) || fd.section || '상세정보';
         result.push({ key: key, label: label, suffix: suffix, section: section, custom: !!fd.custom });
       });
-      return result.filter(function(f){ return f.label !== '총토지면적삭제'; });
+      return result;
     }
     var order = (tmpOrder[type] || DEFAULT_FIELDS.map(function(f){ return f.key; })).slice();
     var customs = tmpCustoms[type] || [];
@@ -5392,8 +5445,7 @@ function renderSettingsPanel() {
     var allFields = {};
     DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
     customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-    // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외
-    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
+    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; });
   }
 
   var html = '';

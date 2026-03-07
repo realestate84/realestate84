@@ -347,6 +347,7 @@ th{position:relative;}
     <button class="btn btn-outline" onclick="openSettings()">⚙️ 설정</button>
     <button class="btn btn-outline" onclick="openLogModal()">Log</button>
     <button class="btn btn-primary" onclick="openAddModal()">＋ 매물 등록</button>
+    <button class="btn btn-outline" onclick="openAiInputModal()" style="background:linear-gradient(135deg,#6c47f5,#3a7ef6);color:#fff;border:none;">✨ AI 자동입력</button>
     <button class="btn btn-outline" onclick="doLogout()" style="color:var(--danger);border-color:var(--danger);">로그아웃</button>
   </div>
   <!-- 모바일 햄버거 -->
@@ -361,6 +362,7 @@ th{position:relative;}
     <button type="button" id="sectorBtnResidentialM" class="btn btn-outline btn-sm" onclick="switchSector('residential');closeMobileMenu()" style="flex:1;font-size:12px;">주거용</button>
   </div>
   <button class="btn btn-primary" onclick="openAddModal();closeMobileMenu()">＋ 매물 등록</button>
+  <button class="btn btn-outline" onclick="openAiInputModal();closeMobileMenu()" style="background:linear-gradient(135deg,#6c47f5,#3a7ef6);color:#fff;border:none;">✨ AI 자동입력</button>
   <button class="btn btn-outline" onclick="openCustomers();closeMobileMenu()">👥 고객문의</button>
   <button class="btn btn-outline" onclick="openTodoModal();closeMobileMenu()">📝 To-do</button>
   <button class="btn btn-outline" onclick="openBannerModal();closeMobileMenu()">🏷 현수막</button>
@@ -437,6 +439,28 @@ th{position:relative;}
 </div>
 
 <!-- 등록/수정 모달 -->
+<!-- AI 자동입력 모달 -->
+<div class="modal-overlay" id="aiInputModal" onmousedown="_aiModalDs(event)" onmouseup="_aiModalDe(event)">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <div class="modal-title">✨ AI 매물 자동입력</div>
+      <button class="modal-close" onclick="closeAiInputModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+        매물 정보를 자유롭게 입력하세요. AI가 분석해서 등록 폼에 자동으로 채워드립니다.<br>
+        <span style="color:var(--accent);font-weight:500;">예) 검단 왕길동 토지 300평 매매 5억, 2종일반, 지목 전, 도로접함, 소유자 홍길동 010-1234-5678</span>
+      </div>
+      <textarea id="aiInputText" class="form-textarea" style="min-height:200px;font-size:14px;line-height:1.8;" placeholder="매물 정보를 자유롭게 입력하세요...&#10;&#10;예시)&#10;인천 서구 왕길동 토지 250평 매매 4억 5천&#10;용도지역: 계획관리, 지목: 전&#10;도로 접함, 전기 인입&#10;소유자: 김철수 010-1234-5678&#10;특이사항: 남측 도로접함, 개발행위허가 가능"></textarea>
+      <div id="aiInputStatus" style="font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAiInputModal()">취소</button>
+      <button class="btn btn-primary" id="aiInputRunBtn" onclick="runAiAutoFill()" style="background:linear-gradient(135deg,#6c47f5,#3a7ef6);">✨ 자동입력 시작</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="formModal">
   <div class="modal">
     <div class="modal-header">
@@ -5713,6 +5737,10 @@ document.addEventListener('click', function(e) {
 // ── ESC 키로 모달 닫기 ──────────────────────
 document.addEventListener('keydown', function(e) {
   if(e.key !== 'Escape') return;
+  // AI 자동입력
+  if(document.getElementById('aiInputModal') && document.getElementById('aiInputModal').classList.contains('active')) {
+    closeAiInputModal(); return;
+  }
   // 라이트박스
   if(document.getElementById('lightbox') && document.getElementById('lightbox').classList.contains('active')) {
     closeLightbox(); return;
@@ -5766,6 +5794,97 @@ document.addEventListener('keydown', function(e) {
     closeLogModal(); return;
   }
 });
+
+// ── AI 자동입력 ───────────────────────────────
+var _aiModalDsTarget = null;
+function _aiModalDs(e){ _aiModalDsTarget = e.target; }
+function _aiModalDe(e){ if(e.target===e.currentTarget && _aiModalDsTarget===e.currentTarget) closeAiInputModal(); _aiModalDsTarget=null; }
+
+function openAiInputModal() {
+  document.getElementById('aiInputModal').classList.add('active');
+  document.getElementById('aiInputText').value = '';
+  document.getElementById('aiInputStatus').textContent = '';
+  document.getElementById('aiInputRunBtn').disabled = false;
+  document.getElementById('aiInputRunBtn').textContent = '✨ 자동입력 시작';
+  setTimeout(function(){ document.getElementById('aiInputText').focus(); }, 100);
+}
+
+function closeAiInputModal() {
+  document.getElementById('aiInputModal').classList.remove('active');
+}
+
+async function runAiAutoFill() {
+  var text = document.getElementById('aiInputText').value.trim();
+  if(!text) { document.getElementById('aiInputStatus').textContent = '⚠️ 매물 정보를 입력해주세요.'; return; }
+
+  var btn = document.getElementById('aiInputRunBtn');
+  var status = document.getElementById('aiInputStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ 분석 중...';
+  status.textContent = 'AI가 매물 정보를 분석하고 있어요...';
+
+  var prompt = '다음 매물 정보 텍스트를 분석해서 아래 JSON 형식으로만 응답해주세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.\n\n매물 정보:\n' + text + '\n\n응답 JSON 형식:\n{\n  "georae": "매매|전세|월세 중 하나",\n  "type": "토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나",\n  "address": "주소",\n  "price": "가격 (예: 5억, 3억5000만, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD 형식)",\n  "floors": "층수",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "특이사항/메모"\n}';
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    var data = await resp.json();
+    var raw = data.content && data.content[0] && data.content[0].text;
+    if(!raw) throw new Error('응답 없음');
+
+    var jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSON 파싱 실패');
+    var parsed = JSON.parse(jsonMatch[0]);
+
+    closeAiInputModal();
+    openAddModal();
+
+    setTimeout(function(){
+      var fields = ['address','price','maintenance','premium','landArea','roadShare','totalLandArea',
+        'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
+        'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
+        'regOwnerName','ownerName','ownerPhone','memo'];
+
+      if(parsed.georae) {
+        var gs = document.getElementById('f_georae');
+        if(gs) gs.value = parsed.georae;
+      }
+      if(parsed.type) {
+        var ts = document.getElementById('f_type');
+        if(ts) {
+          ts.value = parsed.type;
+          renderCustomFieldsInForm(parsed.type, null);
+          updateFormFieldVisibility(parsed.type);
+        }
+      }
+      if(parsed.approvalDate) {
+        var ad = document.getElementById('f_approvalDate');
+        if(ad) ad.value = parsed.approvalDate;
+      }
+      fields.forEach(function(key) {
+        if(parsed[key]) {
+          var el = document.getElementById('f_' + key);
+          if(el) el.value = parsed[key];
+        }
+      });
+
+      showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
+    }, 400);
+
+  } catch(err) {
+    status.textContent = '❌ 오류: ' + (err.message || '분석에 실패했어요. 다시 시도해주세요.');
+    btn.disabled = false;
+    btn.textContent = '✨ 자동입력 시작';
+  }
+}
+// ── AI 자동입력 끝 ────────────────────────────
 
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');

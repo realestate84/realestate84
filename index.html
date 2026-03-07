@@ -5819,79 +5819,108 @@ async function runAiAutoFill() {
 
   var btn = document.getElementById('aiInputRunBtn');
   var status = document.getElementById('aiInputStatus');
+  var PROXY_URL = 'https://realestate84.gsr365i.workers.dev';
+  var RES_TYPES = ['아파트','빌라','상가주택','원룸','1.5룸','투룸','오피스텔'];
+
   btn.disabled = true;
   btn.textContent = '⏳ 분석 중...';
-  status.textContent = 'AI가 매물 정보를 분석하고 있어요...';
-
-  var prompt = '다음 매물 정보 텍스트를 분석해서 아래 JSON 형식으로만 응답해주세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.\n\n주의사항:\n- type은 반드시 다음 중 하나: 토지, 공장창고, 상가/사무실, 아파트, 빌라, 상가주택, 원룸, 1.5룸, 투룸, 오피스텔, 절대농지, 단독주택, 펜션, 건물\n- georae는 반드시 매매, 전세, 월세 중 하나\n- address에 동호수 포함 (예: 불로동 777-4 301호)\n- floors에 층수 및 엘베유무 포함 (예: 3층, 엘베없음)\n- memo에 옵션목록, 입주가능일, 엘리베이터 유무, 기타 특이사항 모두 포함\n\n매물 정보:\n' + text + '\n\n응답 JSON 형식:\n{\n  "georae": "매매|전세|월세 중 하나",\n  "type": "위 목록 중 하나",\n  "address": "주소(동호수 포함)",\n  "price": "가격 (예: 5억, 3억5000만, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD 형식)",\n  "floors": "층수/엘베유무 (예: 3층, 엘베없음)",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "옵션목록, 입주가능일, 기타 특이사항 모두 포함"\n}';
+  status.textContent = '① 매물 종류 파악 중...';
 
   try {
-    // Cloudflare Workers 프록시를 통해 Anthropic API 호출 (CORS 우회)
-    var PROXY_URL = 'https://realestate84.gsr365i.workers.dev';
-    var resp = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+    // ── 1단계: type만 먼저 파악 ──────────────────
+    var step1prompt = '다음 매물 정보에서 매물종류와 거래유형만 파악해서 JSON으로만 응답하세요. JSON 외 다른 텍스트 절대 금지.\n\n매물 정보:\n' + text + '\n\n응답 형식:\n{"georae":"매매|전세|월세 중 하나","type":"토지|공장창고|상가/사무실|아파트|빌라|상가주택|원룸|1.5룸|투룸|오피스텔|절대농지|단독주택|펜션|건물 중 하나"}';
+
+    var r1 = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:100, messages:[{role:'user',content:step1prompt}] })
     });
-    var data = await resp.json();
-    var raw = data.content && data.content[0] && data.content[0].text;
-    if(!raw) throw new Error('응답 없음');
+    var d1 = await r1.json();
+    var raw1 = d1.content && d1.content[0] && d1.content[0].text;
+    if(!raw1) throw new Error('1단계 응답 없음');
+    var m1 = raw1.match(/\{[\s\S]*\}/);
+    if(!m1) throw new Error('1단계 JSON 파싱 실패');
+    var step1 = JSON.parse(m1[0]);
+    var detectedType = step1.type || '';
 
-    var jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('JSON 파싱 실패');
-    var parsed = JSON.parse(jsonMatch[0]);
+    // ── 2단계: 해당 type의 커스텀 필드 목록 수집 ──
+    status.textContent = '② ' + (detectedType||'매물') + ' 항목 분석 중...';
+    var customs = customFields[detectedType] || [];
 
-    closeAiInputModal();
+    // 고정 필드 JSON 스펙
+    var fixedSpec = '  "address": "주소(동호수 포함)",\n  "price": "가격 (예: 5억, 보3억/월100)",\n  "maintenance": "관리비",\n  "premium": "권리금",\n  "landArea": "토지면적(평, 숫자만)",\n  "roadShare": "도로지분(평, 숫자만)",\n  "totalLandArea": "총토지면적(평, 숫자만)",\n  "roadArea": "도로부지면적(평, 숫자만)",\n  "useZone": "용도지역",\n  "jimok": "지목",\n  "access": "진입로/도로현황",\n  "totalArea": "건축면적(평, 숫자만)",\n  "tempArea": "가설면적(평, 숫자만)",\n  "supplyArea": "공급면적(평, 숫자만)",\n  "exclusiveArea": "전용면적(평, 숫자만)",\n  "buildingUse": "건물용도",\n  "approvalDate": "사용승인일(YYYY-MM-DD)",\n  "floors": "층수 (예: 3층, 엘베없음)",\n  "electric": "전기용량",\n  "hoist": "호이스트",\n  "direction": "방향",\n  "parking": "주차",\n  "factoryReg": "공장등록",\n  "elevator": "엘리베이터 (예: 있음, 없음)",\n  "rooms": "방 개수",\n  "bathrooms": "욕실 개수",\n  "waterIn": "수도",\n  "drain": "하수",\n  "toilet": "화장실",\n  "regOwnerName": "등기부 소유자명",\n  "ownerName": "소유자명",\n  "ownerPhone": "소유자 연락처",\n  "memo": "입주가능일, 기타 특이사항 (옵션 제외)"';
 
-    // 1. 매물종류에 따라 섹터 먼저 전환
-    var detectedType = parsed.type || '';
-    var RES_TYPES = ['아파트','빌라','상가주택','원룸','1.5룸','투룸','오피스텔'];
-    var needSector = RES_TYPES.indexOf(detectedType) !== -1 ? 'residential' : 'commercial';
-    if(currentSector !== needSector) {
-      switchSector(needSector);
+    // 커스텀 필드 JSON 스펙 동적 생성
+    var customSpec = '';
+    var customNotes = '';
+    if(customs.length > 0) {
+      customNotes = '\n\n[' + detectedType + ' 전용 커스텀 항목 - 반드시 채워주세요]\n';
+      customs.forEach(function(cf) {
+        var label = cf.label || cf.key;
+        customSpec += ',\n  "custom__' + cf.key + '": "' + label + ' 값"';
+        customNotes += '- ' + label + ' (key: custom__' + cf.key + ')\n';
+      });
     }
 
-    // 2. 섹터 전환 후 폼 열기 (렌더링 대기)
+    var step2prompt = '다음 매물 정보를 분석해서 JSON으로만 응답하세요. 모르거나 없는 항목은 빈 문자열("")로 두세요. JSON 외 다른 텍스트 절대 금지.\n\n매물종류: ' + detectedType + '\n거래유형: ' + (step1.georae||'') + customNotes + '\n\n매물 정보:\n' + text + '\n\n응답 JSON:\n{\n' + fixedSpec + customSpec + '\n}';
+
+    var r2 = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:step2prompt}] })
+    });
+    var d2 = await r2.json();
+    var raw2 = d2.content && d2.content[0] && d2.content[0].text;
+    if(!raw2) throw new Error('2단계 응답 없음');
+    var m2 = raw2.match(/\{[\s\S]*\}/);
+    if(!m2) throw new Error('2단계 JSON 파싱 실패');
+    var parsed = JSON.parse(m2[0]);
+
+    // ── 3단계: 섹터 전환 → 폼 열기 → 필드 채우기 ──
+    closeAiInputModal();
+    var needSector = RES_TYPES.indexOf(detectedType) !== -1 ? 'residential' : 'commercial';
+    if(currentSector !== needSector) switchSector(needSector);
+
     setTimeout(function(){
       openAddModal();
-
-      // 3. 폼 열린 후 필드 채우기
       setTimeout(function(){
-      var fields = ['address','price','maintenance','premium','landArea','roadShare','totalLandArea',
-        'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
-        'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
-        'regOwnerName','ownerName','ownerPhone','memo'];
 
-      if(parsed.georae) {
+        // 거래유형/매물종류 선택
         var gs = document.getElementById('f_georae');
-        if(gs) gs.value = parsed.georae;
-      }
-      if(parsed.type) {
+        if(gs && step1.georae) gs.value = step1.georae;
         var ts = document.getElementById('f_type');
-        if(ts) {
-          ts.value = parsed.type;
-          renderCustomFieldsInForm(parsed.type, null);
-          updateFormFieldVisibility(parsed.type);
+        if(ts && detectedType) {
+          ts.value = detectedType;
+          renderCustomFieldsInForm(detectedType, null);
+          updateFormFieldVisibility(detectedType);
         }
-      }
-      if(parsed.approvalDate) {
-        var ad = document.getElementById('f_approvalDate');
-        if(ad) ad.value = parsed.approvalDate;
-      }
-      fields.forEach(function(key) {
-        if(parsed[key]) {
-          var el = document.getElementById('f_' + key);
-          if(el) el.value = parsed[key];
-        }
-      });
 
-      showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
+        // 고정 필드 채우기
+        var fixedFields = ['address','price','maintenance','premium','landArea','roadShare','totalLandArea',
+          'roadArea','useZone','jimok','access','totalArea','tempArea','supplyArea','exclusiveArea',
+          'buildingUse','floors','electric','hoist','direction','parking','factoryReg',
+          'elevator','rooms','bathrooms','waterIn','drain','toilet','regOwnerName','ownerName','ownerPhone','memo'];
+        fixedFields.forEach(function(key) {
+          if(parsed[key]) {
+            var el = document.getElementById('f_' + key);
+            if(el) el.value = parsed[key];
+          }
+        });
+        if(parsed.approvalDate) {
+          var ad = document.getElementById('f_approvalDate');
+          if(ad) ad.value = parsed.approvalDate;
+        }
+
+        // 커스텀 필드 채우기 (fc_[key])
+        Object.keys(parsed).forEach(function(k) {
+          if(k.indexOf('custom__') === 0 && parsed[k]) {
+            var cfKey = k.replace('custom__', '');
+            var el = document.getElementById('fc_' + cfKey);
+            if(el) el.value = parsed[k];
+          }
+        });
+
+        showToast('✅ AI 자동입력 완료! 내용을 확인 후 저장하세요.');
       }, 400);
-    }, 150); // 섹터 전환 렌더링 대기
+    }, 150);
 
   } catch(err) {
     status.textContent = '❌ 오류: ' + (err.message || '분석에 실패했어요. 다시 시도해주세요.');

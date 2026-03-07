@@ -2371,12 +2371,11 @@ function renderCustomFieldsInForm(type, propData) {
   if(!area) return;
 
   // 커스텀 항목: 선택한 매물종류(type)의 항목설정 사용 (타입 미선택 시 빈 목록)
-  // 용도지역(useZone)은 DEFAULT_FIELDS에 있어 고정 폼에 이미 있으므로, 라벨이 '용도지역'인 커스텀 항목은 중복 표시하지 않음
-  var defaultLabels = {};
-  DEFAULT_FIELDS.forEach(function(f){ defaultLabels[f.label] = true; });
+  // key 기준으로 DEFAULT_FIELDS와 중복 여부 확인 (label이 같아도 key가 다르면 별도 항목으로 표시)
+  var defaultKeys = {};
+  DEFAULT_FIELDS.forEach(function(f){ defaultKeys[f.key] = true; });
   var customs = (customFields[type] || []).filter(function(cf) {
-    var lbl = getFieldLabel(cf.key, cf.label);
-    return !defaultLabels[lbl];
+    return !defaultKeys[cf.key];
   });
   var html = '';
   customs.forEach(function(cf) {
@@ -4101,6 +4100,26 @@ function cleanupFieldSettings() {
   });
 }
 
+function validateFieldSettings() {
+  // key 기준 중복 검사만 수행
+  var sectorTypes = getPropTypesForSector(currentSector);
+  var errors = [];
+  sectorTypes.forEach(function(t) {
+    var keys = [];
+    // DEFAULT_FIELDS keys
+    DEFAULT_FIELDS.forEach(function(f){ keys.push(f.key); });
+    // 커스텀 필드 keys
+    (_tmpCustomFields[t] || []).forEach(function(cf){ keys.push(cf.key); });
+    // 중복 key 검사
+    var seen = {};
+    keys.forEach(function(k) {
+      if(seen[k]) errors.push('[' + t + '] 중복 key: ' + k);
+      seen[k] = true;
+    });
+  });
+  return errors;
+}
+
 function saveFieldSettings() {
   cleanupFieldSettings();
   persistListColumnSettings();
@@ -4184,10 +4203,8 @@ function getOrderedFields(type) {
   var allFields = {};
   DEFAULT_FIELDS.forEach(function(f){ allFields[f.key] = {key:f.key, label:getFieldLabel(f.key,f.label), section:getFieldSection(f.key,f.section), suffix:f.suffix}; });
   customs.forEach(function(cf){ allFields[cf.key] = {key:cf.key, label:getFieldLabel(cf.key,cf.label), section:getFieldSection(cf.key,'상세정보'), suffix:'', custom:true}; });
-  // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외, 같은 라벨 중복 제거 (도로지분 등 첫 번째만 유지)
-  var list = order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
-  var labelSeen = {};
-  return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
+  // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외
+  return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
 }
 
 // 주거용 타입(아파트, 빌라 등)에서 설정 미지정 시 기본 표시할 항목만 (상업용 전용 항목 제외)
@@ -4796,6 +4813,11 @@ function confirmSettings() {
   if(mapInput) mapDefaultCenterAddress = mapInput.value.trim();
   invalidateSuffixCache();
   invalidateColDefsCache();
+  var validationErrors = validateFieldSettings();
+  if(validationErrors.length > 0) {
+    alert('⚠️ 저장 실패\n\n' + validationErrors.join('\n'));
+    return;
+  }
   saveFieldSettings();
   showToast('✅ 설정이 저장됐어요!');
 }
@@ -4971,9 +4993,8 @@ function renderSettingsPanel() {
     var allFields = {};
     DEFAULT_FIELDS.forEach(function(f){ allFields[f.key]={key:f.key, label:(_tmpFieldLabelOverrides[f.key]||f.label), section:(tmpOrder[type]?(_tmpFieldSections[f.key]||f.section):f.section), suffix:f.suffix}; });
     customs.forEach(function(cf){ allFields[cf.key]={key:cf.key, label:(_tmpFieldLabelOverrides[cf.key]||cf.label), section:(_tmpFieldSections[cf.key]||'상세정보'), suffix:'', custom:true}; });
-    var list = order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
-    var labelSeen = {};
-    return list.filter(function(f){ if(labelSeen[f.label]) return false; labelSeen[f.label]=true; return true; });
+    // order대로 반환 (존재하는 것만), '총토지면적삭제' 제외
+    return order.filter(function(k){ return allFields[k]; }).map(function(k){ return allFields[k]; }).filter(function(f){ return f.label !== '총토지면적삭제'; });
   }
 
   var html = '';

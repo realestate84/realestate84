@@ -235,7 +235,7 @@
         </div>
         <div class="form-group">
           <label>거래유형 *</label>
-          <select class="form-select" id="f_georae">
+          <select class="form-select" id="f_georae" onchange="updatePriceInputUI()">
             <option value="">선택</option>
             <option>매매</option><option>전세</option><option>월세</option>
           </select>
@@ -246,9 +246,15 @@
         </div>
         <!-- ── 가격 그룹 ── -->
         <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;grid-column:1/-1;">
-          <div class="form-group" data-field-key="price">
-            <label id="flabel_price">가격</label>
-            <input class="form-input" type="text" id="f_price" placeholder="예) 3억5000만 / 보3억/월100">
+          <div id="priceInputWrap" class="form-group" data-field-key="price" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:100px;">
+              <label id="flabel_price">가격 (만원)</label>
+              <input class="form-input" type="number" id="f_price" placeholder="만원 단위 숫자" min="0" step="1" inputmode="numeric">
+            </div>
+            <div class="form-group" id="monthlyRentInputWrap" style="display:none;flex:1;min-width:100px;">
+              <label id="flabel_monthlyRent">월세 (만원)</label>
+              <input class="form-input" type="number" id="f_monthlyRent" placeholder="예) 120" min="0" step="1" inputmode="numeric">
+            </div>
           </div>
           <div class="form-group" data-field-key="pricePerPyeong">
             <label id="flabel_pricePerPyeong">평당가격</label>
@@ -859,6 +865,70 @@ var PROP_TYPES = ['토지','공장창고','상가/사무실','아파트','빌라
 var GEORAE_TYPES = ['매매','전세','월세'];
 var filterTypeChecked = {};
 var filterGeoraeChecked = {};
+
+// 만원 단위 숫자 → 한국식 가격 표시 (예: 50000 → 5억원, 55000 → 5억 5천만원, 8000 → 8천만원)
+function formatPriceManwon(value) {
+  if (value === null || value === undefined || value === '') return '';
+  var n = typeof value === 'number' ? value : parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+  if (isNaN(n)) return '';
+  if (n >= 10000) {
+    var eok = Math.floor(n / 10000);
+    var cheon = n % 10000;
+    if (cheon === 0) return eok + '억원';
+    var rest = cheon < 1000 ? (cheon + '만원') : (cheon % 1000 === 0 ? (cheon / 1000) + '천만원' : Math.floor(cheon / 1000) + '천' + (cheon % 1000) + '만원');
+    return eok + '억 ' + rest;
+  }
+  if (n >= 1000) return (n / 1000) + '천만원';
+  return n + '만원';
+}
+
+// 매물 객체 기준 가격 표시 문자열 (거래유형에 따라 매매가/전세가/보증금+월세)
+function getPriceDisplay(property) {
+  if (!property) return '-';
+  var georae = property.georae || '';
+  var priceVal = property.price;
+  var priceNumVal = (typeof priceVal === 'number' && !isNaN(priceVal)) ? priceVal : parseInt(String(priceVal || '').replace(/[^0-9]/g, ''), 10);
+  if (georae === '월세') {
+    var monthlyVal = property.monthlyRent;
+    var monthlyNum = (typeof monthlyVal === 'number' && !isNaN(monthlyVal)) ? monthlyVal : parseInt(String(monthlyVal || '').replace(/[^0-9]/g, ''), 10);
+    var priceStr = formatPriceManwon(priceNumVal);
+    var monthlyStr = isNaN(monthlyNum) ? '' : formatPriceManwon(monthlyNum);
+    if (!priceStr && !monthlyStr) return '-';
+    if (!monthlyStr) return priceStr;
+    return priceStr + ' / ' + monthlyStr;
+  }
+  if (!priceVal && priceVal !== 0) return '-';
+  return formatPriceManwon(priceNumVal);
+}
+
+// 정렬/검색/통계용: 매물에서 가격 숫자(만원) 추출 (기존 데이터 호환)
+function priceNum(property) {
+  if (!property) return 0;
+  var v = property.price;
+  if (typeof v === 'number' && !isNaN(v)) return v;
+  return parseInt(String(v || '').replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+// 거래유형 변경 시 가격 라벨·월세 입력칸 표시 갱신
+function updatePriceInputUI() {
+  var georaeEl = document.getElementById('f_georae');
+  var georae = georaeEl ? georaeEl.value : '';
+  var labelEl = document.getElementById('flabel_price');
+  var priceWrap = document.getElementById('priceInputWrap');
+  var monthlyWrap = document.getElementById('monthlyRentInputWrap');
+  if (labelEl) {
+    if (georae === '매매') { labelEl.textContent = '매매가 (만원)'; }
+    else if (georae === '전세') { labelEl.textContent = '전세가 (만원)'; }
+    else if (georae === '월세') { labelEl.textContent = '보증금 (만원)'; }
+    else { labelEl.textContent = '가격 (만원)'; }
+  }
+  if (monthlyWrap) monthlyWrap.style.display = (georae === '월세') ? '' : 'none';
+  var ph = (georae === '월세') ? '예) 2000' : (georae === '매매' || georae === '전세') ? (georae === '매매' ? '예) 55000 (5억5천만)' : '예) 30000 (3억)') : '만원 단위 숫자';
+  var priceInput = document.getElementById('f_price');
+  if (priceInput) priceInput.placeholder = ph;
+  var monthlyInput = document.getElementById('f_monthlyRent');
+  if (monthlyInput) monthlyInput.placeholder = '예) 120 (120만원)';
+}
 
 // 기본 항목 정의 (key, label, suffix)
 var DEFAULT_FIELDS = [
@@ -1784,9 +1854,9 @@ function openStats() {
   // 출발가능 매물 수
   var depCount = properties.filter(function(p){ return p.departure !== false; }).length;
   var avgPrice = (function(){
-    var priced = properties.filter(function(p){ return p.price && /^[\d,]+$/.test(p.price.replace(/,/g,'')); });
+    var priced = properties.filter(function(p){ return priceNum(p) > 0; });
     if(!priced.length) return '-';
-    var sum = priced.reduce(function(s,p){ return s+(parseInt(p.price.replace(/[^0-9]/g,''))||0); },0);
+    var sum = priced.reduce(function(s,p){ return s + priceNum(p); },0);
     return Math.round(sum/priced.length).toLocaleString()+'만원';
   })();
 
@@ -1931,7 +2001,7 @@ function renderTable() {
       if(!hay.includes(q)) return false;
     }
     // 가격 범위
-    var price = parseInt((p.price||'').replace(/[^0-9]/g,'')) || 0;
+    var price = priceNum(p);
     if(priceMin && price < priceMin) return false;
     if(priceMax && price > priceMax) return false;
     if(currentSector === SECTOR_RESIDENTIAL) {
@@ -2087,7 +2157,7 @@ function renderTable() {
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
-          case 'price':     return '<td style="font-weight:600">'+(p.price||'-')+'</td>';
+          case 'price':     return '<td style="font-weight:600">'+getPriceDisplay(p)+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';
@@ -2448,6 +2518,7 @@ function updateFormFieldVisibility(type) {
     var allHidden = Array.from(priceGridWrapper.querySelectorAll('[data-field-key]')).every(function(c){ return c.style.display==='none'; });
     priceGridWrapper.style.display = allHidden ? 'none' : '';
   }
+  updatePriceInputUI();
 }
 
 // ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용: 아파트→아파트, 빌라→빌라, 원룸→원룸 등) ───
@@ -2581,6 +2652,7 @@ function openAddModal(){
   var formBody = document.querySelector('#formModal .modal-body');
   if(formBody) { formBody.scrollTop = 0; }
   setTimeout(function(){ if(formBody) formBody.scrollTop = 0; }, 0);
+  updatePriceInputUI();
 }
 function openEditModal(id){
   var p=properties.find(function(x){return x.id===id;});
@@ -2591,7 +2663,9 @@ function openEditModal(id){
   document.getElementById('f_georae').value=p.georae||'';
   document.getElementById('f_type').value=p.type||'';
   document.getElementById('f_address').value=p.address||'';
-  document.getElementById('f_price').value=p.price||'';
+  document.getElementById('f_price').value=p.price!==undefined&&p.price!==null&&p.price!==''?p.price:'';
+  var monthlyEl = document.getElementById('f_monthlyRent');
+  if(monthlyEl) monthlyEl.value = (p.monthlyRent !== undefined && p.monthlyRent !== null && p.monthlyRent !== '') ? p.monthlyRent : '';
   document.getElementById('f_pricePerPyeong').value=p.pricePerPyeong||'';
   document.getElementById('f_officialBuildingPrice').value=p.officialBuildingPrice||'';
   document.getElementById('f_officialLandPrice').value=p.officialLandPrice||'';
@@ -2668,6 +2742,7 @@ function openEditModal(id){
     '</div></div>';
   document.getElementById('formDocSection').innerHTML = docHtml;
   closeDetailModal();
+  updatePriceInputUI();
   var formModal = document.getElementById('formModal');
   // 전체지도 모달 위에 표시되도록 DOM 최상단으로 이동
   document.body.appendChild(formModal);
@@ -2683,7 +2758,7 @@ function closeFormModal(){
 }
 function clearForm(){
   ['f_georae','f_type','f_address',
-   'f_price','f_pricePerPyeong','f_officialBuildingPrice','f_officialLandPrice','f_maintenance','f_premium',
+   'f_price','f_monthlyRent','f_pricePerPyeong','f_officialBuildingPrice','f_officialLandPrice','f_maintenance','f_premium',
    'f_lotCount','f_landArea','f_landShareRatio','f_roadShare','f_totalLandArea','f_roadArea',
    'f_useZone','f_jimok','f_access',
    'f_floorArea','f_structure','f_totalArea','f_tempArea','f_buildingUse','f_supplyArea','f_exclusiveArea',
@@ -2705,9 +2780,14 @@ function saveProperty(){
   var now=new Date();
   var dateStr=now.toLocaleDateString('ko-KR');
   var timeStr=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var priceRaw = document.getElementById('f_price').value.trim();
+  var priceNumVal = priceRaw === '' ? null : (parseInt(priceRaw.replace(/[^0-9]/g,''),10) || null);
+  var monthlyRaw = document.getElementById('f_monthlyRent').value.trim();
+  var monthlyNumVal = (georae === '월세') ? (monthlyRaw === '' ? null : (parseInt(monthlyRaw.replace(/[^0-9]/g,''),10) || null)) : null;
   var data={
     georae:georae, type:type, address:address,
-    price:document.getElementById('f_price').value.trim(),
+    price: priceNumVal !== null ? priceNumVal : (priceRaw || ''),
+    monthlyRent: georae === '월세' ? monthlyNumVal : null,
     pricePerPyeong:document.getElementById('f_pricePerPyeong').value.trim(),
     officialBuildingPrice:document.getElementById('f_officialBuildingPrice').value.trim(),
     officialLandPrice:document.getElementById('f_officialLandPrice').value.trim(),
@@ -2820,7 +2900,7 @@ function openDetail(id){
     else if(['landArea','totalArea','supplyArea','tempArea','roadArea',
              'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1)
       val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
-    else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+(raw ? raw+(suffix?' '+suffix:'') : '-')+'</div></div>';
+    else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+getPriceDisplay(p)+'</div></div>';
     else if(f.key==='ownerPhone') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(raw?'<a href="tel:'+raw+'" style="color:var(--accent);text-decoration:none">'+raw+'</a>':'-')+'</div></div>';
     else if(f.key==='createdDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.createdDate||'-')+(p.createdTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.createdTime+'</span>':'')+'</div></div>';
     else if(f.key==='updatedDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.updatedDate?p.updatedDate+(p.updatedTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':''):'-')+'</div></div>';
@@ -3548,7 +3628,7 @@ function copyProperty(id) {
   var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   var newData = {
     georae:p.georae||'', type:p.type||'', address:p.address||'',
-    price:p.price||'', maintenance:p.maintenance||'',
+    price:p.price||'', monthlyRent:p.monthlyRent!=null?p.monthlyRent:undefined, maintenance:p.maintenance||'',
     landArea:p.landArea||'', totalArea:p.totalArea||'',
     supplyArea:p.supplyArea||'', exclusiveArea:p.exclusiveArea||'',
     tempArea:p.tempArea||'', roadArea:p.roadArea||'',
@@ -5001,7 +5081,7 @@ function renderCustomerShownProps(custId) {
       '</div>';
     }
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (p.price?(' · '+p.price):'');
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplay(p)!=='-'?(' · '+getPriceDisplay(p)):'');
     return '<div class="doc-row" style="gap:10px;">'+
       '<div style="min-width:0;flex:1;">'+
         '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
@@ -5052,7 +5132,7 @@ function updateCustomerShownSuggestions(custId) {
 
   box.innerHTML = candidates.map(function(p){
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (p.price?(' · '+p.price):'');
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplay(p)!=='-'?(' · '+getPriceDisplay(p)):'');
     return '<div onclick="selectCustomerShownProperty(\''+custId+'\',\''+p.id+'\')" style="padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--border);">'+
       '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
       '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
@@ -5949,7 +6029,7 @@ function openMapAll() {
             content.innerHTML =
               '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
               '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
-              (p.price?'<div class="mi-price">💰 '+p.price+'</div>':'')+
+              (getPriceDisplay(p)!=='-'?'<div class="mi-price">💰 '+getPriceDisplay(p)+'</div>':'')+
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
               '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
             content.onclick = function() {
@@ -6398,6 +6478,7 @@ function applyAiParsed(parsed, RES_TYPES) {
     setTimeout(function(){
       var gs = document.getElementById('f_georae');
       if(gs && parsed.georae) gs.value = parsed.georae;
+      updatePriceInputUI();
       var ts = document.getElementById('f_type');
       if(ts && detectedType) {
         ts.value = detectedType;

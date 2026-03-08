@@ -249,7 +249,7 @@
           <div id="priceInputWrap" class="form-group" data-field-key="price" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
             <div style="flex:1;min-width:100px;">
               <label id="flabel_price">가격 (만원)</label>
-              <input class="form-input" type="number" id="f_price" placeholder="만원 단위 숫자" min="0" step="1" inputmode="numeric">
+              <input class="form-input" type="text" id="f_price" placeholder="만원 단위 숫자" inputmode="numeric" oninput="formatPriceInput(this)">
             </div>
             <div class="form-group" id="monthlyRentInputWrap" style="display:none;flex:1;min-width:100px;">
               <label id="flabel_monthlyRent">월세 (만원)</label>
@@ -922,6 +922,20 @@ function formatMonthlyRentComma(value) {
 }
 // 월세 입력칸 실시간 콤마 (oninput에서 호출)
 function formatMonthlyRentInput(el) {
+  var raw = String(el.value || '').replace(/,/g, '').replace(/[^\d]/g, '');
+  if (!raw) { el.value = ''; return; }
+  el.value = parseInt(raw, 10).toLocaleString('ko-KR');
+}
+
+// 가격(price) 1000단위 콤마 표시 (화면 표시용)
+function formatPriceComma(value) {
+  if (value === null || value === undefined || value === '') return '';
+  var num = typeof value === 'number' ? value : parseInt(String(value).replace(/,/g, ''), 10);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('ko-KR');
+}
+// 가격 입력칸 실시간 콤마 (oninput에서 호출)
+function formatPriceInput(el) {
   var raw = String(el.value || '').replace(/,/g, '').replace(/[^\d]/g, '');
   if (!raw) { el.value = ''; return; }
   el.value = parseInt(raw, 10).toLocaleString('ko-KR');
@@ -2089,7 +2103,7 @@ function renderTable() {
       var va = a[sortKey] || '';
       var vb = b[sortKey] || '';
       // 숫자 필드
-      if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea' || sortKey === 'monthlyRent') {
+      if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea' || sortKey === 'price' || sortKey === 'monthlyRent') {
         va = parseFloat(va) || 0;
         vb = parseFloat(vb) || 0;
         return sortDir === 'asc' ? va - vb : vb - va;
@@ -2192,7 +2206,7 @@ function renderTable() {
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
-          case 'price':     return '<td style="font-weight:600;text-align:right">'+getPriceDisplayValue(p)+'</td>';
+          case 'price':     return '<td style="font-weight:600;text-align:right">'+(p.price!==undefined&&p.price!==null&&p.price!==''?formatPriceComma(p.price):'-')+'</td>';
           case 'monthlyRent': return '<td style="font-weight:600;text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?formatMonthlyRentComma(p.monthlyRent):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
@@ -2701,7 +2715,8 @@ function openEditModal(id){
   document.getElementById('f_georae').value=p.georae||'';
   document.getElementById('f_type').value=p.type||'';
   document.getElementById('f_address').value=p.address||'';
-  document.getElementById('f_price').value=p.price!==undefined&&p.price!==null&&p.price!==''?p.price:'';
+  var priceEl = document.getElementById('f_price');
+  if(priceEl) { priceEl.value = (p.price !== undefined && p.price !== null && p.price !== '') ? String(p.price) : ''; formatPriceInput(priceEl); }
   var monthlyEl = document.getElementById('f_monthlyRent');
   if(monthlyEl) { monthlyEl.value = (p.monthlyRent !== undefined && p.monthlyRent !== null && p.monthlyRent !== '') ? String(p.monthlyRent) : ''; formatMonthlyRentInput(monthlyEl); }
   document.getElementById('f_pricePerPyeong').value=p.pricePerPyeong||'';
@@ -2940,7 +2955,7 @@ function openDetail(id){
       val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
     else if(f.key==='price') {
       var priceLabel = (p.georae==='매매')?'매매가 (만원)':(p.georae==='전세')?'전세가 (만원)':(p.georae==='월세')?'보증금 (만원)':(f.label||'가격 (만원)');
-      return '<div class="detail-item"><label>'+priceLabel+'</label><div class="val" style="color:var(--accent)">'+getPriceDisplayValue(p)+'</div></div>';
+      return '<div class="detail-item"><label>'+priceLabel+'</label><div class="val" style="color:var(--accent)">'+(p.price!==undefined&&p.price!==null&&p.price!==''?formatPriceComma(p.price):'-')+'</div></div>';
     }
     else if(f.key==='ownerPhone') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(raw?'<a href="tel:'+raw+'" style="color:var(--accent);text-decoration:none">'+raw+'</a>':'-')+'</div></div>';
     else if(f.key==='createdDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.createdDate||'-')+(p.createdTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.createdTime+'</span>':'')+'</div></div>';
@@ -4056,6 +4071,7 @@ function downloadExcel(){
     return allFields.map(function(f){
       var val = p[f.key];
       if (val === undefined) return '';
+      if (f.key === 'price') return (val !== null && val !== '') ? formatPriceComma(val) : '';
       if (f.key === 'monthlyRent') return (val !== null && val !== '') ? formatMonthlyRentComma(val) : '';
       return val || '';
     });
@@ -5128,7 +5144,9 @@ function renderCustomerShownProps(custId) {
       '</div>';
     }
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplayValue(p)!=='-'?(' · '+getPriceDisplayValue(p)):'');
+    var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
+    if (p.georae==='월세' && p.monthlyRent!==undefined && p.monthlyRent!==null && p.monthlyRent!=='') priceStr += (priceStr ? ' / ' : '') + formatMonthlyRentComma(p.monthlyRent);
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr ? ' · '+priceStr : '');
     return '<div class="doc-row" style="gap:10px;">'+
       '<div style="min-width:0;flex:1;">'+
         '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
@@ -5179,7 +5197,9 @@ function updateCustomerShownSuggestions(custId) {
 
   box.innerHTML = candidates.map(function(p){
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplayValue(p)!=='-'?(' · '+getPriceDisplayValue(p)):'');
+    var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
+    if (p.georae==='월세' && p.monthlyRent!==undefined && p.monthlyRent!==null && p.monthlyRent!=='') priceStr += (priceStr ? ' / ' : '') + formatMonthlyRentComma(p.monthlyRent);
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr ? ' · '+priceStr : '');
     return '<div onclick="selectCustomerShownProperty(\''+custId+'\',\''+p.id+'\')" style="padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--border);">'+
       '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
       '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
@@ -6079,7 +6099,7 @@ function openMapAll() {
             content.innerHTML =
               '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
               '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
-              (getPriceDisplayValue(p)!=='-'?'<div class="mi-price">💰 '+getPriceDisplayValue(p)+'</div>':'')+
+              (function(){ var px=(p.price!==undefined&&p.price!==null&&p.price!=='')?formatPriceComma(p.price):''; if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px+=(px?' / ':'')+formatMonthlyRentComma(p.monthlyRent); return px?('<div class="mi-price">💰 '+px+'</div>'):''; })()+
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
               '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
             content.onclick = function() {

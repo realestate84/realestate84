@@ -866,6 +866,9 @@ var GEORAE_TYPES = ['매매','전세','월세'];
 var filterTypeChecked = {};
 var filterGeoraeChecked = {};
 
+// true로 바꾸면 가격을 억/천만원 포맷으로 표시 (formatPriceManwon, getPriceDisplay 사용)
+var ENABLE_PRICE_DISPLAY_FORMAT = false;
+
 // 만원 단위 숫자 → 한국식 가격 표시 (예: 50000 → 5억원, 55000 → 5억 5천만원, 8000 → 8천만원)
 function formatPriceManwon(value) {
   if (value === null || value === undefined || value === '') return '';
@@ -899,6 +902,11 @@ function getPriceDisplay(property) {
   }
   if (!priceVal && priceVal !== 0) return '-';
   return formatPriceManwon(priceNumVal);
+}
+
+// 표시용: 플래그에 따라 포맷 표시 또는 기존 price 그대로 (기능 끄려면 ENABLE_PRICE_DISPLAY_FORMAT = false)
+function getPriceDisplayValue(p) {
+  return ENABLE_PRICE_DISPLAY_FORMAT ? getPriceDisplay(p) : (p && (p.price !== undefined && p.price !== null && p.price !== '') ? String(p.price) : '-');
 }
 
 // 정렬/검색/통계용: 매물에서 가격 숫자(만원) 추출 (기존 데이터 호환)
@@ -2157,7 +2165,7 @@ function renderTable() {
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
-          case 'price':     return '<td style="font-weight:600">'+getPriceDisplay(p)+'</td>';
+          case 'price':     return '<td style="font-weight:600">'+getPriceDisplayValue(p)+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';
@@ -2900,7 +2908,7 @@ function openDetail(id){
     else if(['landArea','totalArea','supplyArea','tempArea','roadArea',
              'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1)
       val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
-    else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+getPriceDisplay(p)+'</div></div>';
+    else if(f.key==='price') return '<div class="detail-item"><label>'+f.label+'</label><div class="val" style="color:var(--accent)">'+getPriceDisplayValue(p)+'</div></div>';
     else if(f.key==='ownerPhone') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(raw?'<a href="tel:'+raw+'" style="color:var(--accent);text-decoration:none">'+raw+'</a>':'-')+'</div></div>';
     else if(f.key==='createdDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.createdDate||'-')+(p.createdTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.createdTime+'</span>':'')+'</div></div>';
     else if(f.key==='updatedDate') return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+(p.updatedDate?p.updatedDate+(p.updatedTime?'<br><span style="font-size:12px;color:var(--text-muted)">'+p.updatedTime+'</span>':''):'-')+'</div></div>';
@@ -5081,7 +5089,7 @@ function renderCustomerShownProps(custId) {
       '</div>';
     }
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplay(p)!=='-'?(' · '+getPriceDisplay(p)):'');
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplayValue(p)!=='-'?(' · '+getPriceDisplayValue(p)):'');
     return '<div class="doc-row" style="gap:10px;">'+
       '<div style="min-width:0;flex:1;">'+
         '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
@@ -5132,7 +5140,7 @@ function updateCustomerShownSuggestions(custId) {
 
   box.innerHTML = candidates.map(function(p){
     var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplay(p)!=='-'?(' · '+getPriceDisplay(p)):'');
+    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (getPriceDisplayValue(p)!=='-'?(' · '+getPriceDisplayValue(p)):'');
     return '<div onclick="selectCustomerShownProperty(\''+custId+'\',\''+p.id+'\')" style="padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--border);">'+
       '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
       '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
@@ -6029,7 +6037,7 @@ function openMapAll() {
             content.innerHTML =
               '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
               '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
-              (getPriceDisplay(p)!=='-'?'<div class="mi-price">💰 '+getPriceDisplay(p)+'</div>':'')+
+              (getPriceDisplayValue(p)!=='-'?'<div class="mi-price">💰 '+getPriceDisplayValue(p)+'</div>':'')+
               (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
               '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
             content.onclick = function() {

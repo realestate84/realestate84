@@ -6166,7 +6166,7 @@ function openMapAll() {
               content.innerHTML =
                 '<div style="padding:8px 12px;font-weight:600;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);background:var(--bg);">이 주소 매물 '+list.length+'건</div>'+
                 '<div style="max-height:240px;overflow-y:auto;background:var(--bg);color:var(--text);">'+
-                list.map(function(p){
+                list.slice().sort(function(a,b){ return (Number(b.propNo)||0)-(Number(a.propNo)||0); }).map(function(p){
                   var px = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
                   if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px += (px?' / ':'') + formatMonthlyRentComma(p.monthlyRent);
                   var line = 'No.'+(p.propNo||'-')+' '+p.type+' '+p.georae+' '+(px||'-');
@@ -6183,6 +6183,11 @@ function openMapAll() {
       // 저장된 위치 없을 때만 마커 범위로 뷰 맞춤 (있으면 아까 보던 위치 유지)
       if(!hasSaved && !mapDefaultCenterAddress && bounds.getSouthWest()) _mapObj.setBounds(bounds);
       updateMapInfo();
+      // 저장된 위치로 다시 열었을 때 마커가 그려지지 않는 현상 방지. 한 번만 rAF 후 relayout으로 깜빡임 최소화
+      if(_mapObj && typeof _mapObj.relayout === 'function') {
+        var _m = _mapObj;
+        requestAnimationFrame(function() { if(_m && _m.relayout) _m.relayout(); });
+      }
     }
 
     if(pending === 0) createGroupMarkers();

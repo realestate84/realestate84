@@ -2938,8 +2938,7 @@ function openDetail(id){
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
-      basicItems.map(renderFieldVal).join('')+
-      monthlyRentDetailHtml+
+      basicItems.map(function(f){ var h=renderFieldVal(f); if(f.key==='price'&&p.georae==='월세') h+=monthlyRentDetailHtml; return h; }).join('')+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       detailOnlyItems.map(renderFieldVal).join('')+

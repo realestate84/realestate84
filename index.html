@@ -6183,6 +6183,11 @@ function openMapAll() {
       // 저장된 위치 없을 때만 마커 범위로 뷰 맞춤 (있으면 아까 보던 위치 유지)
       if(!hasSaved && !mapDefaultCenterAddress && bounds.getSouthWest()) _mapObj.setBounds(bounds);
       updateMapInfo();
+      // 저장된 위치로 다시 열었을 때 마커가 그려지지 않는 현상 방지. 한 번만 rAF 후 relayout으로 깜빡임 최소화
+      if(_mapObj && typeof _mapObj.relayout === 'function') {
+        var _m = _mapObj;
+        requestAnimationFrame(function() { if(_m && _m.relayout) _m.relayout(); });
+      }
     }
 
     if(pending === 0) createGroupMarkers();

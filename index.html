@@ -2197,7 +2197,7 @@ function renderTable() {
     empty.style.display='none';
     tbody.innerHTML = list.map(function(p){
       var thumb = p.photos&&p.photos.length>0
-        ? '<img class="table-thumb" src="'+p.photos[0]+'" alt="사진">'
+        ? '<span title="사진 '+p.photos.length+'장">📷 '+p.photos.length+'</span>'
         : '<span class="muted">—</span>';
       var rowCells = orderedCols.map(function(c){
         switch(c.key) {

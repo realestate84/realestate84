@@ -6013,6 +6013,8 @@ function togglePCView() {
 // ── 전체 지도 ─────────────────────────────
 var _mapObj = null;
 var _mapMarkers = [];
+// 모달 닫았다 다시 열 때 복원용 (페이지 새로고침 시 초기화, 메모리만 사용)
+var _mapAllLastLat = null, _mapAllLastLng = null, _mapAllLastLevel = null;
 var _georaeColor = {'매매':'#3a7ef6','전세':'#6c47f5','월세':'#f0a030'};
 var _typeColor   = {'토지':'#2eab7a','공장창고':'#e06830','상가/사무실':'#e04a5a','아파트':'#20aac8','빌라':'#9b59b6','상가주택':'#e67700','원룸':'#20aac8','1.5룸':'#e91e8c','투룸':'#9c27b0','오피스텔':'#ff9800','절대농지':'#4caf50','단독주택':'#795548','펜션':'#e91e63','건물':'#607d8b'};
 
@@ -6061,7 +6063,10 @@ function openMapAll() {
   pushModalState();
 
   setTimeout(function(){
-    _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), {center: new kakao.maps.LatLng(36.5,127.5), level: mapDefaultCenterAddress ? 5 : 13});
+    var hasSaved = _mapAllLastLat != null && _mapAllLastLng != null;
+    var initialCenter = hasSaved ? new kakao.maps.LatLng(_mapAllLastLat, _mapAllLastLng) : new kakao.maps.LatLng(36.5, 127.5);
+    var initialLevel = (_mapAllLastLevel != null ? _mapAllLastLevel : (mapDefaultCenterAddress ? 5 : 13));
+    _mapObj = new kakao.maps.Map(document.getElementById('mapAll'), { center: initialCenter, level: initialLevel });
     _mapMarkers = [];
     var gc = new kakao.maps.services.Geocoder();
     var bounds = new kakao.maps.LatLngBounds();
@@ -6069,8 +6074,19 @@ function openMapAll() {
     var propsWithAddress = properties.filter(function(p){ return (p.address||'').trim(); });
     var pending = propsWithAddress.length;
 
-    // 초기 위치 설정
-    if(mapDefaultCenterAddress) {
+    // 지도 이동/줌 시 위치 저장 (모달 다시 열 때 복원용, 새로고침 시 변수 초기화됨)
+    kakao.maps.event.addListener(_mapObj, 'center_changed', function() {
+      var c = _mapObj.getCenter();
+      if(c) { _mapAllLastLat = c.getLat(); _mapAllLastLng = c.getLng(); _mapAllLastLevel = _mapObj.getLevel(); }
+    });
+    kakao.maps.event.addListener(_mapObj, 'zoom_changed', function() {
+      _mapAllLastLevel = _mapObj.getLevel();
+      var c = _mapObj.getCenter();
+      if(c) { _mapAllLastLat = c.getLat(); _mapAllLastLng = c.getLng(); }
+    });
+
+    // 초기 위치 설정 (저장된 위치 없을 때만 기본 주소로 이동)
+    if(!hasSaved && mapDefaultCenterAddress) {
       gc.addressSearch(mapDefaultCenterAddress, function(result, status) {
         if(status === kakao.maps.services.Status.OK) {
           _mapObj.setCenter(new kakao.maps.LatLng(result[0].y, result[0].x));
@@ -6163,7 +6179,8 @@ function openMapAll() {
           });
         })(marker, props);
       }
-      if(!mapDefaultCenterAddress && bounds.getSouthWest()) _mapObj.setBounds(bounds);
+      // 저장된 위치 없을 때만 마커 범위로 뷰 맞춤 (있으면 아까 보던 위치 유지)
+      if(!hasSaved && !mapDefaultCenterAddress && bounds.getSouthWest()) _mapObj.setBounds(bounds);
       updateMapInfo();
     }
 

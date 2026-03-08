@@ -760,6 +760,7 @@ var lightboxIndex = 0;
 var SETTINGS_DOC = 'fieldSettings';
 var mapDefaultCenterAddress = ''; // 전체지도 초기 위치 주소
 var STORAGE_KEY_COLUMNS = 'mh_listColumnSettings';
+var STORAGE_KEY_COLUMN_WIDTHS = 'mh_listColumnWidths';
 var STORAGE_KEY_SECTOR = 'mh_sector';
 var SECTOR_RESIDENTIAL = 'residential';
 var SECTOR_COMMERCIAL = 'commercial';
@@ -850,6 +851,8 @@ function getListColumnSettings() {
 
 // 컬럼 순서 (null = 기본순서, 배열 = 사용자 지정 순서, 상업/주거 각각)
 var listColumnOrder = { residential: null, commercial: null };
+// 컬럼 너비 (수동 조절 값 저장, 새로고침 시 복원)
+var listColumnWidths = { residential: {}, commercial: {} };
 function applyColumnOrder(cols, order) {
   if(!order || !order.length) return cols;
   var orderMap = {};
@@ -2091,12 +2094,15 @@ function renderTable() {
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
   var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'240px',price:'90px',monthlyRent:'70px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
-  // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만, address 포함)
+  var savedWidths = listColumnWidths[currentSector];
+  if(savedWidths && typeof savedWidths==='object') Object.keys(savedWidths).forEach(function(k){ colWidths[k]=savedWidths[k]; });
+  // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만, address 포함) — 저장된 너비가 없을 때만 계산
   var CONTENT_FIT_KEYS = ['address','pricePerPyeong','floorArea','structure','buildingUse','supplyArea','exclusiveArea','electric','height','hoist','access','useZone','jimok','approvalDate','factoryReg'];
   if (list.length > 0) {
     var pxPerChar = 10, minW = 60, maxW = 220;
     var addressMin = 160, addressMax = 380;
     CONTENT_FIT_KEYS.forEach(function(key) {
+      if (savedWidths && savedWidths[key]) return;
       var maxLen = 0;
       list.forEach(function(p) {
         var s = String(p[key] != null ? p[key] : '');
@@ -4170,6 +4176,19 @@ function loadFieldSettings(callback) {
         }
       }
     }
+    var savedW = localStorage.getItem(STORAGE_KEY_COLUMN_WIDTHS);
+    if(savedW) {
+      var parsedW = JSON.parse(savedW);
+      if(parsedW && typeof parsedW === 'object') {
+        if(parsedW.residential !== undefined && parsedW.commercial !== undefined) {
+          listColumnWidths.residential = Object.assign({}, parsedW.residential);
+          listColumnWidths.commercial = Object.assign({}, parsedW.commercial);
+        } else {
+          listColumnWidths.residential = Object.assign({}, parsedW);
+          listColumnWidths.commercial = Object.assign({}, parsedW);
+        }
+      }
+    }
   } catch(e) {}
   // 배열에서 키 중복 제거 (첫 번째만 유지)
   function dedupeOrder(arr) {
@@ -4230,6 +4249,16 @@ function loadFieldSettings(callback) {
       if(data.listColumnOrder && typeof data.listColumnOrder === 'object') {
         listColumnOrder.residential = Array.isArray(data.listColumnOrder.residential) ? data.listColumnOrder.residential : null;
         listColumnOrder.commercial = Array.isArray(data.listColumnOrder.commercial) ? data.listColumnOrder.commercial : null;
+      }
+      if(data.listColumnWidths && typeof data.listColumnWidths === 'object') {
+        var lcw = data.listColumnWidths;
+        if(lcw.residential !== undefined && lcw.commercial !== undefined) {
+          listColumnWidths.residential = Object.assign({}, lcw.residential);
+          listColumnWidths.commercial = Object.assign({}, lcw.commercial);
+        } else {
+          listColumnWidths.residential = Object.assign({}, lcw);
+          listColumnWidths.commercial = Object.assign({}, lcw);
+        }
       }
       // 상업용 master schema 복원
       if (data.fieldSchema_commercial_master && data.fieldSchema_commercial_master.order) {
@@ -4567,6 +4596,7 @@ function validateFieldSettings() {
 function saveFieldSettings() {
   cleanupFieldSettings();
   persistListColumnSettings();
+  persistListColumnWidths();
   var orderToSave = {};
   PROP_TYPES.forEach(function(t){
     if(!fieldOrder[t]) { orderToSave[t] = []; return; }
@@ -4583,6 +4613,7 @@ function saveFieldSettings() {
     fieldSuffixOverrides: fieldSuffixOverrides,
     listColumnSettings: listColumnSettings,
     listColumnOrder: listColumnOrder,
+    listColumnWidths: listColumnWidths,
     mapDefaultCenterAddress: mapDefaultCenterAddress,
     fieldSchema_commercial_master: fieldSchema.commercial.master,
     fieldSchema_commercial_visibilityByType: fieldSchema.commercial.visibilityByType,
@@ -5537,6 +5568,9 @@ function toggleListColumn(key, val) {
 function persistListColumnSettings() {
   try { localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify({ residential: listColumnSettings.residential, commercial: listColumnSettings.commercial })); } catch(e) {}
 }
+function persistListColumnWidths() {
+  try { localStorage.setItem(STORAGE_KEY_COLUMN_WIDTHS, JSON.stringify({ residential: listColumnWidths.residential, commercial: listColumnWidths.commercial })); } catch(e) {}
+}
 function saveListColumnSettings() {
   persistListColumnSettings();
   saveFieldSettings();
@@ -6210,6 +6244,15 @@ function initColResizer(resizer) {
   var newResizer = resizer.cloneNode(true);
   resizer.parentNode.replaceChild(newResizer, resizer);
   resizer = newResizer;
+  function saveColWidth() {
+    var colKey = th.getAttribute('data-col-key');
+    if (!colKey) return;
+    var w = th.offsetWidth;
+    if (!listColumnWidths[currentSector]) listColumnWidths[currentSector] = {};
+    listColumnWidths[currentSector][colKey] = w + 'px';
+    persistListColumnWidths();
+    saveFieldSettings();
+  }
   resizer.addEventListener('mousedown', function(e) {
     var startX = e.pageX;
     var startW = th.offsetWidth;
@@ -6227,6 +6270,7 @@ function initColResizer(resizer) {
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      saveColWidth();
     }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -6243,6 +6287,7 @@ function initColResizer(resizer) {
     function onEnd() {
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
+      saveColWidth();
     }
     document.addEventListener('touchmove', onMove);
     document.addEventListener('touchend', onEnd);

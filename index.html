@@ -2120,7 +2120,7 @@ function renderTable() {
   if(renderTable._lastColKey !== visColKey) {
     renderTable._lastColKey = visColKey;
     var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
-    var headerRightAlignKeys = ['price','monthlyRent','pricePerPyeong','premium','officialBuildingPrice','officialLandPrice'];
+    var headerRightAlignKeys = ['price','monthlyRent','pricePerPyeong','premium','officialBuildingPrice','officialLandPrice','maintenance','cleaningFee'];
     var minColWidthMap = { photo: 24 };
     var headerHtml = orderedCols.map(function(c){
       var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
@@ -2200,7 +2200,7 @@ function renderTable() {
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
           default: {
             var sv = p[c.key]||''; var ss = getSuffixCached(c.key);
-            var rightAlignKeys = ['pricePerPyeong','premium','officialBuildingPrice','officialLandPrice'];
+            var rightAlignKeys = ['pricePerPyeong','premium','officialBuildingPrice','officialLandPrice','maintenance','cleaningFee'];
             var rightAlign = rightAlignKeys.indexOf(c.key)!==-1;
             return '<td class="muted"'+(rightAlign?' style="text-align:right"':'')+'>'+(sv ? sv+(ss?' '+ss:'') : '-')+'</td>';
           }

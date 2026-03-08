@@ -2120,12 +2120,15 @@ function renderTable() {
   if(renderTable._lastColKey !== visColKey) {
     renderTable._lastColKey = visColKey;
     var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
+    var headerRightAlignKeys = ['price','monthlyRent','pricePerPyeong','premium','officialBuildingPrice','officialLandPrice'];
     var headerHtml = orderedCols.map(function(c){
       var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
+      var rightAlign = headerRightAlignKeys.indexOf(c.key)!==-1;
+      var alignStyle = rightAlign ? ';text-align:right' : '';
       if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;width:'+colWidths.address+';min-width:'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
       if(c.key==='photo') return '<th '+keyAttr+' style="width:32px">사진</th>';
-      if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+'">'+c.label+'</th>';
-      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
+      if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+alignStyle+'">'+c.label+'</th>';
+      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+alignStyle+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
     }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px">관리</th>' : '');
     document.getElementById('tableHeader').innerHTML = headerHtml;
     // 주소 컬럼 리사이저 재연결
@@ -2165,8 +2168,8 @@ function renderTable() {
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
-          case 'price':     return '<td style="font-weight:600">'+getPriceDisplayValue(p)+'</td>';
-          case 'monthlyRent': return '<td class="muted">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
+          case 'price':     return '<td style="font-weight:600;text-align:right">'+getPriceDisplayValue(p)+'</td>';
+          case 'monthlyRent': return '<td class="muted" style="text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';
@@ -2194,7 +2197,9 @@ function renderTable() {
           case 'departure': return '<td style="text-align:center"><span class="dep-light '+(p.departure===false?'':'on')+'"></span></td>';
           default: {
             var sv = p[c.key]||''; var ss = getSuffixCached(c.key);
-            return '<td class="muted">'+(sv ? sv+(ss?' '+ss:'') : '-')+'</td>';
+            var rightAlignKeys = ['pricePerPyeong','premium','officialBuildingPrice','officialLandPrice'];
+            var rightAlign = rightAlignKeys.indexOf(c.key)!==-1;
+            return '<td class="muted"'+(rightAlign?' style="text-align:right"':'')+'>'+(sv ? sv+(ss?' '+ss:'') : '-')+'</td>';
           }
         }
       }).join('');

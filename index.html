@@ -489,7 +489,7 @@
 </div>
 
 <!-- PDF 뷰어 모달 -->
-<div id="pdfModal" style="display:none;position:fixed;inset:0;z-index:600;background:#000;flex-direction:column;">
+<div id="pdfModal" style="display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#1a1f36;">
     <div id="pdfModalTitle" style="color:#fff;font-size:15px;font-weight:600;font-family:'Noto Sans KR',sans-serif;"></div>
     <div style="display:flex;gap:8px;">
@@ -3815,6 +3815,7 @@ function openPdf(url, title) {
   document.getElementById('pdfDownloadBtn').href = url;
   document.getElementById('pdfDownloadBtn').download = title + '.pdf';
   var modal = document.getElementById('pdfModal');
+  modal.style.zIndex = '9999';
   modal.style.display = 'flex';
 }
 

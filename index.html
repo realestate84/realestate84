@@ -178,6 +178,7 @@
       <div class="empty-icon">🏠</div>
       <p>등록된 매물이 없습니다.</p>
     </div>
+    <div id="listLoading" style="display:none;text-align:center;padding:12px;font-size:13px;color:var(--text-muted);">매물 불러오는 중...</div>
   </div>
 </div>
 
@@ -752,6 +753,10 @@
 // ── 전역 변수 ──────────────────────────────
 var db, storage, auth;
 var properties = [];
+var PAGE_SIZE = 50;
+var lastDoc = null;
+var loadingNextPage = false;
+var reachedEnd = false;
 var customers = [];
 var editingId = null;
 var currentPhotos = [];
@@ -1698,20 +1703,63 @@ function doResetPw() {
   });
 }
 
-// ── Firebase CRUD ─────────────────────────
+// ── Firebase CRUD (페이지네이션: 첫 50건 + 스크롤 시 추가 로딩) ─────────────────────────
+function loadPropertiesFirstPage() {
+  reachedEnd = false;
+  lastDoc = null;
+  showLoading();
+  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').limit(PAGE_SIZE).get()
+    .then(function(snap) {
+      properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      if(snap.docs.length > 0) lastDoc = snap.docs[snap.docs.length - 1];
+      if(snap.docs.length < PAGE_SIZE) reachedEnd = true;
+      if(_fieldSettingsReady) renderTable();
+      var el = document.getElementById('listLoading');
+      if(el) el.style.display = 'none';
+    })
+    .catch(function(e){
+      console.error(e);
+      properties = [];
+      reachedEnd = true;
+      if(_fieldSettingsReady) renderTable();
+      var el = document.getElementById('listLoading');
+      if(el) el.style.display = 'none';
+    });
+}
+
+function loadNextPage() {
+  if(loadingNextPage || reachedEnd || !lastDoc) return;
+  loadingNextPage = true;
+  var loadingEl = document.getElementById('listLoading');
+  if(loadingEl) loadingEl.style.display = 'block';
+  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').startAfter(lastDoc).limit(PAGE_SIZE).get()
+    .then(function(snap) {
+      if(snap.empty) { reachedEnd = true; loadingNextPage = false; if(loadingEl) loadingEl.style.display = 'none'; return; }
+      var newData = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      properties = properties.concat(newData);
+      lastDoc = snap.docs[snap.docs.length - 1];
+      if(snap.docs.length < PAGE_SIZE) reachedEnd = true;
+      loadingNextPage = false;
+      if(loadingEl) loadingEl.style.display = 'none';
+      if(_fieldSettingsReady) renderTable();
+    })
+    .catch(function(e){
+      console.error(e);
+      loadingNextPage = false;
+      if(loadingEl) loadingEl.style.display = 'none';
+      if(_fieldSettingsReady) renderTable();
+    });
+}
+
 function load() {
   try { if(_propertiesUnsub) _propertiesUnsub(); } catch(e){}
-  showLoading();
-  _propertiesUnsub = db.collection(getPropertiesCollection()).orderBy('createdDate','desc').onSnapshot(function(snap) {
-    properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-    // 항목설정·컬럼설정 복원 완료 전에는 렌더를 보류
-    // (loadFieldSettings 완료 시 renderTable을 직접 호출함)
-    if(_fieldSettingsReady) renderTable();
-  }, function(e){
-    console.error(e);
-    properties = [];
-    if(_fieldSettingsReady) renderTable();
-  });
+  _propertiesUnsub = null;
+  loadingNextPage = false;
+  reachedEnd = false;
+  lastDoc = null;
+  var el = document.getElementById('listLoading');
+  if(el) el.style.display = 'none';
+  loadPropertiesFirstPage();
 }
 
 function loadCustomers() {
@@ -2898,6 +2946,9 @@ function saveProperty(){
       saveEdit(editingId, data, function(err){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
+        var p = properties.find(function(x){ return x.id === savedId; });
+        if(p) Object.assign(p, data);
+        if(_fieldSettingsReady) renderTable();
         appendActivityLog('매물 수정', address);
         closeFormModal();
         openDetail(savedId);
@@ -2908,6 +2959,8 @@ function saveProperty(){
       saveNew(data, function(err, newId){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
+        properties.unshift(Object.assign({id:newId}, data));
+        if(_fieldSettingsReady) renderTable();
         appendActivityLog('매물 등록', address);
         closeFormModal();
       });
@@ -3488,6 +3541,8 @@ function deleteProperty(id){
   var addr = p ? (p.address || id) : id;
   deleteFromDB(id, p?p.photos:[], function(err){
     if(err){ alert('삭제 오류: '+err.message); return; }
+    properties = properties.filter(function(x){ return x.id !== id; });
+    if(_fieldSettingsReady) renderTable();
     appendActivityLog('매물 삭제', addr);
     closeDetailModal();
   });
@@ -6686,6 +6741,14 @@ function applyAiParsed(parsed, RES_TYPES) {
 showLoading('데이터 불러오는 중...');
 load();
 loadCustomers();
+
+// 스크롤 하단 근처 도달 시 다음 페이지 prefetch (600px 전에 요청)
+window.addEventListener('scroll', function() {
+  if(document.getElementById('mainScreen') && document.getElementById('mainScreen').style.display === 'none') return;
+  var scrollBottom = window.innerHeight + window.scrollY;
+  var threshold = document.body.offsetHeight - 600;
+  if(scrollBottom > threshold) loadNextPage();
+}, { passive: true });
 </script>
 </div><!-- /mainScreen -->
 

@@ -824,7 +824,7 @@ var LIST_COLUMNS = [
 // 기본 ON 컬럼 (상업용/주거용 각각 독립 저장)
 var _defaultListColumnSettings = {
   propNo:true, photo:true, georae:true, type:true, address:true,
-  price:true,
+  price:true, monthlyRent:false,
   pricePerPyeong:false, officialBuildingPrice:false, officialLandPrice:false,
   lotCount:false, landArea:false, landShareRatio:false, roadShare:false, totalLandArea:false,
   roadArea:false, useZone:false, jimok:false, access:false,
@@ -2071,7 +2071,7 @@ function renderTable() {
       var va = a[sortKey] || '';
       var vb = b[sortKey] || '';
       // 숫자 필드
-      if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea') {
+      if(sortKey === 'propNo' || sortKey === 'landArea' || sortKey === 'totalArea' || sortKey === 'monthlyRent') {
         va = parseFloat(va) || 0;
         vb = parseFloat(vb) || 0;
         return sortDir === 'asc' ? va - vb : vb - va;
@@ -2090,7 +2090,7 @@ function renderTable() {
   // 기본: 컬럼설정 팝업 순서. listColumnOrder가 있으면 헤더 드래그로 저장된 순서 적용
   var orderedCols = applyColumnOrder(visibleCols, listColumnOrder[currentSector]);
   window._currentColOrder = orderedCols.map(function(c){ return c.key; });
-  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'240px',price:'90px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
+  var colWidths = {propNo:'40px',photo:'32px',georae:'55px',type:'70px',address:'240px',price:'90px',monthlyRent:'70px',landArea:'75px',totalArea:'60px',useZone:'90px',jimok:'50px',ownerName:'80px',createdDate:'70px',updatedDate:'70px',adStatus:'30px',departure:'30px'};
   // 내용 최대 길이에 맞춘 컬럼 폭 (지정 항목만, address 포함)
   var CONTENT_FIT_KEYS = ['address','pricePerPyeong','floorArea','structure','buildingUse','supplyArea','exclusiveArea','electric','height','hoist','access','useZone','jimok','approvalDate','factoryReg'];
   if (list.length > 0) {
@@ -2166,6 +2166,7 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600">'+getPriceDisplayValue(p)+'</td>';
+          case 'monthlyRent': return '<td class="muted">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';
@@ -2916,10 +2917,12 @@ function openDetail(id){
     return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
   }
 
+  var monthlyRentDetailHtml = (p.georae==='월세') ? ('<div class="detail-item"><label>월세</label><div class="val" style="color:var(--accent)">'+(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!==''?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</div></div>') : '';
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
       basicItems.map(renderFieldVal).join('')+
+      monthlyRentDetailHtml+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
       detailOnlyItems.map(renderFieldVal).join('')+
@@ -4703,6 +4706,8 @@ function buildAllColDefs() {
       var colLabel = suffix ? (f.label + ' (' + suffix + ')') : f.label;
       return { key:f.key, label:colLabel, sortKey:f.key, fixed:false };
     });
+  // 월세: 매물종류 항목설정 대상 아님, 컬럼설정에서 on/off만 가능한 독립 컬럼
+  selectableCols.push({ key:'monthlyRent', label:'월세', sortKey:'monthlyRent', fixed:false });
 
   // 고정항목 순서: No., 사진, 출발, 광고, 매물종류, 거래유형, 가격, 주소 → 그 뒤에 나머지
   return [

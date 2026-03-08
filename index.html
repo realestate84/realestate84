@@ -2121,19 +2121,22 @@ function renderTable() {
     renderTable._lastColKey = visColKey;
     var dragAttrs = ' draggable="true" ondragstart="onColDragStart(event)" ondragover="onColDragOver(event)" ondrop="onColDrop(event)" ondragend="onColDragEnd(event)" title="드래그하여 순서 변경" data-col-key="';
     var headerRightAlignKeys = ['price','monthlyRent','pricePerPyeong','premium','officialBuildingPrice','officialLandPrice'];
+    var minColWidthMap = { photo: 24 };
     var headerHtml = orderedCols.map(function(c){
       var keyAttr = dragAttrs + (c.key||'').replace(/"/g,'&quot;') + '"';
       var rightAlign = headerRightAlignKeys.indexOf(c.key)!==-1;
       var alignStyle = rightAlign ? ';text-align:right' : '';
-      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;width:'+colWidths.address+';min-width:'+colWidths.address+';position:relative" id="thAddress">주소 <span id="sort_address"></span><div class="col-resizer" id="addressResizer" onclick="event.stopPropagation()"></div></th>';
-      if(c.key==='photo') return '<th '+keyAttr+' style="width:32px">사진</th>';
-      if(!c.sortKey) return '<th '+keyAttr+' style="width:'+(colWidths[c.key]||'auto')+alignStyle+'">'+c.label+'</th>';
-      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;width:'+(colWidths[c.key]||'auto')+alignStyle+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span></th>';
-    }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px">관리</th>' : '');
+      var w = colWidths[c.key]||(c.key==='photo'?'32px':'auto');
+      var baseStyle = 'width:'+w+';min-width:'+w+';position:relative'+alignStyle;
+      var minW = minColWidthMap[c.key]!=null ? minColWidthMap[c.key] : 40;
+      var resizerHtml = '<div class="col-resizer" onclick="event.stopPropagation()" title="드래그하여 너비 조절" data-min="'+minW+'"></div>';
+      if(c.key==='address') return '<th '+keyAttr+' onclick="sortTable(\'address\')" style="cursor:pointer;'+baseStyle+'" id="thAddress">주소 <span id="sort_address"></span>'+resizerHtml+'</th>';
+      if(c.key==='photo') return '<th '+keyAttr+' style="'+baseStyle+'">사진'+resizerHtml+'</th>';
+      if(!c.sortKey) return '<th '+keyAttr+' style="'+baseStyle+'">'+c.label+resizerHtml+'</th>';
+      return '<th '+keyAttr+' onclick="sortTable(\''+c.sortKey+'\')" style="cursor:pointer;'+baseStyle+'">'+c.label+' <span id="sort_'+c.sortKey+'"></span>'+resizerHtml+'</th>';
+    }).join('') + (SHOW_MANAGEMENT_COLUMN ? '<th style="width:80px;min-width:80px;position:relative">관리<div class="col-resizer" onclick="event.stopPropagation()" title="드래그하여 너비 조절" data-min="40"></div></th>' : '');
     document.getElementById('tableHeader').innerHTML = headerHtml;
-    // 주소 컬럼 리사이저 재연결
-    var resizer = document.getElementById('addressResizer');
-    if(resizer) initColResizer(resizer);
+    document.querySelectorAll('#tableHeader .col-resizer').forEach(function(resizer){ initColResizer(resizer); });
   } else if (list.length > 0) {
     // 헤더는 그대로지만 데이터가 들어온 경우: 첫 렌더가 빈 리스트였을 수 있으므로, 계산된 colWidths로 기존 th 너비 동기화 (새로고침 직후 상업용 컬럼 비정상 길이 방지)
     var ths = document.querySelectorAll('#tableHeader th[data-col-key]');
@@ -6198,24 +6201,23 @@ function closeMapAll() {
   document.getElementById('mapAllModal').classList.remove('active');
 }
 
-// ── 주소 컬럼 리사이즈 ───────────────────
+// ── 컬럼 리사이즈 (모든 컬럼 수동 너비 조절) ───────────────────
 function initColResizer(resizer) {
   if(!resizer) return;
-  var th = document.getElementById('thAddress');
-  if(!th) return;
-  // 기존 이벤트 중복 방지
+  var th = resizer.parentNode;
+  if(!th || th.tagName!=='TH') return;
+  var minW = parseInt(resizer.getAttribute('data-min'), 10) || 40;
   var newResizer = resizer.cloneNode(true);
   resizer.parentNode.replaceChild(newResizer, resizer);
   resizer = newResizer;
-  var startX, startW;
   resizer.addEventListener('mousedown', function(e) {
-    startX = e.pageX;
-    startW = th.offsetWidth;
+    var startX = e.pageX;
+    var startW = th.offsetWidth;
     resizer.classList.add('dragging');
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     function onMove(e) {
-      var w = Math.max(80, startW + (e.pageX - startX));
+      var w = Math.max(minW, startW + (e.pageX - startX));
       th.style.width = w + 'px';
       th.style.minWidth = w + 'px';
     }
@@ -6231,10 +6233,10 @@ function initColResizer(resizer) {
     e.preventDefault();
   });
   resizer.addEventListener('touchstart', function(e) {
-    startX = e.touches[0].pageX;
-    startW = th.offsetWidth;
+    var startX = e.touches[0].pageX;
+    var startW = th.offsetWidth;
     function onMove(e) {
-      var w = Math.max(80, startW + (e.touches[0].pageX - startX));
+      var w = Math.max(minW, startW + (e.touches[0].pageX - startX));
       th.style.width = w + 'px';
       th.style.minWidth = w + 'px';
     }
@@ -6247,7 +6249,6 @@ function initColResizer(resizer) {
     e.preventDefault();
   });
 }
-initColResizer(document.getElementById('addressResizer'));
 
 // 컬럼 팝업 바깥 클릭 시 닫기
 document.addEventListener('click', function(e) {

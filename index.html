@@ -4070,7 +4070,14 @@ function getExcelExportFields() {
     var label = f.label + (suffix ? '('+suffix+')' : '');
     return { key: f.key, label: label };
   });
-  return fixedFront.concat(middleFields).concat(fixedBack);
+  var result = fixedFront.concat(middleFields).concat(fixedBack);
+  // 다운로드에 월세가 반드시 나오도록 monthlyRent가 없으면 가격(price) 다음에 추가
+  if (!result.some(function(f){ return f.key === 'monthlyRent'; })) {
+    var priceIdx = result.findIndex(function(f){ return f.key === 'price'; });
+    var insertIdx = priceIdx >= 0 ? priceIdx + 1 : result.length - fixedBack.length;
+    result.splice(insertIdx, 0, { key: 'monthlyRent', label: '월세' });
+  }
+  return result;
 }
 
 function downloadExcel(){

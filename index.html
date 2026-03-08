@@ -6024,6 +6024,21 @@ function getMarkerImage(p) {
   var src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   return new kakao.maps.MarkerImage(src, new kakao.maps.Size(28,36), {offset: new kakao.maps.Point(14,36)});
 }
+// 그룹 마커용 이미지 (동일 주소 매물 개수 표시)
+function getGroupMarkerImage(count) {
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">'+
+    '<path d="M18 0C8.06 0 0 8.06 0 18c0 12.2 18 26 18 26S36 30.2 36 18C36 8.06 27.94 0 18 0z" fill="#5a6a7a"/>'+
+    '<circle cx="18" cy="18" r="14" fill="white"/>'+
+    '<text x="18" y="23" text-anchor="middle" font-size="14" font-weight="bold" fill="#333">'+(count>99?'99+':count)+'</text></svg>';
+  var src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  return new kakao.maps.MarkerImage(src, new kakao.maps.Size(36,44), {offset: new kakao.maps.Point(18,44)});
+}
+// 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
+function openPropertyFromMap(id) {
+  var p = properties.find(function(x){ return x.id === id; });
+  if(!p) return;
+  openDetail(p.id);
+}
 
 function openMapAll() {
   if(typeof kakao === 'undefined') { alert('카카오 지도가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return; }
@@ -6050,6 +6065,9 @@ function openMapAll() {
     _mapMarkers = [];
     var gc = new kakao.maps.services.Geocoder();
     var bounds = new kakao.maps.LatLngBounds();
+    var groups = {};
+    var propsWithAddress = properties.filter(function(p){ return (p.address||'').trim(); });
+    var pending = propsWithAddress.length;
 
     // 초기 위치 설정
     if(mapDefaultCenterAddress) {
@@ -6068,55 +6086,87 @@ function openMapAll() {
       }, 200);
     });
 
+    function addToGroup(coords, p) {
+      var lat = coords.getLat(), lng = coords.getLng();
+      var key = lat.toFixed(6) + ',' + lng.toFixed(6);
+      if(!groups[key]) groups[key] = { coords: coords, properties: [] };
+      groups[key].properties.push(p);
+      bounds.extend(coords);
+      pending--;
+      if(pending === 0) createGroupMarkers();
+    }
+
     function addMarkerAtAddress(p, addr, isFallback) {
       gc.addressSearch(addr, function(result, status) {
         if(status !== kakao.maps.services.Status.OK) {
           if(!isFallback && /산\s+[\d\-]/.test(addr)) {
             var fallback = addr.replace(/\s+산\s+[\d\-][\d\s\-]*.*$/, '').trim();
-            if(fallback && fallback.length >= 2) addMarkerAtAddress(p, fallback, true);
+            if(fallback && fallback.length >= 2) { addMarkerAtAddress(p, fallback, true); return; }
           }
+          pending--;
+          if(pending === 0) createGroupMarkers();
           return;
         }
         var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-        var marker = new kakao.maps.Marker({map:_mapObj, position:coords, image:getMarkerImage(p)});
-        _mapMarkers.push({marker:marker, p:p});
-        bounds.extend(coords);
-        if(!mapDefaultCenterAddress) _mapObj.setBounds(bounds);
-
-        (function(marker, p) {
-          kakao.maps.event.addListener(marker, 'click', function() {
-            if(window._mapOverlay) window._mapOverlay.setMap(null);
-            // 로드뷰용 좌표 저장
-            _mapAllRvCoords = marker.getPosition();
-            // 로드뷰 모드 중이면 즉시 갱신
-            if(_mapAllCurrentView === 'roadview') {
-              _openMapAllRoadview(_mapAllRvCoords);
-            }
-            var color = _georaeColor[p.georae] || '#3a7ef6';
-            var content = document.createElement('div');
-            content.className = 'map-marker-info';
-            content.style.cursor = 'pointer';
-            content.innerHTML =
-              '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
-              '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
-              (function(){ var px=(p.price!==undefined&&p.price!==null&&p.price!=='')?formatPriceComma(p.price):''; if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px+=(px?' / ':'')+formatMonthlyRentComma(p.monthlyRent); return px?('<div class="mi-price">💰 '+px+'</div>'):''; })()+
-              (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
-              '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
-            content.onclick = function() {
-              if(window._mapClickTimer){clearTimeout(window._mapClickTimer);window._mapClickTimer=null;}
-              openDetail(p.id);
-            };
-            window._mapOverlay = new kakao.maps.CustomOverlay({content:content, map:_mapObj, position:marker.getPosition(), yAnchor:1.4, zIndex:3});
-          });
-        })(marker, p);
-
-        updateMapInfo();
+        addToGroup(coords, p);
       });
     }
-    properties.forEach(function(p) {
-      if(!p.address) return;
-      addMarkerAtAddress(p, (p.address||'').trim(), false);
-    });
+
+    function createGroupMarkers() {
+      var pos = bounds.getSouthWest();
+      if(!pos || (pos.getLat()===0 && pos.getLng()===0)) pos = null;
+      for(var key in groups) {
+        var g = groups[key];
+        var props = g.properties;
+        var markerImg = props.length === 1 ? getMarkerImage(props[0]) : getGroupMarkerImage(props.length);
+        var marker = new kakao.maps.Marker({ map: _mapObj, position: g.coords, image: markerImg });
+        _mapMarkers.push({ marker: marker, properties: props });
+
+        (function(m, list) {
+          kakao.maps.event.addListener(m, 'click', function() {
+            if(window._mapOverlay) window._mapOverlay.setMap(null);
+            _mapAllRvCoords = m.getPosition();
+            if(_mapAllCurrentView === 'roadview') _openMapAllRoadview(_mapAllRvCoords);
+
+            var content = document.createElement('div');
+            content.className = 'map-marker-info';
+            if(list.length === 1) {
+              var p = list[0];
+              var color = _georaeColor[p.georae] || '#3a7ef6';
+              content.style.cursor = 'pointer';
+              content.innerHTML =
+                '<div class="mi-title" style="color:'+color+'">No.'+(p.propNo||'-')+' '+p.georae+' / '+p.type+'</div>'+
+                '<div class="mi-addr">📍 '+(p.address||'-')+'</div>'+
+                (function(){ var px=(p.price!==undefined&&p.price!==null&&p.price!=='')?formatPriceComma(p.price):''; if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px+=(px?' / ':'')+formatMonthlyRentComma(p.monthlyRent); return px?('<div class="mi-price">💰 '+px+'</div>'):''; })()+
+                (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
+                '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
+              content.onclick = function() {
+                if(window._mapClickTimer){clearTimeout(window._mapClickTimer);window._mapClickTimer=null;}
+                openDetail(p.id);
+              };
+            } else {
+              content.style.minWidth = '240px';
+              content.innerHTML =
+                '<div style="padding:8px 12px;font-weight:600;font-size:13px;border-bottom:1px solid var(--border);background:var(--bg);">이 주소 매물 '+list.length+'건</div>'+
+                '<div style="max-height:240px;overflow-y:auto;">'+
+                list.map(function(p){
+                  var px = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
+                  if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px += (px?' / ':'') + formatMonthlyRentComma(p.monthlyRent);
+                  var line = 'No.'+(p.propNo||'-')+' '+p.type+' '+p.georae+' '+(px||'-');
+                  return '<div class="map-property-item" onclick="openPropertyFromMap(\''+p.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);" onmouseover="this.style.background=\'var(--bg)\'" onmouseout="this.style.background=\'\'">'+escapeHtml(line)+'</div>';
+                }).join('')+
+                '</div>';
+            }
+            window._mapOverlay = new kakao.maps.CustomOverlay({ content: content, map: _mapObj, position: m.getPosition(), yAnchor: 1.4, zIndex: 3 });
+          });
+        })(marker, props);
+      }
+      if(!mapDefaultCenterAddress && bounds.getSouthWest()) _mapObj.setBounds(bounds);
+      updateMapInfo();
+    }
+
+    if(pending === 0) createGroupMarkers();
+    else propsWithAddress.forEach(function(p){ addMarkerAtAddress(p, (p.address||'').trim(), false); });
   }, 300);
 }
 
@@ -6138,8 +6188,9 @@ function applyMapFilter() {
   var totalGeorae = document.querySelectorAll('.map-chk[data-filter="georae"]').length;
   var totalType   = document.querySelectorAll('.map-chk[data-filter="type"]').length;
   _mapMarkers.forEach(function(item){
-    var sg = cg.length===totalGeorae || cg.indexOf(item.p.georae)!==-1; // 전체선택이면 통과, 아니면 목록 확인
-    var st = ct.length===totalType   || ct.indexOf(item.p.type)!==-1;
+    var list = item.properties || [item.p];
+    var sg = cg.length===totalGeorae || list.some(function(p){ return cg.indexOf(p.georae)!==-1; });
+    var st = ct.length===totalType   || list.some(function(p){ return ct.indexOf(p.type)!==-1; });
     item.marker.setMap(sg&&st?_mapObj:null);
   });
   // 버튼 텍스트 동기화
@@ -6158,7 +6209,8 @@ function updateMapInfo() {
   var totalGeorae = document.querySelectorAll('.map-chk[data-filter="georae"]').length;
   var totalType   = document.querySelectorAll('.map-chk[data-filter="type"]').length;
   var v = _mapMarkers.filter(function(item){
-    return (cg.length===totalGeorae||cg.indexOf(item.p.georae)!==-1) && (ct.length===totalType||ct.indexOf(item.p.type)!==-1);
+    var list = item.properties || [item.p];
+    return (cg.length===totalGeorae||list.some(function(p){ return cg.indexOf(p.georae)!==-1; })) && (ct.length===totalType||list.some(function(p){ return ct.indexOf(p.type)!==-1; }));
   }).length;
   document.getElementById('mapAllInfo').textContent = '총 '+v+'개 매물 표시 중';
 }

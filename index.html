@@ -2853,11 +2853,12 @@ function openDetail(id){
     '<div class="detail-section no-print"><div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+
       '<span>📋 히스토리</span>'+
     '</div>'+
-    '<div id="historyList" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;max-height:180px;overflow-y:auto;"></div>'+
-    '<div style="display:flex;gap:8px;">'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
       '<textarea id="historyInput" class="form-textarea" placeholder="히스토리 내용 입력..." style="flex:1;min-height:60px;font-size:13px;resize:vertical;"></textarea>'+
       '<button class="btn btn-primary btn-sm" onclick="addHistory(\''+id+'\')" style="align-self:flex-end;white-space:nowrap;">추가</button>'+
-    '</div></div>'+
+    '</div>'+
+    '<div id="historyList" style="font-size:12px;color:var(--text-muted);max-height:180px;overflow-y:auto;"></div>'+
+    '</div>'+
     (p.video?'<div class="detail-section no-print"><div class="detail-section-title">🎬 동영상</div>'+getVideoEmbed(p.video)+'</div>':'')+
     // 문서 섹션
     '<div class="detail-section"><div class="detail-section-title">문서</div>'+

@@ -6037,6 +6037,7 @@ function getGroupMarkerImage(count) {
 }
 // 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
 function openPropertyFromMap(id) {
+  if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
   var p = properties.find(function(x){ return x.id === id; });
   if(!p) return;
   openDetail(p.id);

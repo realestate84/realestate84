@@ -6743,12 +6743,28 @@ load();
 loadCustomers();
 
 // 스크롤 하단 근처 도달 시 다음 페이지 prefetch (600px 전에 요청)
-window.addEventListener('scroll', function() {
+// window와 .table-wrap 둘 다 감지 (실제 스크롤이 table-wrap 안에서 일어날 수 있음)
+function checkListScrollForNextPage() {
   if(document.getElementById('mainScreen') && document.getElementById('mainScreen').style.display === 'none') return;
-  var scrollBottom = window.innerHeight + window.scrollY;
-  var threshold = document.body.offsetHeight - 600;
+  var scrollBottom, threshold;
+  var wrap = document.querySelector('.table-wrap');
+  var container = document.querySelector('.container');
+  if(wrap && wrap.scrollHeight > wrap.clientHeight) {
+    scrollBottom = wrap.scrollTop + wrap.clientHeight;
+    threshold = wrap.scrollHeight - 600;
+  } else if(container && container.scrollHeight > container.clientHeight) {
+    scrollBottom = container.scrollTop + container.clientHeight;
+    threshold = container.scrollHeight - 600;
+  } else {
+    scrollBottom = window.innerHeight + window.scrollY;
+    threshold = document.body.offsetHeight - 600;
+  }
   if(scrollBottom > threshold) loadNextPage();
-}, { passive: true });
+}
+window.addEventListener('scroll', checkListScrollForNextPage, { passive: true });
+[document.querySelector('.table-wrap'), document.querySelector('.container')].forEach(function(el) {
+  if(el) el.addEventListener('scroll', checkListScrollForNextPage, { passive: true });
+});
 </script>
 </div><!-- /mainScreen -->
 

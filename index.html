@@ -249,11 +249,11 @@
           <div id="priceInputWrap" class="form-group" data-field-key="price" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
             <div style="flex:1;min-width:100px;">
               <label id="flabel_price">가격 (만원)</label>
-              <input class="form-input" type="text" id="f_price" placeholder="만원 단위 숫자" inputmode="numeric" oninput="formatNumberInput(this)">
+              <input class="form-input" type="number" id="f_price" placeholder="만원 단위 숫자" min="0" step="1" inputmode="numeric">
             </div>
             <div class="form-group" id="monthlyRentInputWrap" style="display:none;flex:1;min-width:100px;">
               <label id="flabel_monthlyRent">월세 (만원)</label>
-              <input class="form-input" type="text" id="f_monthlyRent" placeholder="예) 120" inputmode="numeric" oninput="formatNumberInput(this)">
+              <input class="form-input" type="number" id="f_monthlyRent" placeholder="예) 120" min="0" step="1" inputmode="numeric">
             </div>
           </div>
           <div class="form-group" data-field-key="pricePerPyeong">
@@ -910,41 +910,7 @@ function getPriceDisplay(property) {
 
 // 표시용: 플래그에 따라 포맷 표시 또는 기존 price 그대로 (기능 끄려면 ENABLE_PRICE_DISPLAY_FORMAT = false)
 function getPriceDisplayValue(p) {
-  if (ENABLE_PRICE_DISPLAY_FORMAT) return getPriceDisplay(p);
-  if (!p) return '-';
-  var priceVal = p.price;
-  var priceNum = (typeof priceVal === 'number' && !isNaN(priceVal)) ? priceVal : parseInt(String(priceVal || '').replace(/[^0-9]/g, ''), 10);
-  if (p.georae === '월세') {
-    var monthlyVal = p.monthlyRent;
-    var monthlyNum = (typeof monthlyVal === 'number' && !isNaN(monthlyVal)) ? monthlyVal : parseInt(String(monthlyVal || '').replace(/[^0-9]/g, ''), 10);
-    var ps = (priceVal !== undefined && priceVal !== null && priceVal !== '') ? formatNumberWithComma(priceNum) : '';
-    var ms = (monthlyVal !== undefined && monthlyVal !== null && monthlyVal !== '') ? formatNumberWithComma(monthlyNum) : '';
-    if (!ps && !ms) return '-';
-    return ms ? (ps + ' / ' + ms) : (ps || '-');
-  }
-  return (priceVal !== undefined && priceVal !== null && priceVal !== '') ? formatNumberWithComma(priceNum) : '-';
-}
-
-// 1000단위 구분 콤마 표시 (화면 표시용)
-function formatNumberWithComma(value) {
-  if (value === null || value === undefined || value === '') return '';
-  var num = typeof value === 'number' ? value : parseInt(String(value).replace(/,/g, ''), 10);
-  if (isNaN(num)) return '';
-  return num.toLocaleString('ko-KR');
-}
-// 저장용: 콤마 제거 후 숫자 또는 null
-function parseNumberInput(value) {
-  if (value === null || value === undefined) return null;
-  var v = String(value).replace(/,/g, '').trim();
-  if (v === '') return null;
-  var num = parseInt(v, 10);
-  return isNaN(num) ? null : num;
-}
-// 입력칸 실시간 콤마 (oninput에서 호출)
-function formatNumberInput(el) {
-  var raw = String(el.value || '').replace(/,/g, '').replace(/[^\d]/g, '');
-  if (!raw) { el.value = ''; return; }
-  el.value = parseInt(raw, 10).toLocaleString('ko-KR');
+  return ENABLE_PRICE_DISPLAY_FORMAT ? getPriceDisplay(p) : (p && (p.price !== undefined && p.price !== null && p.price !== '') ? String(p.price) : '-');
 }
 
 // 정렬/검색/통계용: 매물에서 가격 숫자(만원) 추출 (기존 데이터 호환)
@@ -2213,7 +2179,7 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600;text-align:right">'+getPriceDisplayValue(p)+'</td>';
-          case 'monthlyRent': return '<td style="font-weight:600;text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?formatNumberWithComma(p.monthlyRent):'-')+'</td>';
+          case 'monthlyRent': return '<td style="font-weight:600;text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';
@@ -2721,10 +2687,9 @@ function openEditModal(id){
   document.getElementById('f_georae').value=p.georae||'';
   document.getElementById('f_type').value=p.type||'';
   document.getElementById('f_address').value=p.address||'';
-  var priceEl = document.getElementById('f_price');
-  if(priceEl) { priceEl.value = (p.price !== undefined && p.price !== null && p.price !== '') ? String(p.price) : ''; formatNumberInput(priceEl); }
+  document.getElementById('f_price').value=p.price!==undefined&&p.price!==null&&p.price!==''?p.price:'';
   var monthlyEl = document.getElementById('f_monthlyRent');
-  if(monthlyEl) { monthlyEl.value = (p.monthlyRent !== undefined && p.monthlyRent !== null && p.monthlyRent !== '') ? String(p.monthlyRent) : ''; formatNumberInput(monthlyEl); }
+  if(monthlyEl) monthlyEl.value = (p.monthlyRent !== undefined && p.monthlyRent !== null && p.monthlyRent !== '') ? p.monthlyRent : '';
   document.getElementById('f_pricePerPyeong').value=p.pricePerPyeong||'';
   document.getElementById('f_officialBuildingPrice').value=p.officialBuildingPrice||'';
   document.getElementById('f_officialLandPrice').value=p.officialLandPrice||'';
@@ -2839,11 +2804,13 @@ function saveProperty(){
   var now=new Date();
   var dateStr=now.toLocaleDateString('ko-KR');
   var timeStr=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  var priceNumVal = parseNumberInput(document.getElementById('f_price').value);
-  var monthlyNumVal = (georae === '월세') ? parseNumberInput(document.getElementById('f_monthlyRent').value) : null;
+  var priceRaw = document.getElementById('f_price').value.trim();
+  var priceNumVal = priceRaw === '' ? null : (parseInt(priceRaw.replace(/[^0-9]/g,''),10) || null);
+  var monthlyRaw = document.getElementById('f_monthlyRent').value.trim();
+  var monthlyNumVal = (georae === '월세') ? (monthlyRaw === '' ? null : (parseInt(monthlyRaw.replace(/[^0-9]/g,''),10) || null)) : null;
   var data={
     georae:georae, type:type, address:address,
-    price: priceNumVal !== null ? priceNumVal : '',
+    price: priceNumVal !== null ? priceNumVal : (priceRaw || ''),
     monthlyRent: georae === '월세' ? monthlyNumVal : null,
     pricePerPyeong:document.getElementById('f_pricePerPyeong').value.trim(),
     officialBuildingPrice:document.getElementById('f_officialBuildingPrice').value.trim(),
@@ -2968,7 +2935,7 @@ function openDetail(id){
     return '<div class="detail-item"><label>'+f.label+'</label><div class="val">'+val+'</div></div>';
   }
 
-  var monthlyRentDetailHtml = (p.georae==='월세') ? ('<div class="detail-item"><label>월세 (만원)</label><div class="val" style="color:var(--accent)">'+(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!==''?formatNumberWithComma(p.monthlyRent):'-')+'</div></div>') : '';
+  var monthlyRentDetailHtml = (p.georae==='월세') ? ('<div class="detail-item"><label>월세 (만원)</label><div class="val" style="color:var(--accent)">'+(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!==''?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</div></div>') : '';
   document.getElementById('detailBody').innerHTML =
     '<div class="detail-section"><div class="detail-section-title">기본 정보</div><div class="detail-grid">'+
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
@@ -4099,10 +4066,7 @@ function downloadExcel(){
 
   var rows = properties.map(function(p){
     return allFields.map(function(f){
-      var val = p[f.key];
-      if (val === undefined) return '';
-      if (f.key === 'price' || f.key === 'monthlyRent') return (val !== null && val !== '') ? formatNumberWithComma(val) : '';
-      return val || '';
+      return p[f.key] !== undefined ? (p[f.key]||'') : '';
     });
   });
 

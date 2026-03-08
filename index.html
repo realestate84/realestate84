@@ -2178,7 +2178,7 @@ function renderTable() {
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
           case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600;text-align:right">'+getPriceDisplayValue(p)+'</td>';
-          case 'monthlyRent': return '<td class="muted" style="text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
+          case 'monthlyRent': return '<td style="font-weight:600;text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?(ENABLE_PRICE_DISPLAY_FORMAT?formatPriceManwon(p.monthlyRent):String(p.monthlyRent)):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';
           case 'totalArea': return '<td class="muted">'+(p.totalArea?p.totalArea+(getFieldSuffix('totalArea')?' '+getFieldSuffix('totalArea'):''):'-')+'</td>';
           case 'supplyArea':   return '<td class="muted">'+(p.supplyArea?p.supplyArea+(getFieldSuffix('supplyArea')?' '+getFieldSuffix('supplyArea'):''):'-')+'</td>';

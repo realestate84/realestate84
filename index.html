@@ -123,8 +123,9 @@
 
 <div class="container">
   <div class="filter-bar">
-    <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="debouncedRender()">
+    <input class="search-input" type="text" placeholder="🔍  주소, 특이사항, 소유자 검색..." id="searchInput" oninput="onSearchInput()">
     <button class="btn btn-outline btn-sm" onclick="resetFilters()">초기화</button>
+    <div id="searchModeBar" style="display:none;align-items:center;gap:10px;font-size:13px;color:var(--text-muted);"></div>
     <div style="position:relative;display:inline-block;">
       <button class="btn btn-outline btn-sm" type="button" onclick="toggleFilterTypePopup()" id="filterTypeBtn">매물종류 전체</button>
       <div id="filterTypePopup" style="display:none;position:absolute;left:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:200px;max-height:280px;overflow-y:auto;">
@@ -764,6 +765,45 @@ var sectorCache = {
 function invalidatePropertyCache() {
   var c = sectorCache[currentSector];
   if(c) { c.properties = []; c.lastDoc = null; c.reachedEnd = false; c.loaded = false; }
+}
+var listMode = 'browse';
+var searchKeyword = '';
+var searchResults = [];
+var searchLoading = false;
+var _searchTimer = null;
+function getRenderedProperties() { return listMode === 'search' ? searchResults : properties; }
+function matchesSearch(p, keyword) {
+  var k = String(keyword || '').toLowerCase();
+  if(!k) return true;
+  var fields = [p.address, p.memo, p.note, p.ownerName, p.ownerPhone, p.type, p.georae];
+  return fields.some(function(v){ return String(v || '').toLowerCase().indexOf(k) > -1; });
+}
+function exitSearchMode() {
+  listMode = 'browse';
+  searchKeyword = '';
+  searchResults = [];
+  if(_fieldSettingsReady) renderTable();
+}
+function runSearch(keyword) {
+  searchKeyword = (keyword || '').trim().toLowerCase();
+  if(!searchKeyword) { exitSearchMode(); return; }
+  if(searchLoading) return;
+  listMode = 'search';
+  searchLoading = true;
+  showLoading('검색 중...');
+  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').get()
+    .then(function(snap) {
+      var allProps = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+      searchResults = allProps.filter(function(p){ return matchesSearch(p, searchKeyword); });
+      searchLoading = false;
+      if(_fieldSettingsReady) renderTable();
+    })
+    .catch(function(e) {
+      console.error(e);
+      searchResults = [];
+      searchLoading = false;
+      if(_fieldSettingsReady) renderTable();
+    });
 }
 var customers = [];
 var editingId = null;
@@ -1751,6 +1791,7 @@ function loadPropertiesFirstPage() {
 }
 
 function loadNextPage() {
+  if(listMode === 'search') return;
   if(loadingNextPage || reachedEnd || !lastDoc) return;
   loadingNextPage = true;
   var loadingEl = document.getElementById('listLoading');
@@ -1829,6 +1870,7 @@ function updateSectorUI() {
 
 function switchSector(sector) {
   if(sector !== SECTOR_RESIDENTIAL && sector !== SECTOR_COMMERCIAL) return;
+  if(listMode === 'search') exitSearchMode();
   currentSector = sector;
   try { localStorage.setItem(STORAGE_KEY_SECTOR, sector); } catch(e){}
   invalidateSuffixCache();
@@ -2085,7 +2127,8 @@ function getSearchableKeys() {
 
 // ── 테이블 ────────────────────────────────
 function renderTable() {
-  var q = document.getElementById('searchInput').value.toLowerCase();
+  var base = getRenderedProperties();
+  var q = (listMode === 'browse') ? document.getElementById('searchInput').value.toLowerCase() : '';
   var selectedTypes = Object.keys(filterTypeChecked).filter(function(k){ return filterTypeChecked[k]; });
   var selectedGeorae = Object.keys(filterGeoraeChecked).filter(function(k){ return filterGeoraeChecked[k]; });
   var searchKeys = getSearchableKeys();
@@ -2108,10 +2151,10 @@ function renderTable() {
   var elevator = (getAdv('adv_elevator')||'').trim().toLowerCase();
   var option   = (getAdv('adv_option')||'').trim().toLowerCase();
 
-  var list = properties.filter(function(p){
+  var list = base.filter(function(p){
     if(selectedGeorae.length > 0 && selectedGeorae.indexOf(p.georae) === -1) return false;
     if(selectedTypes.length > 0 && selectedTypes.indexOf(p.type) === -1) return false;
-    if(q){
+    if(listMode === 'browse' && q){
       var hay = searchKeys.map(function(k){ var v = p[k]; return (v != null && v !== '') ? String(v) : ''; }).join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
@@ -2267,7 +2310,12 @@ function renderTable() {
 
   var tbody = document.getElementById('tableBody');
   var empty = document.getElementById('emptyState');
-  if(list.length===0){ tbody.innerHTML=''; empty.style.display='block'; }
+  if(list.length===0){
+    tbody.innerHTML='';
+    empty.style.display='block';
+    var emptyP = empty ? empty.querySelector('p') : null;
+    if(emptyP) emptyP.textContent = listMode==='search' ? '검색 결과가 없습니다.' : '등록된 매물이 없습니다.';
+  }
   else {
     empty.style.display='none';
     tbody.innerHTML = list.map(function(p){
@@ -2324,7 +2372,25 @@ function renderTable() {
       return '<tr onclick="openDetail(\''+p.id.replace(/'/g,"\\'")+'\')" style="cursor:pointer;">'+rowCells+ managementCell +'</tr>';
     }).join('');
   }
+  var bar = document.getElementById('searchModeBar');
+  if(bar) {
+    if(listMode === 'search') {
+      bar.style.display = 'block';
+      bar.innerHTML = '검색 결과 '+list.length+'건 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById(\'searchInput\').value=\'\';exitSearchMode();">검색해제</button>';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
   renderStats();
+}
+
+function onSearchInput() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(function() {
+    var kw = (document.getElementById('searchInput')||{}).value.trim();
+    if(!kw) { exitSearchMode(); return; }
+    runSearch(kw);
+  }, 300);
 }
 
 function onColDragStart(e) {
@@ -2446,6 +2512,7 @@ function refreshApp() {
     location.reload();
   } else {
     document.getElementById('searchInput').value = '';
+    exitSearchMode();
     filterTypeChecked = {};
     filterGeoraeChecked = {};
     updateFilterTypeButtonText();
@@ -2533,7 +2600,8 @@ function toggleAdvSearch() {
 }
 
 function resetFilters(){
-  document.getElementById('searchInput').value='';
+  document.getElementById('searchInput').value = '';
+  exitSearchMode();
   filterTypeChecked = {};
   filterGeoraeChecked = {};
   updateFilterTypeButtonText();
@@ -2542,7 +2610,6 @@ function resetFilters(){
   document.getElementById('filterGeoraePopup').style.display = 'none';
   var panel = document.getElementById('advSearchPanelInner');
   if(panel) panel.querySelectorAll('input').forEach(function(inp){ inp.value = ''; });
-  // 출발가능 필터 초기화
   window._depFilterOn = false;
   var btn = document.getElementById('depFilterBtn');
   if(btn){ btn.style.color='#7a85a8'; btn.style.borderColor=''; btn.style.fontWeight=''; }
@@ -6775,6 +6842,7 @@ loadCustomers();
 // 스크롤 하단 근처 도달 시 다음 페이지 prefetch (600px 전에 요청)
 // window와 .table-wrap 둘 다 감지 (실제 스크롤이 table-wrap 안에서 일어날 수 있음)
 function checkListScrollForNextPage() {
+  if(listMode === 'search') return;
   if(document.getElementById('mainScreen') && document.getElementById('mainScreen').style.display === 'none') return;
   var scrollBottom, threshold;
   var wrap = document.querySelector('.table-wrap');

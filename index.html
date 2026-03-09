@@ -3079,7 +3079,7 @@ function openDetail(id){
   if(!p) p = searchResults.find(function(x){ return x.id === id; });
 
   if(!p) return;
-}
+
   document.getElementById('detailTitle').innerHTML=
     (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
     '<span class="tag tag-'+(p.type||'')+'" style="margin-right:8px">'+(p.type||'')+'</span>'+

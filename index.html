@@ -2545,21 +2545,8 @@ function closeMobileMenu() {
 }
 
 function refreshApp() {
-  if (!/Mobi|Android/i.test(navigator.userAgent)) {
-    location.reload();
-  } else {
-    document.getElementById('searchInput').value = '';
-    exitSearchMode();
-    filterTypeChecked = {};
-    filterGeoraeChecked = {};
-    updateFilterTypeButtonText();
-    updateFilterGeoraeButtonText();
-    document.getElementById('filterTypePopup').style.display = 'none';
-    document.getElementById('filterGeoraePopup').style.display = 'none';
-    renderAdvSearchPanel();
-    renderTable();
-    window.scrollTo(0, 0);
-  }
+  // PC/모바일 공통: 로고 탭 시 새로고침
+  location.reload();
 }
 
 function linkifyMemo(text) {

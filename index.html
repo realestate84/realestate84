@@ -455,9 +455,7 @@
         </div>
       </div>
 
-      <!-- 커스텀 항목 자동 추가 영역 -->
-        <div id="customFieldsArea"></div>
-        <div class="form-group full">
+      <div class="form-group full">
           <label>특이사항 / 메모</label>
           <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등...&#10;링크: [표시할글자](https://주소)"></textarea>
         </div>
@@ -2755,17 +2753,37 @@ function updateFormFieldVisibility(type) {
   updatePriceInputUI();
 }
 
-// ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용: 아파트→아파트, 빌라→빌라, 원룸→원룸 등) ───
+// 섹션명 → 폼 모달 내 해당 그리드 DOM 반환
+function getFormSectionEl(section) {
+  if (section === '기본정보') return document.getElementById('sectionBasic');
+  if (section === '소유자정보') return document.getElementById('sectionOwner');
+  return document.getElementById('sectionDetail');
+}
+
+// ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용, 설정된 섹션 위치에 렌더) ───
 function renderCustomFieldsInForm(type, propData) {
-  var area = document.getElementById('customFieldsArea');
-  if(!area) return;
+  // 렌더 전 기존 동적 커스텀필드 제거 (매물종류 변경 시 중복 방지)
+  document.querySelectorAll('#formModal .custom-dynamic-field').forEach(function(el) { el.remove(); });
 
   var defaultKeys = {};
   DEFAULT_FIELDS.forEach(function(f){ defaultKeys[f.key] = true; });
-  var html = '';
+
+  function appendFieldToSection(key, label, value, section) {
+    var sectionEl = getFormSectionEl(section);
+    if (!sectionEl) return;
+    var safeVal = (value || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var safeLbl = escapeHtml(label);
+    var html = '<div class="form-group custom-dynamic-field" data-field-key="'+key+'">'+
+      '<label>'+safeLbl+'</label>'+
+      '<input class="form-input" type="text" id="fc_'+key+'" value="'+safeVal+'" placeholder="'+safeLbl+' 입력...">'+
+      '</div>';
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    var el = wrap.firstElementChild;
+    if (el) sectionEl.appendChild(el);
+  }
 
   if (type && COMMERCIAL_TYPES.indexOf(type) !== -1) {
-    // 상업용: master.order 기준, visibilityByType[type]이 true인 항목만 렌더
     var master = fieldSchema.commercial.master;
     var vbt = fieldSchema.commercial.visibilityByType[type] || {};
     (master.order || []).forEach(function(key) {
@@ -2776,18 +2794,14 @@ function renderCustomFieldsInForm(type, propData) {
       if (!visible) return;
       var val = (propData && propData[key]) ? propData[key] : '';
       var lbl = getFieldLabel(key, fd.label);
-      html += '<div class="form-group" data-field-key="'+key+'">'+
-        '<label>'+lbl+'</label>'+
-        '<input class="form-input" type="text" id="fc_'+key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
-        '</div>';
+      var section = getFieldSection(key, fd.section);
+      appendFieldToSection(key, lbl, val, section);
     });
-    area.innerHTML = html;
     updateFormFieldVisibility(type);
     return;
   }
 
   if (type && RESIDENTIAL_TYPES.indexOf(type) !== -1) {
-    // 주거용: master.order + visibilityByType[type] 기준 (상업용과 동일 구조)
     var resMaster = fieldSchema.residential.master;
     var resVbt = fieldSchema.residential.visibilityByType[type] || {};
     (resMaster.order || []).forEach(function(key) {
@@ -2798,12 +2812,9 @@ function renderCustomFieldsInForm(type, propData) {
       if (!visible) return;
       var val = (propData && propData[key]) ? propData[key] : '';
       var lbl = getFieldLabel(key, fd.label);
-      html += '<div class="form-group" data-field-key="'+key+'">'+
-        '<label>'+lbl+'</label>'+
-        '<input class="form-input" type="text" id="fc_'+key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
-        '</div>';
+      var section = getFieldSection(key, fd.section);
+      appendFieldToSection(key, lbl, val, section);
     });
-    area.innerHTML = html;
     updateFormFieldVisibility(type);
     return;
   }
@@ -2815,12 +2826,9 @@ function renderCustomFieldsInForm(type, propData) {
   customs.forEach(function(cf) {
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
-    html += '<div class="form-group" data-field-key="'+cf.key+'">'+
-      '<label>'+lbl+'</label>'+
-      '<input class="form-input" type="text" id="fc_'+cf.key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
-      '</div>';
+    var section = getFieldSection(cf.key, cf.section || '상세정보');
+    appendFieldToSection(cf.key, lbl, val, section);
   });
-  area.innerHTML = html;
   updateFormFieldVisibility(type);
 }
 

@@ -784,6 +784,8 @@ function exitSearchMode() {
   searchResults = [];
   if(_fieldSettingsReady) renderTable();
 }
+
+// 검색시스템의 핵심 엔진: 검색어 받아서 → 데이터 가져와서 → 필터링 → 화면에 그리기
 function runSearch(keyword) {
   searchKeyword = (keyword || '').trim().toLowerCase();
   if(!searchKeyword) { exitSearchMode(); return; }
@@ -2384,6 +2386,7 @@ function renderTable() {
   renderStats();
 }
 
+// 검색창에 글자를 입력할 때 검색을 실행하는 로직
 function onSearchInput() {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(function() {
@@ -3067,8 +3070,17 @@ function saveProperty(){
 // ── 상세 모달 ─────────────────────────────
 function openDetail(id){
   window._currentDetailId = id;
-  var p=properties.find(function(x){return x.id===id;});
+
+  var source = getRenderedProperties();
+  var p = source.find(function(x){ return x.id === id; });
+
+  // 혹시 검색모드/일반모드 전환 타이밍 이슈가 있으면 보조 fallback
+  if(!p) p = properties.find(function(x){ return x.id === id; });
+  if(!p) p = searchResults.find(function(x){ return x.id === id; });
+
   if(!p) return;
+  ...
+}
   document.getElementById('detailTitle').innerHTML=
     (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
     '<span class="tag tag-'+(p.type||'')+'" style="margin-right:8px">'+(p.type||'')+'</span>'+

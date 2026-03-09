@@ -3829,38 +3829,96 @@ function updateDepBtn(p) {
 }
 
 function copyProperty(id) {
+
   if(!confirm('이 매물을 복사하시겠습니까?\n(사진, 문서, 히스토리, 광고정보는 복사되지 않아요)')) return;
-  var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
-  var now = new Date();
-  var dateStr = now.toLocaleDateString('ko-KR');
-  var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  var newData = {
-    georae:p.georae||'', type:p.type||'', address:p.address||'',
-    price:p.price||'', monthlyRent:p.monthlyRent!=null?p.monthlyRent:undefined, maintenance:p.maintenance||'',
-    landArea:p.landArea||'', totalArea:p.totalArea||'',
-    supplyArea:p.supplyArea||'', exclusiveArea:p.exclusiveArea||'',
-    tempArea:p.tempArea||'', roadArea:p.roadArea||'',
-    useZone:p.useZone||'', jimok:p.jimok||'',
-    buildingUse:p.buildingUse||'', approvalDate:p.approvalDate||'',
-    floors:p.floors||'', electric:p.electric||'', hoist:p.hoist||'',
-    direction:p.direction||'', height:p.height||'',
-    parking:p.parking||'', toilet:p.toilet||'',
-    factoryReg:p.factoryReg||'', access:p.access||'',
-    regOwnerName:p.regOwnerName||'', ownerName:p.ownerName||'',
-    ownerPhone:p.ownerPhone||'', memo:p.memo||'', note:p.note||'',
-    naver:p.naver||'', video:p.video||'',
-    departure: p.departure !== false,
-    createdDate:dateStr, createdTime:timeStr,
-    updatedDate:dateStr, updatedTime:timeStr,
-  };
-  db.collection(getPropertiesCollection()).add(newData).then(function(ref) {
-    var maxNo = properties.reduce(function(m,x){ return Math.max(m, parseInt(x.propNo)||0); }, 0);
-    return db.collection(getPropertiesCollection()).doc(ref.id).update({ propNo: String(maxNo+1) });
-  }).then(function() {
+
+  db.collection(getPropertiesCollection()).doc(id).get()
+  .then(function(doc){
+
+    if(!doc.exists) {
+      alert('매물을 찾을 수 없습니다.');
+      return;
+    }
+
+    var p = doc.data();
+
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('ko-KR');
+    var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+
+    var newData = {
+      georae:p.georae || '',
+      type:p.type || '',
+      address:p.address || '',
+      price:p.price || '',
+      monthlyRent:p.monthlyRent != null ? p.monthlyRent : undefined,
+      maintenance:p.maintenance || '',
+      landArea:p.landArea || '',
+      totalArea:p.totalArea || '',
+      supplyArea:p.supplyArea || '',
+      exclusiveArea:p.exclusiveArea || '',
+      tempArea:p.tempArea || '',
+      roadArea:p.roadArea || '',
+      useZone:p.useZone || '',
+      jimok:p.jimok || '',
+      buildingUse:p.buildingUse || '',
+      approvalDate:p.approvalDate || '',
+      floors:p.floors || '',
+      electric:p.electric || '',
+      hoist:p.hoist || '',
+      direction:p.direction || '',
+      height:p.height || '',
+      parking:p.parking || '',
+      toilet:p.toilet || '',
+      factoryReg:p.factoryReg || '',
+      access:p.access || '',
+      regOwnerName:p.regOwnerName || '',
+      ownerName:p.ownerName || '',
+      ownerPhone:p.ownerPhone || '',
+      memo:p.memo || '',
+      note:p.note || '',
+      naver:p.naver || '',
+      video:p.video || '',
+      departure: p.departure !== false,
+      createdDate:dateStr,
+      createdTime:timeStr,
+      updatedDate:dateStr,
+      updatedTime:timeStr
+    };
+
+    return db.collection(getPropertiesCollection()).add(newData);
+
+  })
+  .then(function(ref){
+
+    return db.collection(getPropertiesCollection()).get().then(function(snap){
+
+      var maxNo = 0;
+      snap.forEach(function(d){
+        var v = parseInt(d.data().propNo) || 0;
+        if(v > maxNo) maxNo = v;
+      });
+
+      return db.collection(getPropertiesCollection()).doc(ref.id).update({
+        propNo: String(maxNo + 1)
+      });
+
+    });
+
+  })
+  .then(function(){
+
     closeDetailModal();
-    showToast('✅ 매물이 복사됐어요!');
+    showToast('✅ 매물이 복사되었습니다.');
+
+  })
+  .catch(function(err){
+
+    console.error(err);
+    alert('매물 복사 중 오류가 발생했습니다.');
+
   });
+
 }
 
 function showToast(msg) {

@@ -2328,7 +2328,7 @@ function renderTable() {
           case 'photo':     return '<td>'+thumb+'</td>';
           case 'georae':    return '<td><span class="tag tag-'+(p.georae||'')+'">'+(p.georae||'-')+'</span></td>';
           case 'type':      return '<td><span class="tag tag-'+(p.type||'')+'">'+(p.type||'-')+'</span></td>';
-          case 'address':   return '<td class="address-text" onclick="copyAddress(\''+(p.address||'').replace(/'/g,"\\'")+'\',event)" style="cursor:pointer;" title="클릭하면 주소가 복사됩니다">'+(p.address||'-')+'</td>';
+          case 'address':   return '<td class="address-text">'+(p.address||'-')+'</td>';
           case 'price':     return '<td style="font-weight:600;text-align:right">'+(p.price!==undefined&&p.price!==null&&p.price!==''?formatPriceComma(p.price):'-')+'</td>';
           case 'monthlyRent': return '<td style="font-weight:600;text-align:right">'+(p.georae==='월세'&&(p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='')?formatMonthlyRentComma(p.monthlyRent):'-')+'</td>';
           case 'landArea':  return '<td class="muted">'+(p.landArea?p.landArea+(getFieldSuffix('landArea')?' '+getFieldSuffix('landArea'):''):'-')+'</td>';

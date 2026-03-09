@@ -109,3 +109,35 @@
   #kakaoMap { break-inside: avoid; break-before: auto; }
   @page { margin: 10mm; size: A4; }
 }
+
+
+//   모달 섹션 구분 스타일========================= */
+
+.form-section{
+  margin-top:24px;
+}
+
+.form-section:first-of-type{
+  margin-top:16px;
+}
+
+.section-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.section-title{
+  flex-shrink:0;
+  font-size:14px;
+  font-weight:700;
+  color:var(--text-muted);
+  letter-spacing:-0.1px;
+}
+
+.section-line{
+  flex:1;
+  height:1px;
+  background:var(--border);
+}

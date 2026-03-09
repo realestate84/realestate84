@@ -257,13 +257,13 @@
           </div>
 
           <!-- ── 가격 그룹 (2열: 각 필드가 폭의 절반) ── -->
-          <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1;">
-            <div id="priceInputWrap" class="form-group" data-field-key="price" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
-              <div style="flex:1;min-width:100px;">
+          <div class="price-grid" data-price-grid>
+            <div id="priceInputWrap" class="form-group" data-field-key="price">
+              <div class="price-main">
                 <label id="flabel_price">가격 (만원)</label>
                 <input class="form-input" type="text" id="f_price" placeholder="만원 단위 숫자" inputmode="numeric" oninput="formatPriceInput(this)">
               </div>
-              <div class="form-group" id="monthlyRentInputWrap" style="display:none;flex:1;min-width:100px;">
+              <div class="form-group" id="monthlyRentInputWrap" style="display:none;">
                 <label id="flabel_monthlyRent">월세 (만원)</label>
                 <input class="form-input" type="text" id="f_monthlyRent" placeholder="예) 120" inputmode="numeric" oninput="formatMonthlyRentInput(this)">
               </div>

@@ -141,3 +141,39 @@
   height:1px;
   background:var(--border);
 }
+
+/* 등록/수정 모달 - 기본정보 가격 그룹 2열 */
+#formModal .price-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+
+#formModal .price-grid > .form-group {
+  min-width: 0;
+}
+
+#formModal #priceInputWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#formModal #priceInputWrap .price-main {
+  flex: 1;
+  min-width: 100px;
+}
+
+#formModal #monthlyRentInputWrap {
+  flex: 1;
+  min-width: 100px;
+}
+
+/* 모바일에서는 1열 */
+@media (max-width: 768px) {
+  #formModal .price-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3253,7 +3253,8 @@ function openDetail(id){
   '<div style="position:relative;">'+
     '<div id="kakaoMap"></div>'+
     '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+
-    '<div id="mapViewBtns" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
+    '<div id="mapViewBtns" class="no-print" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
+      '<button onclick="centerDetailMapOnMarker()" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">원위치</button>'+
       '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
       '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
       '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
@@ -3354,6 +3355,14 @@ function openDetail(id){
     };
     window._mapInitTimer = setTimeout(function(){ tryMap(0); }, 500);
   }
+}
+
+// 상세보기 지도: 핀 위치로 중심 이동 (원위치)
+function centerDetailMapOnMarker() {
+  if (!window._kakaoMapObj || !window._mapCoords) return;
+  var mapEl = document.getElementById('kakaoMap');
+  if (mapEl && mapEl.style.display === 'none') return; // 로드뷰 표시 중이면 무시
+  window._kakaoMapObj.setCenter(window._mapCoords);
 }
 
 // 지적도 토글

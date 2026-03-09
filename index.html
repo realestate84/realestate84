@@ -3832,16 +3832,17 @@ function copyProperty(id) {
 
   if(!confirm('이 매물을 복사하시겠습니까?\n(사진, 문서, 히스토리, 광고정보는 복사되지 않아요)')) return;
 
-  db.collection(getPropertiesCollection()).doc(id).get()
+  var collection = getPropertiesCollection();
+
+  db.collection(collection).doc(id).get()
   .then(function(doc){
 
     if(!doc.exists) {
       alert('매물을 찾을 수 없습니다.');
-      return;
+      return Promise.reject('NOT_FOUND');
     }
 
     var p = doc.data();
-
     var now = new Date();
     var dateStr = now.toLocaleDateString('ko-KR');
     var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
@@ -3851,7 +3852,7 @@ function copyProperty(id) {
       type:p.type || '',
       address:p.address || '',
       price:p.price || '',
-      monthlyRent:p.monthlyRent != null ? p.monthlyRent : undefined,
+      monthlyRent:p.monthlyRent != null ? p.monthlyRent : '',
       maintenance:p.maintenance || '',
       landArea:p.landArea || '',
       totalArea:p.totalArea || '',
@@ -3886,12 +3887,14 @@ function copyProperty(id) {
       updatedTime:timeStr
     };
 
-    return db.collection(getPropertiesCollection()).add(newData);
+    return db.collection(collection).add(newData);
 
   })
   .then(function(ref){
 
-    return db.collection(getPropertiesCollection()).get().then(function(snap){
+    if(!ref) return;
+
+    return db.collection(collection).get().then(function(snap){
 
       var maxNo = 0;
       snap.forEach(function(d){
@@ -3899,7 +3902,7 @@ function copyProperty(id) {
         if(v > maxNo) maxNo = v;
       });
 
-      return db.collection(getPropertiesCollection()).doc(ref.id).update({
+      return db.collection(collection).doc(ref.id).update({
         propNo: String(maxNo + 1)
       });
 
@@ -3914,6 +3917,7 @@ function copyProperty(id) {
   })
   .catch(function(err){
 
+    if(err === 'NOT_FOUND') return;
     console.error(err);
     alert('매물 복사 중 오류가 발생했습니다.');
 

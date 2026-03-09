@@ -230,8 +230,9 @@
       <div class="modal-title" id="formModalTitle">매물 등록</div>
       <button class="modal-close" onclick="closeFormModal()">×</button>
     </div>
-    <div class="modal-body">  
-       <div class="form-group">
+    <div class="modal-body">
+      <div class="form-grid" id="formFieldsContainer"></div>
+        <div class="form-group">
           <label>매물종류 *</label>
           <select class="form-select" id="f_type" onchange="renderCustomFieldsInForm(this.value,null)"><option value="">선택</option></select>
         </div>
@@ -244,10 +245,7 @@
         </div>
        <!-- 기본정보 ------------------------------>
        <div class="form-section">
-          <div class="section-header">
-            <div class="section-title">기본정보</div>
-            <div class="section-line"></div>
-          </div>
+        <div class="section-title">기본정보</div>
         <div class="form-grid" id="sectionBasic">
           <!-- 기존 코드 중 기본정보 field가 여기 들어감-->
 
@@ -256,14 +254,14 @@
            <input class="form-input" type="text" id="f_address" placeholder="예) 경기도 화성시 팔탄면 ...">
           </div>
 
-          <!-- ── 가격 그룹 (2열: 각 필드가 폭의 절반) ── -->
-          <div class="price-grid" data-price-grid>
-            <div id="priceInputWrap" class="form-group" data-field-key="price">
-              <div class="price-main">
+          <!-- ── 가격 그룹 ── -->
+          <div data-price-grid style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;grid-column:1/-1;">
+            <div id="priceInputWrap" class="form-group" data-field-key="price" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:100px;">
                 <label id="flabel_price">가격 (만원)</label>
                 <input class="form-input" type="text" id="f_price" placeholder="만원 단위 숫자" inputmode="numeric" oninput="formatPriceInput(this)">
               </div>
-              <div class="form-group" id="monthlyRentInputWrap" style="display:none;">
+              <div class="form-group" id="monthlyRentInputWrap" style="display:none;flex:1;min-width:100px;">
                 <label id="flabel_monthlyRent">월세 (만원)</label>
                 <input class="form-input" type="text" id="f_monthlyRent" placeholder="예) 120" inputmode="numeric" oninput="formatMonthlyRentInput(this)">
               </div>
@@ -288,154 +286,145 @@
               <label id="flabel_premium">권리금</label>
               <input class="form-input" type="text" id="f_premium" placeholder="예) 5000만원, 없음">
             </div>
+        </div>
+
+        <!-- 상세정보 ------------------------------>
+         <div class="form-section">
+          <div class="section-title">상세정보</div>
+          <div class="form-grid" id="sectionDetail">
+          <!-- 기존 코드 중 상세정보 field가 여기 들어감-->
+
+          <!-- ── 토지 정보 ── -->
+          <div class="form-group" data-field-key="lotCount">
+            <label id="flabel_lotCount">총필지수</label>
+            <input class="form-input" type="text" id="f_lotCount" placeholder="예) 3필지">
+          </div>
+          <div class="form-group" data-field-key="landArea">
+            <label id="flabel_landArea">토지면적 (평)</label>
+            <input class="form-input" type="text" id="f_landArea" placeholder="예) 100">
+          </div>
+          <div class="form-group" data-field-key="landShareRatio">
+            <label id="flabel_landShareRatio">대지권의 비율</label>
+            <input class="form-input" type="text" id="f_landShareRatio" placeholder="예) 1000분의 82.5">
+          </div>
+          <div class="form-group" data-field-key="roadShare">
+            <label id="flabel_roadShare">도로지분 (평)</label>
+            <input class="form-input" type="text" id="f_roadShare" placeholder="예) 15">
+          </div>
+          <div class="form-group" data-field-key="totalLandArea">
+            <label id="flabel_totalLandArea">총토지면적 (평)</label>
+            <input class="form-input" type="text" id="f_totalLandArea" placeholder="토지면적+도로지분">
+          </div>
+          <div class="form-group" data-field-key="roadArea">
+            <label id="flabel_roadArea">도로부지면적 (평)</label>
+            <input class="form-input" type="text" id="f_roadArea" placeholder="예) 15">
+          </div>
+          <div class="form-group" data-field-key="useZone">
+            <label id="flabel_useZone">용도지역</label>
+            <input class="form-input" type="text" id="f_useZone" placeholder="예) 계획관리지역">
+          </div>
+          <div class="form-group" data-field-key="jimok">
+            <label id="flabel_jimok">지목</label>
+            <input class="form-input" type="text" id="f_jimok" placeholder="예) 대, 전, 답, 공장">
+          </div>
+          <div class="form-group" data-field-key="access">
+            <label id="flabel_access">진출입로</label>
+            <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
+          </div>
+          <!-- ── 건물 정보 ── -->
+          <div class="form-group" data-field-key="floorArea">
+            <label id="flabel_floorArea">연면적 (평)</label>
+            <input class="form-input" type="text" id="f_floorArea" placeholder="예) 120">
+          </div>
+          <div class="form-group" data-field-key="structure">
+            <label id="flabel_structure">건물구조</label>
+            <input class="form-input" type="text" id="f_structure" placeholder="예) 철근콘크리트, 경량철골">
+          </div>
+          <div class="form-group" data-field-key="totalArea">
+            <label id="flabel_totalArea">건축면적 (평)</label>
+            <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+          </div>
+          <div class="form-group" data-field-key="tempArea">
+            <label id="flabel_tempArea">가설면적 (평)</label>
+            <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
+          </div>
+          <div class="form-group" data-field-key="buildingUse">
+            <label id="flabel_buildingUse">건축물용도</label>
+            <input class="form-input" type="text" id="f_buildingUse" placeholder="예) 단독주택, 근린생활시설">
+          </div>
+          <div class="form-group" data-field-key="supplyArea">
+            <label id="flabel_supplyArea">공급면적 (평)</label>
+            <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
+          </div>
+          <div class="form-group" data-field-key="exclusiveArea">
+            <label id="flabel_exclusiveArea">전용면적 (평)</label>
+            <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
+          </div>
+          <div class="form-group" data-field-key="direction">
+            <label id="flabel_direction">방향</label>
+            <input class="form-input" type="text" id="f_direction" placeholder="예) 남향, 동향, 남동향">
+          </div>
+          <div class="form-group" data-field-key="height">
+            <label id="flabel_height">층고 (m)</label>
+            <input class="form-input" type="text" id="f_height" placeholder="예) 6m, 8m">
+          </div>
+          <div class="form-group" data-field-key="hoist">
+            <label id="flabel_hoist">호이스트 (t)</label>
+            <input class="form-input" type="text" id="f_hoist" placeholder="예) 3t, 5t">
+          </div>
+          <div class="form-group" data-field-key="waterIn">
+            <label id="flabel_waterIn">수도in</label>
+            <input class="form-input" type="text" id="f_waterIn" placeholder="예) 있음, 없음, 공업용수">
+          </div>
+          <div class="form-group" data-field-key="drain">
+            <label id="flabel_drain">퇴수구</label>
+            <input class="form-input" type="text" id="f_drain" placeholder="예) 있음, 없음, 하수도">
+          </div>
+          <div class="form-group" data-field-key="electric">
+            <label id="flabel_electric">동력 (kw)</label>
+            <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
+          </div>
+          <div class="form-group" data-field-key="toilet">
+            <label id="flabel_toilet">화장실</label>
+            <input class="form-input" type="text" id="f_toilet" placeholder="예) 1개, 남녀구분, 없음">
+          </div>
+          <div class="form-group" data-field-key="parking">
+            <label id="flabel_parking">주차가능여부</label>
+            <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
+          </div>
+          <div class="form-group" data-field-key="elevator">
+            <label id="flabel_elevator">엘리베이터</label>
+            <input class="form-input" type="text" id="f_elevator" placeholder="예) 있음, 없음, 화물용">
+          </div>
+          <div class="form-group" data-field-key="factoryReg">
+            <label id="flabel_factoryReg">공장등록 가능여부</label>
+            <input class="form-input" type="text" id="f_factoryReg" placeholder="예) 가능, 불가, 조건부가능">
+          </div>
+          <div class="form-group" data-field-key="floors">
+            <label id="flabel_floors">총층수</label>
+            <input class="form-input" type="text" id="f_floors" placeholder="예) 1층, 2층, 지하1층+지상2층">
+          </div>
+          <div class="form-group" data-field-key="rooms">
+            <label id="flabel_rooms">방개수</label>
+            <input class="form-input" type="text" id="f_rooms" placeholder="예) 2개, 3개">
+          </div>
+          <div class="form-group" data-field-key="bathrooms">
+            <label id="flabel_bathrooms">욕실수</label>
+            <input class="form-input" type="text" id="f_bathrooms" placeholder="예) 1개, 2개">
+          </div>
+          <div class="form-group" data-field-key="approvalDate">
+            <label id="flabel_approvalDate">사용승인일</label>
+            <input class="form-input" type="date" id="f_approvalDate">
+          </div>
+          <div class="form-group" data-field-key="recommendedBusiness">
+            <label id="flabel_recommendedBusiness">추천업종</label>
+            <input class="form-input" type="text" id="f_recommendedBusiness" placeholder="예) 물류창고, 제조업, 음식점">
           </div>
         </div>
-      </div>
 
-      <!-- 상세정보 ------------------------------>
-      <div class="form-section">
-              <div class="section-header">
-                <div class="section-title">상세정보</div>
-                <div class="section-line"></div>
-              </div>
-            <div class="form-grid" id="sectionDetail">
-            <!-- 기존 코드 중 상세정보 field가 여기 들어감-->
-
-            <!-- ── 토지 정보 ── -->
-            <div class="form-group" data-field-key="lotCount">
-              <label id="flabel_lotCount">총필지수</label>
-              <input class="form-input" type="text" id="f_lotCount" placeholder="예) 3필지">
-            </div>
-            <div class="form-group" data-field-key="landArea">
-              <label id="flabel_landArea">토지면적 (평)</label>
-              <input class="form-input" type="text" id="f_landArea" placeholder="예) 100">
-            </div>
-            <div class="form-group" data-field-key="landShareRatio">
-              <label id="flabel_landShareRatio">대지권의 비율</label>
-              <input class="form-input" type="text" id="f_landShareRatio" placeholder="예) 1000분의 82.5">
-            </div>
-            <div class="form-group" data-field-key="roadShare">
-              <label id="flabel_roadShare">도로지분 (평)</label>
-              <input class="form-input" type="text" id="f_roadShare" placeholder="예) 15">
-            </div>
-            <div class="form-group" data-field-key="totalLandArea">
-              <label id="flabel_totalLandArea">총토지면적 (평)</label>
-              <input class="form-input" type="text" id="f_totalLandArea" placeholder="토지면적+도로지분">
-            </div>
-            <div class="form-group" data-field-key="roadArea">
-              <label id="flabel_roadArea">도로부지면적 (평)</label>
-              <input class="form-input" type="text" id="f_roadArea" placeholder="예) 15">
-            </div>
-            <div class="form-group" data-field-key="useZone">
-              <label id="flabel_useZone">용도지역</label>
-              <input class="form-input" type="text" id="f_useZone" placeholder="예) 계획관리지역">
-            </div>
-            <div class="form-group" data-field-key="jimok">
-              <label id="flabel_jimok">지목</label>
-              <input class="form-input" type="text" id="f_jimok" placeholder="예) 대, 전, 답, 공장">
-            </div>
-            <div class="form-group" data-field-key="access">
-              <label id="flabel_access">진출입로</label>
-              <input class="form-input" type="text" id="f_access" placeholder="예) 40ft츄레라, 5톤트럭, 1톤트럭">
-            </div>
-            <!-- ── 건물 정보 ── -->
-            <div class="form-group" data-field-key="floorArea">
-              <label id="flabel_floorArea">연면적 (평)</label>
-              <input class="form-input" type="text" id="f_floorArea" placeholder="예) 120">
-            </div>
-            <div class="form-group" data-field-key="structure">
-              <label id="flabel_structure">건물구조</label>
-              <input class="form-input" type="text" id="f_structure" placeholder="예) 철근콘크리트, 경량철골">
-            </div>
-            <div class="form-group" data-field-key="totalArea">
-              <label id="flabel_totalArea">건축면적 (평)</label>
-              <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
-            </div>
-            <div class="form-group" data-field-key="tempArea">
-              <label id="flabel_tempArea">가설면적 (평)</label>
-              <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
-            </div>
-            <div class="form-group" data-field-key="buildingUse">
-              <label id="flabel_buildingUse">건축물용도</label>
-              <input class="form-input" type="text" id="f_buildingUse" placeholder="예) 단독주택, 근린생활시설">
-            </div>
-            <div class="form-group" data-field-key="supplyArea">
-              <label id="flabel_supplyArea">공급면적 (평)</label>
-              <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
-            </div>
-            <div class="form-group" data-field-key="exclusiveArea">
-              <label id="flabel_exclusiveArea">전용면적 (평)</label>
-              <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
-            </div>
-            <div class="form-group" data-field-key="direction">
-              <label id="flabel_direction">방향</label>
-              <input class="form-input" type="text" id="f_direction" placeholder="예) 남향, 동향, 남동향">
-            </div>
-            <div class="form-group" data-field-key="height">
-              <label id="flabel_height">층고 (m)</label>
-              <input class="form-input" type="text" id="f_height" placeholder="예) 6m, 8m">
-            </div>
-            <div class="form-group" data-field-key="hoist">
-              <label id="flabel_hoist">호이스트 (t)</label>
-              <input class="form-input" type="text" id="f_hoist" placeholder="예) 3t, 5t">
-            </div>
-            <div class="form-group" data-field-key="waterIn">
-              <label id="flabel_waterIn">수도in</label>
-              <input class="form-input" type="text" id="f_waterIn" placeholder="예) 있음, 없음, 공업용수">
-            </div>
-            <div class="form-group" data-field-key="drain">
-              <label id="flabel_drain">퇴수구</label>
-              <input class="form-input" type="text" id="f_drain" placeholder="예) 있음, 없음, 하수도">
-            </div>
-            <div class="form-group" data-field-key="electric">
-              <label id="flabel_electric">동력 (kw)</label>
-              <input class="form-input" type="text" id="f_electric" placeholder="예) 50kw, 100kw">
-            </div>
-            <div class="form-group" data-field-key="toilet">
-              <label id="flabel_toilet">화장실</label>
-              <input class="form-input" type="text" id="f_toilet" placeholder="예) 1개, 남녀구분, 없음">
-            </div>
-            <div class="form-group" data-field-key="parking">
-              <label id="flabel_parking">주차가능여부</label>
-              <input class="form-input" type="text" id="f_parking" placeholder="예) 1대, 2대, 불가">
-            </div>
-            <div class="form-group" data-field-key="elevator">
-              <label id="flabel_elevator">엘리베이터</label>
-              <input class="form-input" type="text" id="f_elevator" placeholder="예) 있음, 없음, 화물용">
-            </div>
-            <div class="form-group" data-field-key="factoryReg">
-              <label id="flabel_factoryReg">공장등록 가능여부</label>
-              <input class="form-input" type="text" id="f_factoryReg" placeholder="예) 가능, 불가, 조건부가능">
-            </div>
-            <div class="form-group" data-field-key="floors">
-              <label id="flabel_floors">총층수</label>
-              <input class="form-input" type="text" id="f_floors" placeholder="예) 1층, 2층, 지하1층+지상2층">
-            </div>
-            <div class="form-group" data-field-key="rooms">
-              <label id="flabel_rooms">방개수</label>
-              <input class="form-input" type="text" id="f_rooms" placeholder="예) 2개, 3개">
-            </div>
-            <div class="form-group" data-field-key="bathrooms">
-              <label id="flabel_bathrooms">욕실수</label>
-              <input class="form-input" type="text" id="f_bathrooms" placeholder="예) 1개, 2개">
-            </div>
-            <div class="form-group" data-field-key="approvalDate">
-              <label id="flabel_approvalDate">사용승인일</label>
-              <input class="form-input" type="date" id="f_approvalDate">
-            </div>
-            <div class="form-group" data-field-key="recommendedBusiness">
-              <label id="flabel_recommendedBusiness">추천업종</label>
-              <input class="form-input" type="text" id="f_recommendedBusiness" placeholder="예) 물류창고, 제조업, 음식점">
-            </div>
-        </div>
-      </div>
-
-      <!-- 소유자정보 ------------------------------>
-      <div class="form-section">
-            <div class="section-header">
-              <div class="section-title">소유자정보</div>
-              <div class="section-line"></div>
-            </div>
+        <!-- 소유자정보 ------------------------------>
+         <div class="form-section">
+          <div class="section-title">소유자정보</div>
           <div class="form-grid" id="sectionOwner">
           <!-- 기존 코드 중 소유자정보 field가 여기 들어감-->
 
@@ -452,10 +441,11 @@
             <label id="flabel_ownerPhone">소유자 연락처</label>
             <input class="form-input" type="text" id="f_ownerPhone" placeholder="010-0000-0000" oninput="formatPhone(this)" maxlength="13">
           </div>
-        </div>
-      </div>
+        </div>  
 
-      <div class="form-group full">
+        <!-- 커스텀 항목 자동 추가 영역 -->
+        <div id="customFieldsArea"></div>
+        <div class="form-group full">
           <label>특이사항 / 메모</label>
           <textarea class="form-textarea" id="f_memo" placeholder="특이사항, 권리관계, 기타 메모 등...&#10;링크: [표시할글자](https://주소)"></textarea>
         </div>
@@ -492,6 +482,7 @@
             </div>
           </div>
         </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeFormModal()">취소</button>
@@ -500,8 +491,8 @@
   </div>
 </div>
 
-<!-- 상세 모달 (지도 드래그 시 바깥에서 mouseup 되어도 닫히지 않도록 mousedown/mouseup 사용) -->
-<div class="modal-overlay" id="detailModal" onmousedown="_detailModalDragStart(event)" onmouseup="_detailModalDragEnd(event)">
+<!-- 상세 모달 -->
+<div class="modal-overlay" id="detailModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="detailTitle"></div>
@@ -2545,8 +2536,21 @@ function closeMobileMenu() {
 }
 
 function refreshApp() {
-  // PC/모바일 공통: 로고 탭 시 새로고침
-  location.reload();
+  if (!/Mobi|Android/i.test(navigator.userAgent)) {
+    location.reload();
+  } else {
+    document.getElementById('searchInput').value = '';
+    exitSearchMode();
+    filterTypeChecked = {};
+    filterGeoraeChecked = {};
+    updateFilterTypeButtonText();
+    updateFilterGeoraeButtonText();
+    document.getElementById('filterTypePopup').style.display = 'none';
+    document.getElementById('filterGeoraePopup').style.display = 'none';
+    renderAdvSearchPanel();
+    renderTable();
+    window.scrollTo(0, 0);
+  }
 }
 
 function linkifyMemo(text) {
@@ -2739,37 +2743,17 @@ function updateFormFieldVisibility(type) {
   updatePriceInputUI();
 }
 
-// 섹션명 → 폼 모달 내 해당 그리드 DOM 반환
-function getFormSectionEl(section) {
-  if (section === '기본정보') return document.getElementById('sectionBasic');
-  if (section === '소유자정보') return document.getElementById('sectionOwner');
-  return document.getElementById('sectionDetail');
-}
-
-// ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용, 설정된 섹션 위치에 렌더) ───
+// ── 커스텀 항목 폼 렌더링 (선택한 매물종류별 항목설정 적용: 아파트→아파트, 빌라→빌라, 원룸→원룸 등) ───
 function renderCustomFieldsInForm(type, propData) {
-  // 렌더 전 기존 동적 커스텀필드 제거 (매물종류 변경 시 중복 방지)
-  document.querySelectorAll('#formModal .custom-dynamic-field').forEach(function(el) { el.remove(); });
+  var area = document.getElementById('customFieldsArea');
+  if(!area) return;
 
   var defaultKeys = {};
   DEFAULT_FIELDS.forEach(function(f){ defaultKeys[f.key] = true; });
-
-  function appendFieldToSection(key, label, value, section) {
-    var sectionEl = getFormSectionEl(section);
-    if (!sectionEl) return;
-    var safeVal = (value || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    var safeLbl = escapeHtml(label);
-    var html = '<div class="form-group custom-dynamic-field" data-field-key="'+key+'">'+
-      '<label>'+safeLbl+'</label>'+
-      '<input class="form-input" type="text" id="fc_'+key+'" value="'+safeVal+'" placeholder="'+safeLbl+' 입력...">'+
-      '</div>';
-    var wrap = document.createElement('div');
-    wrap.innerHTML = html;
-    var el = wrap.firstElementChild;
-    if (el) sectionEl.appendChild(el);
-  }
+  var html = '';
 
   if (type && COMMERCIAL_TYPES.indexOf(type) !== -1) {
+    // 상업용: master.order 기준, visibilityByType[type]이 true인 항목만 렌더
     var master = fieldSchema.commercial.master;
     var vbt = fieldSchema.commercial.visibilityByType[type] || {};
     (master.order || []).forEach(function(key) {
@@ -2780,14 +2764,18 @@ function renderCustomFieldsInForm(type, propData) {
       if (!visible) return;
       var val = (propData && propData[key]) ? propData[key] : '';
       var lbl = getFieldLabel(key, fd.label);
-      var section = getFieldSection(key, fd.section);
-      appendFieldToSection(key, lbl, val, section);
+      html += '<div class="form-group" data-field-key="'+key+'">'+
+        '<label>'+lbl+'</label>'+
+        '<input class="form-input" type="text" id="fc_'+key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
+        '</div>';
     });
+    area.innerHTML = html;
     updateFormFieldVisibility(type);
     return;
   }
 
   if (type && RESIDENTIAL_TYPES.indexOf(type) !== -1) {
+    // 주거용: master.order + visibilityByType[type] 기준 (상업용과 동일 구조)
     var resMaster = fieldSchema.residential.master;
     var resVbt = fieldSchema.residential.visibilityByType[type] || {};
     (resMaster.order || []).forEach(function(key) {
@@ -2798,9 +2786,12 @@ function renderCustomFieldsInForm(type, propData) {
       if (!visible) return;
       var val = (propData && propData[key]) ? propData[key] : '';
       var lbl = getFieldLabel(key, fd.label);
-      var section = getFieldSection(key, fd.section);
-      appendFieldToSection(key, lbl, val, section);
+      html += '<div class="form-group" data-field-key="'+key+'">'+
+        '<label>'+lbl+'</label>'+
+        '<input class="form-input" type="text" id="fc_'+key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
+        '</div>';
     });
+    area.innerHTML = html;
     updateFormFieldVisibility(type);
     return;
   }
@@ -2812,9 +2803,12 @@ function renderCustomFieldsInForm(type, propData) {
   customs.forEach(function(cf) {
     var val = (propData && propData[cf.key]) ? propData[cf.key] : '';
     var lbl = getFieldLabel(cf.key, cf.label);
-    var section = getFieldSection(cf.key, cf.section || '상세정보');
-    appendFieldToSection(cf.key, lbl, val, section);
+    html += '<div class="form-group" data-field-key="'+cf.key+'">'+
+      '<label>'+lbl+'</label>'+
+      '<input class="form-input" type="text" id="fc_'+cf.key+'" value="'+val.replace(/"/g,'&quot;')+'" placeholder="'+lbl+' 입력...">'+
+      '</div>';
   });
+  area.innerHTML = html;
   updateFormFieldVisibility(type);
 }
 
@@ -3240,8 +3234,7 @@ function openDetail(id){
   '<div style="position:relative;">'+
     '<div id="kakaoMap"></div>'+
     '<div id="kakaoRoadview" style="display:none;width:100%;height:250px;border-radius:10px;border:1px solid var(--border);"></div>'+
-    '<div id="mapViewBtns" class="no-print" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
-      '<button onclick="centerDetailMapOnMarker()" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">원위치</button>'+
+    '<div id="mapViewBtns" style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px;">'+
       '<button onclick="switchMapView(\'map\')" id="btnMapView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">지도</button>'+
       '<button onclick="switchMapView(\'sky\')" id="btnSkyView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">스카이뷰</button>'+
       '<button onclick="switchMapView(\'roadview\')" id="btnRvView" class="btn btn-sm" style="background:#fff;color:#333;border:1px solid #ccc;font-size:11px;padding:4px 8px;">🚶 로드뷰</button>'+
@@ -3342,14 +3335,6 @@ function openDetail(id){
     };
     window._mapInitTimer = setTimeout(function(){ tryMap(0); }, 500);
   }
-}
-
-// 상세보기 지도: 핀 위치로 중심 이동 (원위치)
-function centerDetailMapOnMarker() {
-  if (!window._kakaoMapObj || !window._mapCoords) return;
-  var mapEl = document.getElementById('kakaoMap');
-  if (mapEl && mapEl.style.display === 'none') return; // 로드뷰 표시 중이면 무시
-  window._kakaoMapObj.setCenter(window._mapCoords);
 }
 
 // 지적도 토글
@@ -4264,13 +4249,7 @@ function openDetailOverMap(id) {
   openDetail(id);
 }
 
-// 상세 모달: mousedown/mouseup으로 지도 드래그 후 바깥에서 뗐을 때는 닫지 않음 (전체매물지도·현수막과 동일)
-var _detailModalMouseDownTarget = null;
-function _detailModalDragStart(e) { _detailModalMouseDownTarget = e.target; }
-function _detailModalDragEnd(e) {
-  if (e.target === e.currentTarget && _detailModalMouseDownTarget === e.currentTarget) closeDetailModal();
-  _detailModalMouseDownTarget = null;
-}
+document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
 document.getElementById('settingsModal').addEventListener('click',function(e){ /* 바깥 클릭으로 닫기 비활성화 */ });
 
 var _modalStatePushed = false;

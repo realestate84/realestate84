@@ -3839,103 +3839,122 @@ function updateDepBtn(p) {
   btn.style.borderColor = 'transparent';
 }
 
+// 매물복사할 때 어떤 필드를 복사할지 목록을 알려주는 함수
+function getCopyableBaseFieldKeys() {
+  return [
+    'type', 'georae', 'address',
+    'price', 'monthlyRent', 'pricePerPyeong',
+    'officialBuildingPrice', 'officialLandPrice',
+    'maintenance', 'premium',
+
+    'lotCount', 'landArea', 'landShareRatio', 'roadShare',
+    'totalLandArea', 'roadArea', 'useZone', 'jimok', 'access',
+
+    'floorArea', 'structure', 'totalArea', 'tempArea', 'buildingUse',
+    'supplyArea', 'exclusiveArea', 'direction', 'height', 'hoist',
+    'waterIn', 'drain', 'electric', 'toilet', 'parking', 'elevator',
+    'factoryReg', 'floors', 'rooms', 'bathrooms', 'approvalDate',
+    'recommendedBusiness',
+
+    'regOwnerName', 'ownerName', 'ownerPhone',
+
+    'memo', 'note', 'naver', 'video',
+
+    'departure',
+    'adStatus'
+  ];
+}
+
+// 매물복사할 때 이 매물에 존재하는 커스텀필드를 자동으로 찾아서 복사대상에 포함시키는 것
+function getCopyableCustomFieldKeys(type) {
+  return (customFields[type] || []).map(function(cf) {
+    return cf.key;
+  });
+}
+
+// ── 매물복사 ─────────────────────────────
 function copyProperty(id) {
-
-  if(!confirm('이 매물을 복사하시겠습니까?\n(사진, 문서, 히스토리, 광고정보는 복사되지 않아요)')) return;
-
   var collection = getPropertiesCollection();
 
   db.collection(collection).doc(id).get()
-  .then(function(doc){
+    .then(function(doc) {
+      if (!doc.exists) throw 'NOT_FOUND';
 
-    if(!doc.exists) {
-      alert('매물을 찾을 수 없습니다.');
-      return Promise.reject('NOT_FOUND');
-    }
+      var p = doc.data();
+      var now = new Date();
+      var dateStr = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
+      var timeStr = String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0');
 
-    var p = doc.data();
-    var now = new Date();
-    var dateStr = now.toLocaleDateString('ko-KR');
-    var timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+      var newData = {};
 
-    var newData = {
-      georae:p.georae || '',
-      type:p.type || '',
-      address:p.address || '',
-      price:p.price || '',
-      monthlyRent:p.monthlyRent != null ? p.monthlyRent : '',
-      maintenance:p.maintenance || '',
-      landArea:p.landArea || '',
-      totalArea:p.totalArea || '',
-      supplyArea:p.supplyArea || '',
-      exclusiveArea:p.exclusiveArea || '',
-      tempArea:p.tempArea || '',
-      roadArea:p.roadArea || '',
-      useZone:p.useZone || '',
-      jimok:p.jimok || '',
-      buildingUse:p.buildingUse || '',
-      approvalDate:p.approvalDate || '',
-      floors:p.floors || '',
-      electric:p.electric || '',
-      hoist:p.hoist || '',
-      direction:p.direction || '',
-      height:p.height || '',
-      parking:p.parking || '',
-      toilet:p.toilet || '',
-      factoryReg:p.factoryReg || '',
-      access:p.access || '',
-      regOwnerName:p.regOwnerName || '',
-      ownerName:p.ownerName || '',
-      ownerPhone:p.ownerPhone || '',
-      memo:p.memo || '',
-      note:p.note || '',
-      naver:p.naver || '',
-      video:p.video || '',
-      departure: p.departure !== false,
-      createdDate:dateStr,
-      createdTime:timeStr,
-      updatedDate:dateStr,
-      updatedTime:timeStr
-    };
-
-    return db.collection(collection).add(newData);
-
-  })
-  .then(function(ref){
-
-    if(!ref) return;
-
-    return db.collection(collection).get().then(function(snap){
-
-      var maxNo = 0;
-      snap.forEach(function(d){
-        var v = parseInt(d.data().propNo) || 0;
-        if(v > maxNo) maxNo = v;
+      // 1. 기본 필드 복사
+      getCopyableBaseFieldKeys().forEach(function(key) {
+        if (p[key] !== undefined) {
+          newData[key] = p[key];
+        } else {
+          // 문자열계열은 빈값으로 초기화해서 undefined 저장 방지
+          newData[key] = (key === 'departure') ? true : '';
+        }
       });
 
-      return db.collection(collection).doc(ref.id).update({
-        propNo: String(maxNo + 1)
+      // 2. 현재 매물종류의 커스텀필드 복사
+      getCopyableCustomFieldKeys(p.type).forEach(function(key) {
+        newData[key] = (p[key] !== undefined) ? p[key] : '';
       });
 
+      // 3. 복사 제외 필드 명시 차단
+      delete newData.id;
+      delete newData.propNo;
+      delete newData.photos;
+      delete newData.photoUrls;
+      delete newData.documents;
+      delete newData.docs;
+      delete newData.history;
+      delete newData.logs;
+      delete newData.createdBy;
+      delete newData.updatedBy;
+
+      // 4. 신규 매물로 생성될 메타값
+      newData.createdDate = dateStr;
+      newData.createdTime = timeStr;
+      newData.updatedDate = dateStr;
+      newData.updatedTime = timeStr;
+
+      return db.collection(collection).add(newData);
+    })
+
+    // 5. propNo는 신규 매물 중 가장 큰 번호 +1로 지정 (propNo이 없는 경우는 0으로 간주)
+    .then(function(ref) {
+      if (!ref) return;
+
+      return db.collection(collection).get().then(function(snap) {
+        var maxNo = 0;
+        snap.forEach(function(d) {
+          var v = parseInt(d.data().propNo) || 0;
+          if (v > maxNo) maxNo = v;
+        });
+
+        return db.collection(collection).doc(ref.id).update({
+          propNo: String(maxNo + 1)
+        });
+      });
+    })
+
+    // 6. 완료 후 UI 갱신 및 알림
+    .then(function() {
+      closeDetailModal();
+      invalidatePropertyCache();
+      load();
+      showToast('✅ 매물이 복사되었습니다.');
+    })
+    .catch(function(err) {
+      if (err === 'NOT_FOUND') return;
+      console.error(err);
+      alert('매물 복사 중 오류가 발생했습니다.');
     });
-
-  })
-  .then(function(){
-
-    closeDetailModal();
-    invalidatePropertyCache();
-    load();
-    showToast('✅ 매물이 복사되었습니다.');
-
-  })
-  .catch(function(err){
-
-    if(err === 'NOT_FOUND') return;
-    console.error(err);
-    alert('매물 복사 중 오류가 발생했습니다.');
-
-  });
-
 }
 
 function showToast(msg) {

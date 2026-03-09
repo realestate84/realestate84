@@ -827,7 +827,7 @@ function runSearch(keyword) {
   listMode = 'search';
   searchLoading = true;
   showLoading('검색 중...');
-  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').get()
+  db.collection(getPropertiesCollection()).orderBy('createdAt','desc').get()
     .then(function(snap) {
       var allProps = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
       searchResults = allProps.filter(function(p){ return matchesSearch(p, searchKeyword); });
@@ -1802,7 +1802,7 @@ function loadPropertiesFirstPage() {
   reachedEnd = false;
   lastDoc = null;
   showLoading();
-  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').limit(PAGE_SIZE).get()
+  db.collection(getPropertiesCollection()).orderBy('createdAt','desc').limit(PAGE_SIZE).get()
     .then(function(snap) {
       properties = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
       if(snap.docs.length > 0) lastDoc = snap.docs[snap.docs.length - 1];
@@ -1832,7 +1832,7 @@ function loadNextPage() {
   loadingNextPage = true;
   var loadingEl = document.getElementById('listLoading');
   if(loadingEl) loadingEl.style.display = 'block';
-  db.collection(getPropertiesCollection()).orderBy('createdDate','desc').startAfter(lastDoc).limit(PAGE_SIZE).get()
+  db.collection(getPropertiesCollection()).orderBy('createdAt','desc').startAfter(lastDoc).limit(PAGE_SIZE).get()
     .then(function(snap) {
       if(snap.empty) { reachedEnd = true; loadingNextPage = false; if(loadingEl) loadingEl.style.display = 'none'; return; }
       var newData = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
@@ -3087,6 +3087,8 @@ function saveProperty(){
     } else {
       data.createdDate=dateStr; data.createdTime=timeStr; data.updatedDate=''; data.updatedTime='';
       data.departure = true;
+      data.createdAt = firebase.firestore.Timestamp.fromDate(new Date());
+      data.updatedAt = firebase.firestore.Timestamp.fromDate(new Date());
       saveNew(data, function(err, newId){
         btn.textContent='저장'; btn.disabled=false;
         if(err){ alert('저장 오류: '+err.message); return; }
@@ -3959,18 +3961,21 @@ function copyProperty(id) {
       delete newData.createdBy;
       delete newData.updatedBy;
 
-      // 4. 신규 매물로 생성될 메타값
+      // 4. 신규 매물로 생성될 메타값 (createdAt Timestamp로 정렬/페이지네이션 보장)
       newData.createdDate = dateStr;
       newData.createdTime = timeStr;
       newData.updatedDate = dateStr;
       newData.updatedTime = timeStr;
+      newData.createdAt = firebase.firestore.Timestamp.fromDate(new Date());
+      newData.updatedAt = firebase.firestore.Timestamp.fromDate(new Date());
 
-      return db.collection(collection).add(newData);
+      return db.collection(collection).add(newData).then(function(ref) { return { ref: ref, newData: newData }; });
     })
 
     // 5. propNo는 신규 매물 중 가장 큰 번호 +1로 지정 (propNo이 없는 경우는 0으로 간주)
-    .then(function(ref) {
-      if (!ref) return;
+    .then(function(obj) {
+      if (!obj || !obj.ref) return Promise.resolve(null);
+      var ref = obj.ref, newData = obj.newData;
 
       return db.collection(collection).get().then(function(snap) {
         var maxNo = 0;
@@ -3978,18 +3983,27 @@ function copyProperty(id) {
           var v = parseInt(d.data().propNo) || 0;
           if (v > maxNo) maxNo = v;
         });
-
-        return db.collection(collection).doc(ref.id).update({
-          propNo: String(maxNo + 1)
-        });
+        var newPropNo = String(maxNo + 1);
+        return db.collection(collection).doc(ref.id)
+          .update({ propNo: newPropNo })
+          .then(function() { return { refId: ref.id, propNo: newPropNo, newData: newData }; });
       });
     })
 
-    // 6. 완료 후 UI 갱신 및 알림
-    .then(function() {
+    // 6. 완료 후 UI 갱신 및 알림 (load() 제거 — 즉시 로컬 배열에 삽입)
+    .then(function(result) {
+      if (!result) return;
       closeDetailModal();
       invalidatePropertyCache();
-      load();
+      var insertData = Object.assign({}, result.newData, {
+        id: result.refId,
+        propNo: result.propNo
+      });
+      properties.unshift(insertData);
+      if (listMode === 'search') searchResults.unshift(insertData);
+      var cache = sectorCache[currentSector];
+      if (cache) cache.properties = properties.slice(); // sectorCache 동기화
+      if (_fieldSettingsReady) renderTable();
       showToast('✅ 매물이 복사되었습니다.');
     })
     .catch(function(err) {
@@ -4411,7 +4425,9 @@ function uploadExcel(e){
       function g(k){ return (ci[k]>=0 && cols[ci[k]]!==undefined) ? String(cols[ci[k]]||'').trim() : ''; }
       var data = {
         photos: [], propNo: maxNo+success+1,
-        createdDate: dateStr, createdTime: timeStr, updatedDate: '', updatedTime: ''
+        createdDate: dateStr, createdTime: timeStr, updatedDate: '', updatedTime: '',
+        createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+        updatedAt: firebase.firestore.Timestamp.fromDate(new Date())
       };
       excelFields.forEach(function(f){
         if(f.key === 'propNo' || f.key === 'photos') return;

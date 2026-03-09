@@ -500,8 +500,8 @@
   </div>
 </div>
 
-<!-- 상세 모달 -->
-<div class="modal-overlay" id="detailModal">
+<!-- 상세 모달 (지도 드래그 시 바깥에서 mouseup 되어도 닫히지 않도록 mousedown/mouseup 사용) -->
+<div class="modal-overlay" id="detailModal" onmousedown="_detailModalDragStart(event)" onmouseup="_detailModalDragEnd(event)">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="detailTitle"></div>
@@ -4277,7 +4277,13 @@ function openDetailOverMap(id) {
   openDetail(id);
 }
 
-document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) closeDetailModal(); });
+// 상세 모달: mousedown/mouseup으로 지도 드래그 후 바깥에서 뗐을 때는 닫지 않음 (전체매물지도·현수막과 동일)
+var _detailModalMouseDownTarget = null;
+function _detailModalDragStart(e) { _detailModalMouseDownTarget = e.target; }
+function _detailModalDragEnd(e) {
+  if (e.target === e.currentTarget && _detailModalMouseDownTarget === e.currentTarget) closeDetailModal();
+  _detailModalMouseDownTarget = null;
+}
 document.getElementById('settingsModal').addEventListener('click',function(e){ /* 바깥 클릭으로 닫기 비활성화 */ });
 
 var _modalStatePushed = false;

@@ -3911,6 +3911,8 @@ function copyProperty(id) {
   })
   .then(function(){
 
+    invalidatePropertyCache();
+    if(_fieldSettingsReady) renderTable();
     closeDetailModal();
     showToast('✅ 매물이 복사되었습니다.');
 

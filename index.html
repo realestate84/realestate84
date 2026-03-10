@@ -749,10 +749,12 @@
     </div>
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;flex-shrink:0;">지도를 움직여 원하는 위치를 가운데 핀에 맞춘 뒤 등록해주세요.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <button type="button" class="btn btn-outline btn-sm" id="bannerCurrentLocationBtn" onclick="moveBannerMapToCurrentLocation()">📍 현위치</button>
+      </div>
       <div id="bannerMapWrap" style="margin-bottom:14px;">
         <div id="bannerMap"></div>
         <div class="banner-map-center-pin" aria-hidden="true">📍</div>
-        <button type="button" class="btn btn-outline btn-sm banner-map-current-location-btn" id="bannerCurrentLocationBtn" onclick="moveBannerMapToCurrentLocation()">📍 현위치</button>
       </div>
       <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
@@ -5220,7 +5222,9 @@ function forceCloseSettings() {
   document.getElementById('settingsModal').classList.remove('active');
 }
 
+// 등록, 수정에서 변경사항이 저장되지 않음 경고 후 설정 패널 닫기
 function closeSettings() {
+  console.log('closeSettings 호출됨');
   if(!confirm('변경사항을 취소하시겠습니까?\n수정한 내용이 저장되지 않아요.')) return;
   if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
   _tmpFieldSettings = null;

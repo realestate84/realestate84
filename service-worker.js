@@ -1,5 +1,5 @@
 // 깃허브에 올릴 때마다 날짜+번호를 바꿔주세요 → 앱이 자동으로 최신 버전 감지
-const CACHE_VERSION = '2026-03-11-180429';
+const CACHE_VERSION = '2026-03-11-181112';
 const CACHE_NAME = 'sarom-realestate-' + CACHE_VERSION;
 const STATIC_ASSETS = [
   '/realestate84/',

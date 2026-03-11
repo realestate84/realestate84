@@ -709,7 +709,8 @@
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="매매" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#3a7ef6"></span>매매</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="전세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#6c47f5"></span>전세</label>
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="georae" data-value="월세" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#f0a030"></span>월세</label>
-          <button onclick="toggleAllMapChk()" id="btnMapChkToggle" class="btn btn-outline btn-sm" style="font-size:11px;margin-left:auto;">모두해제</button>
+          <button onclick="toggleMapDepFilter()" id="btnMapDepFilter" class="btn btn-sm" style="font-size:11px;margin-left:auto;background:#3a7ef6;color:#fff;border-color:#3a7ef6;font-weight:600;">🔵 출발가능만</button>
+          <button onclick="toggleAllMapChk()" id="btnMapChkToggle" class="btn btn-outline btn-sm" style="font-size:11px;">모두해제</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
           <span style="font-size:12px;color:var(--text-muted);font-weight:600;min-width:30px">종류</span>
@@ -6676,6 +6677,9 @@ function openMapAll() {
   if(typeof kakao === 'undefined') { alert('카카오 지도가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.'); return; }
   if(properties.length === 0) { alert('등록된 매물이 없습니다.'); return; }
   document.querySelectorAll('.map-chk').forEach(function(c){ c.checked = true; });
+  window._mapDepFilterOn = true;
+  var depBtn = document.getElementById('btnMapDepFilter');
+  if(depBtn){ depBtn.style.background='#3a7ef6'; depBtn.style.color='#fff'; depBtn.style.borderColor='#3a7ef6'; depBtn.style.fontWeight='600'; depBtn.textContent='🔵 출발가능만'; }
   document.getElementById('mapAllModal').classList.add('active');
   // 뷰 상태 초기화
   _mapAllCurrentView = 'map';
@@ -6962,6 +6966,19 @@ function toggleAllMapChk() {
   applyMapFilter();
 }
 
+function toggleMapDepFilter() {
+  window._mapDepFilterOn = !window._mapDepFilterOn;
+  var btn = document.getElementById('btnMapDepFilter');
+  if(btn) {
+    if(window._mapDepFilterOn) {
+      btn.style.background='#3a7ef6'; btn.style.color='#fff'; btn.style.borderColor='#3a7ef6'; btn.style.fontWeight='600'; btn.textContent='🔵 출발가능만';
+    } else {
+      btn.style.background=''; btn.style.color=''; btn.style.borderColor=''; btn.style.fontWeight=''; btn.textContent='🔵 출발가능만';
+    }
+  }
+  applyMapFilter();
+}
+
 function applyMapFilter() {
   if(!_mapObj) return;
   if(window._mapOverlay){window._mapOverlay.setMap(null);window._mapOverlay=null;}
@@ -6974,7 +6991,8 @@ function applyMapFilter() {
     var list = item.properties || [item.p];
     var sg = cg.length===totalGeorae || list.some(function(p){ return cg.indexOf(p.georae)!==-1; });
     var st = ct.length===totalType   || list.some(function(p){ return ct.indexOf(p.type)!==-1; });
-    item.marker.setMap(sg&&st?_mapObj:null);
+    var sd = !window._mapDepFilterOn || list.some(function(p){ return p.departure !== false; });
+    item.marker.setMap(sg&&st&&sd?_mapObj:null);
   });
   // 버튼 텍스트 동기화
   var btn = document.getElementById('btnMapChkToggle');
@@ -6993,7 +7011,8 @@ function updateMapInfo() {
   var totalType   = document.querySelectorAll('.map-chk[data-filter="type"]').length;
   var v = _mapMarkers.filter(function(item){
     var list = item.properties || [item.p];
-    return (cg.length===totalGeorae||list.some(function(p){ return cg.indexOf(p.georae)!==-1; })) && (ct.length===totalType||list.some(function(p){ return ct.indexOf(p.type)!==-1; }));
+    var sd = !window._mapDepFilterOn || list.some(function(p){ return p.departure !== false; });
+    return (cg.length===totalGeorae||list.some(function(p){ return cg.indexOf(p.georae)!==-1; })) && (ct.length===totalType||list.some(function(p){ return ct.indexOf(p.type)!==-1; })) && sd;
   }).length;
   document.getElementById('mapAllInfo').textContent = '총 '+v+'개 매물 표시 중';
 }

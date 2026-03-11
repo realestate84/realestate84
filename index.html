@@ -753,12 +753,15 @@
     </div>
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;flex-shrink:0;">지도를 움직여 원하는 위치를 가운데 핀에 맞춘 뒤 등록해주세요.</p>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-        <button type="button" class="btn btn-outline btn-sm" id="bannerCurrentLocationBtn" onclick="moveBannerMapToCurrentLocation()">📍 현위치</button>
-      </div>
-      <div id="bannerMapWrap" style="margin-bottom:14px;">
+      <div id="bannerMapWrap" style="margin-bottom:14px;position:relative;">
         <div id="bannerMap"></div>
         <div class="banner-map-center-pin" aria-hidden="true">📍</div>
+        <button type="button" id="bannerCurrentLocationBtn" onclick="moveBannerMapToCurrentLocation()"
+          style="position:absolute;bottom:10px;right:10px;z-index:10;
+                 background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                 padding:6px 10px;font-size:12px;cursor:pointer;
+                 box-shadow:0 2px 6px rgba(0,0,0,0.15);
+                 display:flex;align-items:center;gap:4px;">📍 현위치</button>
       </div>
       <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
@@ -1990,15 +1993,32 @@ function saveEdit(id, data, callback) {
     .catch(function(e){ callback(e); });
 }
 
-function deleteFromDB(id, photos, callback) {
-  var deletePhotos = function() {
-    if (!photos || photos.length === 0) return db.collection(getPropertiesCollection()).doc(id).delete();
-    var deletes = photos.filter(function(u){return u && u.startsWith('https://');}).map(function(url){
-      try { return storage.refFromURL(url).delete(); } catch(e){ return Promise.resolve(); }
-    });
-    return Promise.all(deletes).then(function(){ return db.collection(getPropertiesCollection()).doc(id).delete(); });
-  };
-  deletePhotos().then(function(){ callback(null); }).catch(function(e){ callback(e); });
+function deleteFromDB(id, photos, docs, callback) {
+  // 하위호환: 3번째 인자가 함수면 docs 없이 호출된 것
+  if(typeof docs === 'function') { callback = docs; docs = {}; }
+
+  function deleteStorageUrl(url) {
+    if(!url || !url.startsWith('https://')) return Promise.resolve();
+    try {
+      return storage.refFromURL(url).delete().catch(function(e){
+        // 이미 없는 파일은 성공으로 처리
+        if(e && e.code === 'storage/object-not-found') return;
+        return Promise.reject(e); // 그 외 오류는 전파 → 매물 삭제 중단
+      });
+    }
+    catch(e) { return Promise.resolve(); }
+  }
+
+  // 1단계: 사진 + 문서 Storage 파일 삭제
+  var photoDeletes = (photos||[]).map(deleteStorageUrl);
+  var docDeletes = Object.keys(docs||{}).map(function(k){ return deleteStorageUrl(docs[k]); });
+
+  // 2단계: 파일 삭제 성공 시에만 Firestore 매물 정보 삭제
+  // 파일 삭제 실패 시 callback(err) → deleteProperty에서 오류 메시지 표시, 매물 삭제 중단
+  Promise.all(photoDeletes.concat(docDeletes))
+    .then(function(){ return db.collection(getPropertiesCollection()).doc(id).delete(); })
+    .then(function(){ callback(null); })
+    .catch(function(e){ callback(e); });
 }
 
 function uploadPhotos(id, photoList, callback) {
@@ -3773,8 +3793,8 @@ function deleteProperty(id){
   if(!confirm('이 매물을 삭제하시겠습니까?')) return;
   _loadOneProp(id, function(p) {
     var addr = p ? (p.address || id) : id;
-    deleteFromDB(id, p?p.photos:[], function(err){
-      if(err){ alert('삭제 오류: '+err.message); return; }
+    deleteFromDB(id, p?p.photos:[], p?p.docs:{}, function(err){
+      if(err){ alert('사진/문서 삭제에 실패했습니다.\n매물 정보는 삭제되지 않았습니다.\n\n오류: '+(err.message||err)); return; }
       invalidatePropertyCache();
       properties = properties.filter(function(x){ return x.id !== id; });
       if(_fieldSettingsReady) renderTable();

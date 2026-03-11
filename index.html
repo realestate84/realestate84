@@ -728,7 +728,14 @@
           <label class="map-chk-label"><input type="checkbox" class="map-chk" data-filter="type" data-value="펜션" onchange="applyMapFilter()" checked><span class="map-chk-dot" style="background:#e91e63"></span>펜션</label>
         </div>
       </div>
-      <div id="mapAll"></div>
+      <div id="mapAll" style="position:relative;">
+        <button type="button" id="mapAllCurrentLocationBtn" onclick="moveMapAllToCurrentLocation()"
+          style="position:absolute;bottom:10px;right:10px;z-index:10;
+                 background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                 padding:6px 10px;font-size:12px;cursor:pointer;
+                 box-shadow:0 2px 6px rgba(0,0,0,0.15);
+                 display:flex;align-items:center;gap:4px;color:var(--text);">📍 현위치</button>
+      </div>
       <!-- 로드뷰 컨테이너 -->
       <div id="mapAllRoadview" style="display:none;flex:1;min-height:0;border-radius:10px;border:1px solid var(--border);overflow:hidden;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;flex-wrap:wrap;">
@@ -1537,6 +1544,35 @@ function moveBannerMapToCurrentLocation() {
       _bannerMapObj.setCenter(loc);
       _bannerMapObj.setLevel(4);
       updateBannerAddressFromCenter();
+      if (btn) { btn.disabled = false; btn.textContent = '📍 현위치'; }
+    },
+    function(err) {
+      if (btn) { btn.disabled = false; btn.textContent = '📍 현위치'; }
+      var msg = err.code === 1 ? '위치 접근이 거부되었습니다.' : err.code === 2 ? '위치를 찾을 수 없습니다.' : '위치 조회 중 오류가 발생했습니다.';
+      alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function moveMapAllToCurrentLocation() {
+  if (!_mapObj) return;
+  if (!navigator.geolocation) {
+    alert('이 브라우저는 위치 기능을 지원하지 않습니다.');
+    return;
+  }
+  var btn = document.getElementById('mapAllCurrentLocationBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '위치 조회 중…'; }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var loc = new kakao.maps.LatLng(lat, lng);
+      _mapObj.setCenter(loc);
+      _mapObj.setLevel(4);
+      _mapAllLastLat = lat;
+      _mapAllLastLng = lng;
+      _mapAllLastLevel = 4;
       if (btn) { btn.disabled = false; btn.textContent = '📍 현위치'; }
     },
     function(err) {
@@ -6781,6 +6817,7 @@ function switchMapAllView(mode) {
   var btnMap = document.getElementById('btnMapAllMap');
   var btnSky = document.getElementById('btnMapAllSky');
   var btnRv  = document.getElementById('btnMapAllRv');
+  var locBtn = document.getElementById('mapAllCurrentLocationBtn');
 
   // 버튼 스타일 초기화
   [btnMap, btnSky, btnRv].forEach(function(b){
@@ -6792,6 +6829,7 @@ function switchMapAllView(mode) {
   if(mode === 'map') {
     mapEl.style.display = '';
     rvEl.style.display  = 'none';
+    if(locBtn) locBtn.style.display = 'flex';
     if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
     if(_mapObj) {
       _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT); // 항상 먼저 제거
@@ -6801,6 +6839,7 @@ function switchMapAllView(mode) {
   } else if(mode === 'sky') {
     mapEl.style.display = '';
     rvEl.style.display  = 'none';
+    if(locBtn) locBtn.style.display = 'flex';
     if(_mapObj) _mapObj.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
     if(_mapObj) {
       _mapObj.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT); // 항상 먼저 제거
@@ -6816,6 +6855,7 @@ function switchMapAllView(mode) {
     mapEl.style.display = 'none';
     rvEl.style.display  = '';
     rvEl.style.flex     = '1';
+    if(locBtn) locBtn.style.display = 'none';
     if(btnRv){ btnRv.style.background='var(--accent)'; btnRv.style.color='#fff'; btnRv.style.fontWeight='bold'; btnRv.style.borderColor='var(--accent)'; }
     _openMapAllRoadview(_mapAllRvCoords);
   }

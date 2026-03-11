@@ -6406,9 +6406,18 @@ function getGroupMarkerImage(count) {
 // 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
 function openPropertyFromMap(id) {
   if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
+  // properties는 페이지네이션으로 일부만 로드돼 있으므로, 없으면 Firestore에서 직접 조회
   var p = properties.find(function(x){ return x.id === id; });
-  if(!p) return;
-  openDetail(p.id);
+  if(p) { openDetail(p.id); return; }
+  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
+    var fetched = Object.assign({ id: doc.id }, doc.data());
+    properties.push(fetched); // 이후 동작을 위해 배열에도 추가
+    openDetail(fetched.id);
+  }).catch(function(e) {
+    console.error('매물 조회 오류:', e);
+    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
+  });
 }
 
 function openMapAll() {

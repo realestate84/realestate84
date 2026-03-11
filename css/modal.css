@@ -53,8 +53,8 @@
 /* ── 현수막 모달 ──────────────────────────── */
 #bannerModal .modal{max-width:1200px;width:100%;height:95vh;display:flex;flex-direction:column;}
 #bannerModal .modal-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
-#bannerMapWrap{position:relative;flex:1;min-height:0;max-height:42vh;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
-#bannerMap{width:100%;height:100%;min-height:280px;}
+#bannerMapWrap{position:relative;flex:1;min-height:0;max-height:59vh;border-radius:10px;border:1px solid var(--border);overflow:hidden;}
+#bannerMap{width:100%;height:100%;min-height:392px;}
 .banner-map-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:10;pointer-events:none;font-size:42px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));}
 .banner-map-current-location-btn{position:absolute;right:10px;bottom:10px;z-index:11;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
 #bannerModal #bannerMemo{min-height:0;height:28px;line-height:1.35;padding:4px 10px;font-size:13px;resize:none;}

@@ -5601,32 +5601,44 @@ function renderCustomerShownProps(custId) {
     return;
   }
 
-  listEl.innerHTML = shown.map(function(pid){
-    var p = properties.find(function(x){ return x.id===pid; });
-    if(!p) {
-      return '<div class="doc-row">'+
-        '<div class="doc-row-title">삭제된 매물('+escapeHtml(pid)+')</div>'+
-        '<div class="doc-row-actions">'+
-          '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">목록에서 제거</button>'+
-        '</div>'+
-      '</div>';
-    }
-    var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
-    if (p.georae==='월세' && p.monthlyRent!==undefined && p.monthlyRent!==null && p.monthlyRent!=='') priceStr += (priceStr ? ' / ' : '') + formatMonthlyRentComma(p.monthlyRent);
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr ? ' · '+priceStr : '');
-    return '<div class="doc-row" style="gap:10px;">'+
-      '<div style="min-width:0;flex:1;">'+
-        '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
-        '<div class="doc-status" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
-      '</div>'+
-      '<div class="doc-row-actions">'+
-        '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+pid+'\')">상세보기</button>'+
-        '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">삭제</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
+  // 각 pid를 _loadOneProp으로 조회 (페이지네이션 미로드 매물도 정상 표시)
+  listEl.innerHTML = '<div style="padding:8px 0;color:var(--text-muted);font-size:12px;">불러오는 중...</div>';
+  var results = new Array(shown.length);
+  var remaining = shown.length;
+  function renderWhenReady() {
+    if(--remaining > 0) return;
+    listEl.innerHTML = results.join('');
+  }
+  shown.forEach(function(pid, i) {
+    _loadOneProp(pid, function(p) {
+      if(!p) {
+        results[i] =
+          '<div class="doc-row">' +
+            '<div class="doc-row-title" style="color:var(--text-muted);">삭제된 매물</div>' +
+            '<div class="doc-row-actions">' +
+              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(''+custId+'',''+pid+'')">목록에서 제거</button>' +
+            '</div>' +
+          '</div>';
+      } else {
+        var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
+        var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
+        if (p.georae==='월세' && p.monthlyRent!==undefined&&p.monthlyRent!==null&&p.monthlyRent!=='') priceStr += (priceStr?' / ':'') + formatMonthlyRentComma(p.monthlyRent);
+        var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr?' · '+priceStr:'');
+        results[i] =
+          '<div class="doc-row" style="gap:10px;">' +
+            '<div style="min-width:0;flex:1;">' +
+              '<div class="doc-row-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>' +
+              '<div class="doc-status" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>' +
+            '</div>' +
+            '<div class="doc-row-actions">' +
+              '<button class="btn btn-outline btn-sm" onclick="openDetail(''+pid+'')">상세보기</button>' +
+              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(''+custId+'',''+pid+'')">삭제</button>' +
+            '</div>' +
+          '</div>';
+      }
+      renderWhenReady();
+    });
+  });
 
 function getPropertySearchCandidates(custId, query) {
   var c = getCustomerById(custId);

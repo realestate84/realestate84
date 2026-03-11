@@ -5616,7 +5616,7 @@ function renderCustomerShownProps(custId) {
           '<div class="doc-row">' +
             '<div class="doc-row-title" style="color:var(--text-muted);">삭제된 매물</div>' +
             '<div class="doc-row-actions">' +
-              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(''+custId+'',''+pid+'')">목록에서 제거</button>' +
+              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">목록에서 제거</button>' +
             '</div>' +
           '</div>';
       } else {
@@ -5631,14 +5631,15 @@ function renderCustomerShownProps(custId) {
               '<div class="doc-status" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>' +
             '</div>' +
             '<div class="doc-row-actions">' +
-              '<button class="btn btn-outline btn-sm" onclick="openDetail(''+pid+'')">상세보기</button>' +
-              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(''+custId+'',''+pid+'')">삭제</button>' +
+              '<button class="btn btn-outline btn-sm" onclick="openDetail(\''+pid+'\')">상세보기</button>' +
+              '<button class="btn btn-danger btn-sm" onclick="removeShownPropertyFromCustomer(\''+custId+'\',\''+pid+'\')">삭제</button>' +
             '</div>' +
           '</div>';
       }
       renderWhenReady();
     });
   });
+}
 
 function getPropertySearchCandidates(custId, query) {
   var c = getCustomerById(custId);

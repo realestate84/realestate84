@@ -683,6 +683,10 @@
           </table>
         </div>
         <div style="font-size:11px;color:var(--text-muted);" id="customerListInfo"></div>
+        <div id="customerDoneSection">
+          <button id="customerDoneToggleBtn" onclick="toggleCustomerDoneSection()" style="width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--border);padding:8px 4px 4px;font-size:12px;color:var(--text-muted);cursor:pointer;display:none;">✅ 완료 <span id="customerDoneCount">0</span>건 ▾</button>
+          <div id="customerDoneList" style="display:none;"></div>
+        </div>
       </div>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;">
         <div id="customerDetail" style="flex:1;overflow:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px;"></div>
@@ -5335,39 +5339,90 @@ function renderCustomerEmpty() {
     '</div>';
 }
 
+function _renderCustomerRows(list) {
+  if(list.length === 0) return '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">없습니다.</td></tr>';
+  return list.map(function(c){
+    var shownCnt = (c.shownProps||[]).length;
+    var selected = (_currentCustomerId === c.id);
+    return '<tr onclick="openCustomerDetail(\''+c.id+'\')" style="cursor:pointer;'+(selected?'background:rgba(58,126,246,0.06);':'')+'">' +
+      '<td style="font-weight:600;'+(c.done?'color:var(--text-muted);text-decoration:line-through;':'')+'">'+escapeHtml(c.name||'-')+'</td>'+
+      '<td class="muted">'+escapeHtml(c.custType||'-')+'</td>'+
+      '<td class="muted">'+escapeHtml(c.custGeorae||'-')+'</td>'+
+      '<td class="muted" style="text-align:center;">'+shownCnt+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
+var _customerDoneOpen = false;
+
 function renderCustomerList() {
   var body = document.getElementById('customerListBody');
   var info = document.getElementById('customerListInfo');
   if(!body) return;
 
   var q = (document.getElementById('customerSearch') ? document.getElementById('customerSearch').value.trim().toLowerCase() : '');
-  var list = customers.slice();
+  var allList = customers.slice();
   if(q) {
-    list = list.filter(function(c){
+    allList = allList.filter(function(c){
       var s = (c.name||'') + ' ' + (c.phone||'') + ' ' + (c.memo||'');
       return s.toLowerCase().indexOf(q) !== -1;
     });
   }
 
-  if(list.length === 0) {
-    body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-muted);">고객이 없습니다.</td></tr>';
-  } else {
-    body.innerHTML = list.map(function(c){
-      var shownCnt = (c.shownProps||[]).length;
-      var selected = (_currentCustomerId === c.id);
-      return '<tr onclick="openCustomerDetail(\''+c.id+'\')" style="cursor:pointer;'+(selected?'background:rgba(58,126,246,0.06);':'')+'">'+
-        '<td style="font-weight:600;">'+escapeHtml(c.name||'-')+'</td>'+
-        '<td class="muted">'+escapeHtml(c.custType||'-')+'</td>'+
-        '<td class="muted">'+escapeHtml(c.custGeorae||'-')+'</td>'+
-        '<td class="muted" style="text-align:center;">'+shownCnt+'</td>'+
-      '</tr>';
-    }).join('');
+  var activeList = allList.filter(function(c){ return !c.done; });
+  var doneList   = allList.filter(function(c){ return  c.done; });
+
+  body.innerHTML = activeList.length === 0
+    ? '<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-muted);">고객이 없습니다.</td></tr>'
+    : _renderCustomerRows(activeList);
+
+  // 완료 토글 버튼 갱신
+  var toggleBtn  = document.getElementById('customerDoneToggleBtn');
+  var countEl    = document.getElementById('customerDoneCount');
+  var doneListEl = document.getElementById('customerDoneList');
+  if(toggleBtn) {
+    if(doneList.length > 0) {
+      toggleBtn.style.display = 'block';
+      if(countEl) countEl.textContent = doneList.length;
+      // 열려있으면 내용 갱신
+      if(_customerDoneOpen && doneListEl) {
+        doneListEl.innerHTML = '<table style="width:100%;border-collapse:collapse;"><tbody>' + _renderCustomerRows(doneList) + '</tbody></table>';
+      }
+    } else {
+      toggleBtn.style.display = 'none';
+      _customerDoneOpen = false;
+      if(doneListEl) doneListEl.style.display = 'none';
+    }
   }
 
   if(info) {
-    info.textContent = '총 ' + customers.length + '명 / 검색 ' + list.length + '명';
+    var activeTot = customers.filter(function(c){ return !c.done; }).length;
+    var doneTot   = customers.filter(function(c){ return  c.done; }).length;
+    info.textContent = '진행중 ' + activeTot + '명' + (doneTot > 0 ? ' / 완료 ' + doneTot + '명' : '') + (q ? ' (검색 ' + allList.length + '명)' : '');
   }
 }
+
+function toggleCustomerDoneSection() {
+  _customerDoneOpen = !_customerDoneOpen;
+  var btn = document.getElementById('customerDoneToggleBtn');
+  var doneListEl = document.getElementById('customerDoneList');
+  var q = (document.getElementById('customerSearch') ? document.getElementById('customerSearch').value.trim().toLowerCase() : '');
+  var doneList = customers.filter(function(c){
+    if(!c.done) return false;
+    if(!q) return true;
+    var s = (c.name||'') + ' ' + (c.phone||'') + ' ' + (c.memo||'');
+    return s.toLowerCase().indexOf(q) !== -1;
+  });
+  if(_customerDoneOpen) {
+    doneListEl.style.display = 'block';
+    doneListEl.innerHTML = '<table style="width:100%;border-collapse:collapse;"><tbody>' + _renderCustomerRows(doneList) + '</tbody></table>';
+    if(btn) btn.innerHTML = '✅ 완료 <span id="customerDoneCount">' + doneList.length + '</span>건 ▴';
+  } else {
+    doneListEl.style.display = 'none';
+    if(btn) btn.innerHTML = '✅ 완료 <span id="customerDoneCount">' + doneList.length + '</span>건 ▾';
+  }
+}
+
 
 function openCustomerForm(id) {
   var c = id ? getCustomerById(id) : null;
@@ -5441,6 +5496,24 @@ function saveCustomerForm(id) {
   }
 }
 
+function toggleCustomerDone(id) {
+  var c = getCustomerById(id);
+  if(!c) return;
+  var newDone = !c.done;
+  var now = new Date();
+  var update = {
+    done: newDone,
+    doneDate: newDone ? now.toLocaleDateString('ko-KR') : ''
+  };
+  db.collection(getCustomersCollection()).doc(id).update(update).then(function(){
+    c.done = newDone;
+    c.doneDate = update.doneDate;
+    showToast(newDone ? '✅ 완료처리 됐어요!' : '↩ 진행중으로 변경됐어요!');
+    renderCustomerList();
+    openCustomerDetail(id);
+  }).catch(function(e){ alert('오류: ' + (e && e.message ? e.message : e)); });
+}
+
 function deleteCustomer(id) {
   var c = getCustomerById(id);
   if(!c) return;
@@ -5477,7 +5550,10 @@ function openCustomerDetail(id, keep) {
           '<span>🗓 등록일시 ' + escapeHtml(c.createdDate||'-') + (c.createdTime ? ' ' + escapeHtml(c.createdTime) : '') + '</span>'+
         '</div>'+
       '</div>'+
-      '<div style="display:flex;gap:8px;flex-shrink:0;">'+
+      '<div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">'+
+        (c.done
+          ? '<button class="btn btn-outline btn-sm" onclick="toggleCustomerDone(\''+id+'\')" style="color:var(--accent);">↩ 진행중으로</button>'
+          : '<button class="btn btn-outline btn-sm" onclick="toggleCustomerDone(\''+id+'\')" style="color:#22c55e;">✅ 완료처리</button>')+
         '<button class="btn btn-outline btn-sm" onclick="openCustomerForm(\''+id+'\')">수정</button>'+
         '<button class="btn btn-danger btn-sm" onclick="deleteCustomer(\''+id+'\')">삭제</button>'+
       '</div>'+

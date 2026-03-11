@@ -2363,13 +2363,24 @@ function renderTable() {
   // 정렬
   if(sortKey) {
     list.sort(function(a, b) {
-      // 광고 상태 정렬
+      // 광고 상태 정렬: 광고중(0) → 광고준비(1) → 광고종료(2)
       if(sortKey === 'adStatus') {
-        var la = getAdDaysLeft(a.adStart, a.adEnd) || 0;
-        var lb = getAdDaysLeft(b.adStart, b.adEnd) || 0;
-        if(la < 0) la = 0;
-        if(lb < 0) lb = 0;
-        return sortDir === 'asc' ? la - lb : lb - la;
+        function adSortRank(p) {
+          var left = getAdDaysLeft(p.adStart, p.adEnd);
+          if(left !== null && left > 0) return 0; // 광고중
+          if(p.adReady) return 1;                 // 광고준비
+          return 2;                               // 광고종료
+        }
+        var ra = adSortRank(a);
+        var rb = adSortRank(b);
+        if(ra !== rb) return sortDir === 'asc' ? ra - rb : rb - ra;
+        // 같은 그룹 내에서는 광고중이면 남은 일수 내림차순
+        if(ra === 0) {
+          var la = getAdDaysLeft(a.adStart, a.adEnd) || 0;
+          var lb = getAdDaysLeft(b.adStart, b.adEnd) || 0;
+          return sortDir === 'asc' ? lb - la : la - lb;
+        }
+        return 0;
       }
       if(sortKey === 'departure') {
         var da = a.departure !== false ? 1 : 0;
@@ -2592,7 +2603,47 @@ function onColDrop(e) {
 var sortKey = 'propNo';
 var sortDir = 'desc';
 
+// 모든 매물을 다 불러온 뒤 콜백 실행
+function loadAllThenDo(callback) {
+  if(reachedEnd) { callback(); return; }
+  if(listMode === 'search') { callback(); return; }
+  var loadingEl = document.getElementById('listLoading');
+  if(loadingEl) { loadingEl.style.display = 'block'; loadingEl.textContent = '전체 매물 불러오는 중...'; }
+
+  function fetchNext() {
+    if(reachedEnd || !lastDoc) {
+      if(loadingEl) { loadingEl.style.display = 'none'; loadingEl.textContent = '매물 불러오는 중...'; }
+      callback();
+      return;
+    }
+    if(loadingNextPage) { setTimeout(fetchNext, 200); return; }
+    loadingNextPage = true;
+    db.collection(getPropertiesCollection()).orderBy('createdAt','desc').startAfter(lastDoc).limit(PAGE_SIZE).get()
+      .then(function(snap) {
+        if(snap.empty) { reachedEnd = true; loadingNextPage = false; fetchNext(); return; }
+        var newData = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+        properties = properties.concat(newData);
+        lastDoc = snap.docs[snap.docs.length - 1];
+        if(snap.docs.length < PAGE_SIZE) reachedEnd = true;
+        var cache = sectorCache[currentSector];
+        cache.properties = properties.slice();
+        cache.lastDoc = lastDoc;
+        cache.reachedEnd = reachedEnd;
+        loadingNextPage = false;
+        fetchNext();
+      })
+      .catch(function(e) {
+        console.error(e);
+        loadingNextPage = false;
+        if(loadingEl) { loadingEl.style.display = 'none'; loadingEl.textContent = '매물 불러오는 중...'; }
+        callback();
+      });
+  }
+  fetchNext();
+}
+
 function sortTable(key) {
+  // 정렬 방향 결정
   if(sortKey === key) {
     if(sortDir === 'asc') {
       sortDir = 'desc';
@@ -2610,10 +2661,15 @@ function sortTable(key) {
   document.querySelectorAll('thead th span[id^="sort_"]').forEach(function(el){ el.textContent = ''; });
   // 현재 정렬 아이콘 표시
   if(sortKey) {
-    var el = document.getElementById('sort_'+sortKey);
-    if(el) el.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
+    var si = document.getElementById('sort_'+sortKey);
+    if(si) si.textContent = sortDir === 'asc' ? ' ▲' : ' ▼';
   }
-  renderTable();
+  // 아직 전체 매물을 다 불러오지 않은 경우 모두 불러온 뒤 정렬
+  if(!reachedEnd && listMode !== 'search') {
+    loadAllThenDo(function() { renderTable(); });
+  } else {
+    renderTable();
+  }
 }
 
 function formatPhone(input) {

@@ -6811,7 +6811,8 @@ function openMapAll() {
         var g = groups[key];
         var props = g.properties;
         var markerImg = props.length === 1 ? getMarkerImage(props[0]) : getGroupMarkerImage(props.length);
-        var marker = new kakao.maps.Marker({ map: _mapObj, position: g.coords, image: markerImg });
+        var depVisible = !window._mapDepFilterOn || props.some(function(p){ return p.departure !== false; });
+        var marker = new kakao.maps.Marker({ map: depVisible ? _mapObj : null, position: g.coords, image: markerImg });
         _mapMarkers.push({ marker: marker, properties: props });
 
         (function(m, list) {

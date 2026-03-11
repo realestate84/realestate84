@@ -2620,6 +2620,24 @@ function refreshApp() {
   location.reload();
 }
 
+function saveMemoInline(id) {
+  var ta = document.getElementById('detailMemoTextarea');
+  var statusEl = document.getElementById('memoSaveStatus');
+  if(!ta) return;
+  var newMemo = ta.value;
+  // 현재 캐시된 값과 같으면 저장 생략
+  var p = properties.find(function(x){ return x.id===id; });
+  if(p && p.memo === newMemo) { if(statusEl) statusEl.textContent=''; return; }
+  if(statusEl) statusEl.textContent = '저장 중...';
+  db.collection(getPropertiesCollection()).doc(id).update({ memo: newMemo }).then(function(){
+    if(p) p.memo = newMemo;
+    if(statusEl) { statusEl.textContent = '✅ 저장됨'; setTimeout(function(){ statusEl.textContent=''; }, 2000); }
+  }).catch(function(e){
+    if(statusEl) statusEl.textContent = '❌ 저장 실패';
+    alert('메모 저장 오류: ' + (e && e.message ? e.message : e));
+  });
+}
+
 function linkifyMemo(text) {
   var escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // 1. [텍스트](URL) 마크다운 링크 먼저 처리
@@ -3279,7 +3297,7 @@ function _openDetailWithData(p) {
         '</div>'+
       '</div>'+
     '</div>'+
-    (p.memo?'<div class="detail-section"><div class="detail-section-title">특이사항 / 메모</div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.memo)+'</div></div>':'')+
+    '<div class="detail-section">'+'<div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+'<span>특이사항 / 메모</span>'+'<span id="memoSaveStatus" style="font-size:11px;color:var(--text-muted);"></span>'+'</div>'+'<textarea id="detailMemoTextarea" class="form-textarea" placeholder="메모를 입력하세요..." style="min-height:80px;font-size:13px;line-height:1.8;resize:vertical;width:100%;box-sizing:border-box;" onblur="saveMemoInline(\''+id+'\')" oninput="document.getElementById(\'memoSaveStatus\').textContent=\'수정 중...\'">'+escapeHtml(p.memo||'')+'</textarea>'+'</div>'+
     (p.note?'<div class="detail-section no-print"><div class="detail-section-title">참고사항 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.note)+'</div></div>':'')+
     (p.naver?'<div class="detail-section no-print"><div class="detail-section-title">네이버 광고문구 <span style="font-size:11px;color:var(--text-muted)">(인쇄 제외)</span></div><div style="font-size:13px;line-height:1.8;white-space:pre-wrap">'+linkifyMemo(p.naver)+'</div></div>':'')+
     '<div class="detail-section no-print"><div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">'+

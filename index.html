@@ -3011,8 +3011,34 @@ function openEditModal(id){
   if(formBody) { formBody.scrollTop = 0; }
   setTimeout(function(){ if(formBody) formBody.scrollTop = 0; }, 0);
 }
+var _formModalConfirmed = false;
 function closeFormModal(){
-  if (_modalStatePushed) { if (window.history && window.history.back) window.history.back(); return; }
+  var formFields = [
+    'f_georae','f_type','f_address',
+    'f_price','f_monthlyRent','f_pricePerPyeong','f_officialBuildingPrice','f_officialLandPrice','f_maintenance','f_premium',
+    'f_lotCount','f_landArea','f_landShareRatio','f_roadShare','f_totalLandArea','f_roadArea',
+    'f_useZone','f_jimok','f_access',
+    'f_floorArea','f_structure','f_totalArea','f_tempArea','f_buildingUse','f_supplyArea','f_exclusiveArea',
+    'f_direction','f_height','f_hoist','f_waterIn','f_drain','f_electric','f_toilet','f_parking',
+    'f_elevator','f_factoryReg','f_floors','f_rooms','f_bathrooms','f_approvalDate','f_recommendedBusiness',
+    'f_regOwnerName','f_ownerName','f_ownerPhone',
+    'f_memo','f_note','f_naver','f_video'
+  ];
+  if (!_formModalConfirmed) {
+    var hasValue = formFields.some(function(id) {
+      var el = document.getElementById(id);
+      return el && el.value.trim() !== '';
+    });
+    if (hasValue) {
+      if (!confirm('변경사항을 취소하시겠습니까?\n수정한 내용이 저장되지 않아요.')) return;
+    }
+  }
+  _formModalConfirmed = false;
+  if (_modalStatePushed) {
+    _formModalConfirmed = true;
+    if (window.history && window.history.back) window.history.back();
+    return;
+  }
   document.getElementById('formModal').classList.remove('active');
 }
 function clearForm(){

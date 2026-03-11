@@ -6653,6 +6653,41 @@ function openMapAll() {
       }, 200);
     });
 
+    // ── PC 우클릭: 매물 등록 ──────────────────────────────
+    kakao.maps.event.addListener(_mapObj, 'rightclick', function(mouseEvent) {
+      triggerMapRegister(mouseEvent.latLng);
+    });
+
+    // ── 모바일 길게누르기 (700ms): 매물 등록 ─────────────
+    var _lpTimer = null;
+    var _lpMoved = false;
+    var _mapCanvas = document.getElementById('mapAll');
+
+    _mapCanvas.addEventListener('touchstart', function(e) {
+      _lpMoved = false;
+      var touch = e.touches[0];
+      _lpTimer = setTimeout(function() {
+        if(_lpMoved) return;
+        var rect = _mapCanvas.getBoundingClientRect();
+        var proj = _mapObj.getProjection();
+        var latlng = proj.coordsFromContainerPoint(
+          new kakao.maps.Point(touch.clientX - rect.left, touch.clientY - rect.top)
+        );
+        triggerMapRegister(latlng);
+      }, 700);
+    }, { passive: true });
+
+    _mapCanvas.addEventListener('touchmove',   function() {
+      _lpMoved = true;
+      if(_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    }, { passive: true });
+    _mapCanvas.addEventListener('touchend',    function() {
+      if(_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    }, { passive: true });
+    _mapCanvas.addEventListener('touchcancel', function() {
+      if(_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    }, { passive: true });
+
     // 로딩 안내 표시
     var mapInfoEl = document.getElementById('mapAllInfo');
     if(mapInfoEl) mapInfoEl.textContent = '전체 매물 불러오는 중...';
@@ -6759,6 +6794,88 @@ function openMapAll() {
     });
   }, 300);
 }
+
+// ── 지도 매물 등록 (우클릭/길게누르기 공통) ──────────────
+function triggerMapRegister(latlng) {
+  if(!latlng) return;
+  var gc = new kakao.maps.services.Geocoder();
+  gc.coord2Address(latlng.getLng(), latlng.getLat(), function(result, status) {
+    if(status !== kakao.maps.services.Status.OK) return;
+    var addrObj = result[0];
+    // 번지(지번) 주소 우선, 없으면 도로명 주소
+    var finalAddr = (addrObj.address && addrObj.address.address_name)
+      || (addrObj.road_address && addrObj.road_address.address_name)
+      || '';
+    if(!finalAddr) return;
+    showMapRegisterConfirm(finalAddr);
+  });
+}
+
+function showMapRegisterConfirm(address) {
+  var old = document.getElementById('mapRegisterConfirm');
+  if(old) old.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'mapRegisterConfirm';
+  overlay.style.cssText = [
+    'position:fixed','inset:0','z-index:99999',
+    'display:flex','align-items:center','justify-content:center',
+    'background:rgba(0,0,0,0.45)'
+  ].join(';');
+
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:90%;'+
+    'box-shadow:0 16px 48px rgba(0,0,0,0.22);text-align:center;font-family:inherit;">'+
+      '<div style="font-size:26px;margin-bottom:10px;">📍</div>'+
+      '<div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:10px;">이 주소에 매물을 등록할까요?</div>'+
+      '<div style="font-size:13px;color:#555;background:#f4f6fb;border-radius:8px;'+
+           'padding:10px 14px;margin-bottom:22px;word-break:keep-all;line-height:1.6;">'+
+        escapeHtml(address)+
+      '</div>'+
+      '<div style="display:flex;gap:10px;">'+
+        '<button id="mapRegConfirmCancel"'+
+          ' style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;'+
+          'background:#fff;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;">'+
+          '취소'+
+        '</button>'+
+        '<button id="mapRegConfirmOk"'+
+          ' style="flex:1;padding:12px;border:none;border-radius:10px;'+
+          'background:#3a7ef6;color:#fff;font-size:14px;'+
+          'font-weight:700;cursor:pointer;font-family:inherit;">'+
+          '등록'+
+        '</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('mapRegConfirmCancel').onclick = function() { overlay.remove(); };
+  document.getElementById('mapRegConfirmOk').onclick    = function() { openAddModalFromMap(address); };
+  overlay.addEventListener('click', function(e) { if(e.target === overlay) overlay.remove(); });
+}
+
+function openAddModalFromMap(address) {
+  var cfm = document.getElementById('mapRegisterConfirm');
+  if(cfm) cfm.remove();
+
+  // 전체지도 모달 닫기
+  var mapModal = document.getElementById('mapAllModal');
+  if(mapModal) mapModal.classList.remove('active');
+
+  // 등록 모달 열기
+  openAddModal();
+
+  // clearForm() 이후에 주소 세팅 (번지 주소 그대로 입력)
+  setTimeout(function() {
+    var addrEl = document.getElementById('f_address');
+    if(addrEl) {
+      addrEl.value = address;
+      addrEl.focus();
+    }
+    showToast('📍 주소가 입력됐어요. 나머지 정보를 입력 후 저장하세요.');
+  }, 450);
+}
+// ─────────────────────────────────────────────────────────
 
 function toggleAllMapChk() {
   var btn = document.getElementById('btnMapChkToggle');

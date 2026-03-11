@@ -2089,121 +2089,137 @@ function genId() {
 function renderStats() {} // 통계바 제거됨
 
 function openStats() {
-  var total = properties.length;
-  if(total === 0) { alert('등록된 매물이 없습니다.'); return; }
-
-  // 거래유형별
-  var georaeMap = {};
-  // 매물종류별
-  var typeMap = {};
-  // 지역별 (시/군 단위)
-  var regionMap = {};
-  // 용도지역별
-  var useZoneMap = {};
-  // 월별 등록
-  var monthMap = {};
-
-  properties.forEach(function(p) {
-    // 거래유형
-    var g = p.georae || '미분류';
-    georaeMap[g] = (georaeMap[g]||0) + 1;
-    // 매물종류
-    var t = p.type || '미분류';
-    typeMap[t] = (typeMap[t]||0) + 1;
-    // 지역 (주소 첫 두 단어: 예) 인천시 강화군)
-    if(p.address) {
-      var parts = p.address.trim().split(/\s+/);
-      var region = parts.slice(0,2).join(' ');
-      regionMap[region] = (regionMap[region]||0) + 1;
-    }
-    // 용도지역
-    if(p.useZone) {
-      var uz = p.useZone.trim();
-      useZoneMap[uz] = (useZoneMap[uz]||0) + 1;
-    }
-    // 월별 등록
-    if(p.createdDate) {
-      var m = p.createdDate.replace(/\./g,'-').split('-').slice(0,2).join('-').trim();
-      monthMap[m] = (monthMap[m]||0) + 1;
-    }
-  });
-
-  function makeBar(map, colorFn) {
-    var entries = Object.entries(map).sort(function(a,b){return b[1]-a[1];});
-    var max = entries[0] ? entries[0][1] : 1;
-    return entries.map(function(e, i) {
-      var pct = Math.round(e[1]/total*100);
-      var barW = Math.round(e[1]/max*100);
-      return '<div style="margin-bottom:10px;">'+
-        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'+
-          '<span style="font-weight:500;">'+e[0]+'</span>'+
-          '<span style="color:var(--text-muted)">'+e[1]+'건 ('+pct+'%)</span>'+
-        '</div>'+
-        '<div style="background:var(--bg);border-radius:6px;height:10px;overflow:hidden;">'+
-          '<div style="height:100%;width:'+barW+'%;background:'+colorFn(i)+';border-radius:6px;transition:width 0.4s;"></div>'+
-        '</div>'+
-      '</div>';
-    }).join('');
-  }
-
-  var colors1 = ['#3a7ef6','#6c47f5','#f0a030'];
-  var colors2 = ['#2eab7a','#e06830','#e04a5a','#20aac8','#9b59b6','#e91e8c','#ff9800','#4caf50','#795548','#e91e63'];
-  var colors3 = ['#3a7ef6','#6c47f5','#2eab7a','#f0a030','#e04a5a','#20aac8','#9b59b6','#ff9800'];
-
-  // 출발가능 매물 수
-  var depCount = properties.filter(function(p){ return p.departure !== false; }).length;
-  var avgPrice = (function(){
-    var priced = properties.filter(function(p){ return priceNum(p) > 0; });
-    if(!priced.length) return '-';
-    var sum = priced.reduce(function(s,p){ return s + priceNum(p); },0);
-    return Math.round(sum/priced.length).toLocaleString()+'만원';
-  })();
-
-  var html =
-    // 요약 카드
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;">'+
-      '<div style="background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;padding:14px;color:#fff;text-align:center;">'+
-        '<div style="font-size:26px;font-weight:700;">'+total+'</div><div style="font-size:12px;opacity:0.85;">전체 매물</div></div>'+
-      '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
-        '<div style="font-size:22px;font-weight:700;color:var(--accent);">'+(georaeMap['매매']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">매매</div></div>'+
-      '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
-        '<div style="font-size:22px;font-weight:700;color:var(--accent2);">'+(georaeMap['전세']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">전세</div></div>'+
-      '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
-        '<div style="font-size:22px;font-weight:700;color:#f0a030;">'+(georaeMap['월세']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">월세</div></div>'+
-      '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
-        '<div style="font-size:22px;font-weight:700;color:#3a7ef6;">'+depCount+'</div><div style="font-size:12px;color:var(--text-muted);">출발가능</div></div>'+
-    '</div>'+
-    // 3단 그리드
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">'+
-      '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
-        '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">거래유형별 매물수</div>'+
-        makeBar(georaeMap, function(i){ return colors1[i%colors1.length]; })+
-      '</div>'+
-      '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
-        '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">매물종류별 매물수</div>'+
-        makeBar(typeMap, function(i){ return colors2[i%colors2.length]; })+
-      '</div>'+
-      '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
-        '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">지역별 매물수</div>'+
-        makeBar(regionMap, function(i){ return colors3[i%colors3.length]; })+
-      '</div>'+
-      '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
-        '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">용도지역별 매물수</div>'+
-        (Object.keys(useZoneMap).length ? makeBar(useZoneMap, function(i){ return colors2[i%colors2.length]; }) :
-        '<div style="font-size:12px;color:var(--text-muted);">용도지역 데이터 없음</div>')+
-      '</div>'+
-      '<div style="background:var(--bg);border-radius:12px;padding:16px;grid-column:1/-1;">'+
-        '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">월별 등록 매물수</div>'+
-        (Object.keys(monthMap).length ? makeBar(
-          Object.fromEntries(Object.entries(monthMap).sort()),
-          function(i){ return colors3[i%colors3.length]; }) :
-        '<div style="font-size:12px;color:var(--text-muted);">등록일 데이터 없음</div>')+
-      '</div>'+
-    '</div>';
-
-  document.getElementById('statsBody').innerHTML = html;
+  // 로딩 표시 먼저 띄우기
+  document.getElementById('statsBody').innerHTML =
+    '<div style="text-align:center;padding:48px 0;color:var(--text-muted);font-size:14px;">📊 전체 매물 집계 중...</div>';
   document.getElementById('statsModal').classList.add('active');
   pushModalState();
+
+  // 페이지네이션 무관하게 Firestore 전체 조회
+  db.collection(getPropertiesCollection()).get().then(function(snap) {
+    var allProps = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    var total = allProps.length;
+    if(total === 0) {
+      document.getElementById('statsBody').innerHTML =
+        '<div style="text-align:center;padding:48px 0;color:var(--text-muted);">등록된 매물이 없습니다.</div>';
+      return;
+    }
+
+    // 거래유형별
+    var georaeMap = {};
+    // 매물종류별
+    var typeMap = {};
+    // 지역별 (시/군 단위)
+    var regionMap = {};
+    // 용도지역별
+    var useZoneMap = {};
+    // 월별 등록
+    var monthMap = {};
+
+    allProps.forEach(function(p) {
+      // 거래유형
+      var g = p.georae || '미분류';
+      georaeMap[g] = (georaeMap[g]||0) + 1;
+      // 매물종류
+      var t = p.type || '미분류';
+      typeMap[t] = (typeMap[t]||0) + 1;
+      // 지역 (주소 첫 두 단어: 예) 인천시 강화군)
+      if(p.address) {
+        var parts = p.address.trim().split(/\s+/);
+        var region = parts.slice(0,2).join(' ');
+        regionMap[region] = (regionMap[region]||0) + 1;
+      }
+      // 용도지역
+      if(p.useZone) {
+        var uz = p.useZone.trim();
+        useZoneMap[uz] = (useZoneMap[uz]||0) + 1;
+      }
+      // 월별 등록
+      if(p.createdDate) {
+        var m = p.createdDate.replace(/\./g,'-').split('-').slice(0,2).join('-').trim();
+        monthMap[m] = (monthMap[m]||0) + 1;
+      }
+    });
+
+    function makeBar(map, colorFn) {
+      var entries = Object.entries(map).sort(function(a,b){return b[1]-a[1];});
+      var max = entries[0] ? entries[0][1] : 1;
+      return entries.map(function(e, i) {
+        var pct = Math.round(e[1]/total*100);
+        var barW = Math.round(e[1]/max*100);
+        return '<div style="margin-bottom:10px;">'+
+          '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">'+
+            '<span style="font-weight:500;">'+e[0]+'</span>'+
+            '<span style="color:var(--text-muted)">'+e[1]+'건 ('+pct+'%)</span>'+
+          '</div>'+
+          '<div style="background:var(--bg);border-radius:6px;height:10px;overflow:hidden;">'+
+            '<div style="height:100%;width:'+barW+'%;background:'+colorFn(i)+';border-radius:6px;transition:width 0.4s;"></div>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    }
+
+    var colors1 = ['#3a7ef6','#6c47f5','#f0a030'];
+    var colors2 = ['#2eab7a','#e06830','#e04a5a','#20aac8','#9b59b6','#e91e8c','#ff9800','#4caf50','#795548','#e91e63'];
+    var colors3 = ['#3a7ef6','#6c47f5','#2eab7a','#f0a030','#e04a5a','#20aac8','#9b59b6','#ff9800'];
+
+    // 출발가능 매물 수
+    var depCount = allProps.filter(function(p){ return p.departure !== false; }).length;
+    var avgPrice = (function(){
+      var priced = allProps.filter(function(p){ return priceNum(p) > 0; });
+      if(!priced.length) return '-';
+      var sum = priced.reduce(function(s,p){ return s + priceNum(p); },0);
+      return Math.round(sum/priced.length).toLocaleString()+'만원';
+    })();
+
+    var html =
+      // 요약 카드
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px;">'+
+        '<div style="background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;padding:14px;color:#fff;text-align:center;">'+
+          '<div style="font-size:26px;font-weight:700;">'+total+'</div><div style="font-size:12px;opacity:0.85;">전체 매물</div></div>'+
+        '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
+          '<div style="font-size:22px;font-weight:700;color:var(--accent);">'+(georaeMap['매매']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">매매</div></div>'+
+        '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
+          '<div style="font-size:22px;font-weight:700;color:var(--accent2);">'+(georaeMap['전세']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">전세</div></div>'+
+        '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
+          '<div style="font-size:22px;font-weight:700;color:#f0a030;">'+(georaeMap['월세']||0)+'</div><div style="font-size:12px;color:var(--text-muted);">월세</div></div>'+
+        '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">'+
+          '<div style="font-size:22px;font-weight:700;color:#3a7ef6;">'+depCount+'</div><div style="font-size:12px;color:var(--text-muted);">출발가능</div></div>'+
+      '</div>'+
+      // 차트 그리드
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">'+
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
+          '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">거래유형별 매물수</div>'+
+          makeBar(georaeMap, function(i){ return colors1[i%colors1.length]; })+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
+          '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">매물종류별 매물수</div>'+
+          makeBar(typeMap, function(i){ return colors2[i%colors2.length]; })+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
+          '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">지역별 매물수</div>'+
+          makeBar(regionMap, function(i){ return colors3[i%colors3.length]; })+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">'+
+          '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">용도지역별 매물수</div>'+
+          (Object.keys(useZoneMap).length ? makeBar(useZoneMap, function(i){ return colors2[i%colors2.length]; }) :
+          '<div style="font-size:12px;color:var(--text-muted);">용도지역 데이터 없음</div>')+
+        '</div>'+
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;grid-column:1/-1;">'+
+          '<div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">월별 등록 매물수</div>'+
+          (Object.keys(monthMap).length ? makeBar(
+            Object.fromEntries(Object.entries(monthMap).sort()),
+            function(i){ return colors3[i%colors3.length]; }) :
+          '<div style="font-size:12px;color:var(--text-muted);">등록일 데이터 없음</div>')+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('statsBody').innerHTML = html;
+
+  }).catch(function(e) {
+    document.getElementById('statsBody').innerHTML =
+      '<div style="text-align:center;padding:48px 0;color:var(--danger);font-size:13px;">❌ 집계 중 오류가 발생했습니다.<br>' + (e.message||'') + '</div>';
+  });
 }
 
 function closeStats() {

@@ -2538,28 +2538,32 @@ function uploadDetailPhotos(e, propId) {
   var label = e.target.parentElement;
   label.textContent = '업로드 중...';
 
-  var p = properties.find(function(x){ return x.id === propId; });
-  var existingPhotos = (p && p.photos) ? p.photos.slice() : [];
-  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
-  var existingCount = existingPhotos.length;
+  db.collection(getPropertiesCollection()).doc(propId).get().then(function(doc) {
+    var p = doc.exists ? Object.assign({ id: doc.id }, doc.data()) : null;
+    var idx = p ? properties.findIndex(function(x){ return x.id === propId; }) : -1;
+    if(idx !== -1) properties[idx] = p; else if(p) properties.push(p);
+    var existingPhotos = (p && p.photos) ? p.photos.slice() : [];
+    var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+    var existingCount = existingPhotos.length;
 
-  var uploads = files.map(function(file, i) {
-    var ext = file.name.split('.').pop() || 'jpg';
-    var fileName = addrBase + '_사진' + (existingCount + i + 1) + '.' + ext;
-    var ref = storage.ref('properties/' + propId + '/photos/' + fileName);
-    return ref.put(file).then(function(){ return ref.getDownloadURL(); });
-  });
+    var uploads = files.map(function(file, i) {
+      var ext = file.name.split('.').pop() || 'jpg';
+      var fileName = addrBase + '_사진' + (existingCount + i + 1) + '.' + ext;
+      var ref = storage.ref('properties/' + propId + '/photos/' + fileName);
+      return ref.put(file).then(function(){ return ref.getDownloadURL(); });
+    });
 
-  Promise.all(uploads).then(function(urls) {
-    var newPhotos = existingPhotos.concat(urls);
-    return db.collection(getPropertiesCollection()).doc(propId).update({ photos: newPhotos }).then(function() {
-      if(p) p.photos = newPhotos;
+    Promise.all(uploads).then(function(urls) {
+      var newPhotos = existingPhotos.concat(urls);
+      return db.collection(getPropertiesCollection()).doc(propId).update({ photos: newPhotos }).then(function() {
+        if(p) p.photos = newPhotos;
+        openDetail(propId);
+      });
+    }).catch(function(err) {
+      alert('사진 업로드 오류: ' + err.message);
       openDetail(propId);
     });
-  }).catch(function(err) {
-    alert('사진 업로드 오류: ' + err.message);
-    openDetail(propId);
-  });
+  }).catch(function(e) { console.error('매물 조회 오류:', e); });
 }
 
 function toggleMobileMenu() {
@@ -2913,19 +2917,8 @@ function openAddModal(){
   updatePriceInputUI();
 }
 function openEditModal(id){
-  // 항상 Firestore에서 직접 최신 데이터 조회
-  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
-    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
-    var p = Object.assign({ id: doc.id }, doc.data());
-    var idx = properties.findIndex(function(x){ return x.id === id; });
-    if(idx !== -1) properties[idx] = p; else properties.push(p);
-    _openEditModalWithData(id, p);
-  }).catch(function(e) {
-    console.error('매물 조회 오류:', e);
-    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
-  });
-}
-function _openEditModalWithData(id, p){
+  var p=properties.find(function(x){return x.id===id;});
+  if(!p) return;
   editingId=id;
   document.getElementById('formModalTitle').textContent='매물 수정';
   fillFormTypeOptions();
@@ -3145,7 +3138,8 @@ function saveProperty(){
         if(err){ alert('저장 오류: '+err.message); return; }
         invalidatePropertyCache();
         var p = properties.find(function(x){ return x.id === savedId; });
-        if(p) Object.assign(p, data);
+        if(p) { Object.assign(p, data); }
+        else { properties.push(Object.assign({id: savedId}, data)); }
         if(_fieldSettingsReady) renderTable();
         appendActivityLog('매물 수정', address);
         closeFormModal();
@@ -3173,22 +3167,14 @@ function saveProperty(){
 function openDetail(id){
   window._currentDetailId = id;
 
-  // 항상 Firestore에서 직접 최신 데이터 조회
-  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
-    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
-    var p = Object.assign({ id: doc.id }, doc.data());
-    // properties 배열 갱신 (수정/삭제 등 이후 동작 정상화)
-    var idx = properties.findIndex(function(x){ return x.id === id; });
-    if(idx !== -1) properties[idx] = p; else properties.push(p);
-    _openDetailWithData(p);
-  }).catch(function(e) {
-    console.error('매물 조회 오류:', e);
-    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
-  });
-}
+  var source = getRenderedProperties();
+  var p = source.find(function(x){ return x.id === id; });
 
-function _openDetailWithData(p) {
-  var id = p.id;
+  // 혹시 검색모드/일반모드 전환 타이밍 이슈가 있으면 보조 fallback
+  if(!p) p = properties.find(function(x){ return x.id === id; });
+  if(!p) p = searchResults.find(function(x){ return x.id === id; });
+
+  if(!p) return;
 
   document.getElementById('detailTitle').innerHTML=
     (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
@@ -3617,7 +3603,7 @@ function executePrint(mode) {
 
   if(mode === 'pdf') {
     // PDF 저장: 인쇄창에서 PDF로 저장 유도
-    var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
+    var curProp = (function(){ var r=properties.find(function(p){return p.id===window._currentDetailId;}); return r||null; })();
     var pType   = curProp ? (curProp.type||'') : '';
     var pGeorae = curProp ? (curProp.georae||'') : '';
     var pAddr   = curProp ? (curProp.address||'') : '';
@@ -3647,7 +3633,7 @@ function executePrint(mode) {
     try { win.focus(); } catch(e) {}
   } else {
     // 인쇄 (PDF로 저장 시 기본 파일명 = 매물종류_거래유형_주소)
-    var curProp = properties.find(function(p){ return p.id === window._currentDetailId; });
+    var curProp = (function(){ var r=properties.find(function(p){return p.id===window._currentDetailId;}); return r||null; })();
     var pType   = curProp ? (curProp.type||'') : '';
     var pGeorae = curProp ? (curProp.georae||'') : '';
     var pAddr   = curProp ? (curProp.address||'') : '';
@@ -3688,9 +3674,12 @@ function _closeDetailModalImpl() {
 
 // ── 삭제 ──────────────────────────────────
 function downloadAllPhotos(id) {
-  var p = properties.find(function(x){ return x.id===id; });
-  if(!p || !p.photos || p.photos.length===0) return;
-  var addrBase = (p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
+  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    var p = doc.exists ? Object.assign({ id: doc.id }, doc.data()) : null;
+    if(!p || !p.photos || p.photos.length===0) return;
+    var idx = properties.findIndex(function(x){ return x.id === id; });
+    if(idx !== -1) properties[idx] = p; else properties.push(p);
+    var addrBase = (p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : id);
   showToast('📦 ZIP 만드는 중...');
   var zip = new JSZip();
   var folder = zip.folder(addrBase);
@@ -3713,15 +3702,16 @@ function downloadAllPhotos(id) {
     document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
     showToast('✅ ZIP 다운로드 완료!');
-  }).catch(function(err) {
-    alert('다운로드 오류: ' + err.message);
-  });
+    }).catch(function(err) {
+      alert('다운로드 오류: ' + err.message);
+    });
+  }).catch(function(e) { console.error('매물 조회 오류:', e); });
 }
 
 function deleteOnePhoto(id, index) {
   if(!confirm('이 사진을 삭제하시겠습니까?')) return;
-  var p = properties.find(function(x){ return x.id===id; });
-  if(!p || !p.photos) return;
+  function _doDeleteOnePhoto(p) {
+    if(!p || !p.photos) return;
   var url = p.photos[index];
   var doDelete = function() {
     var newPhotos = p.photos.slice();
@@ -3731,14 +3721,21 @@ function deleteOnePhoto(id, index) {
       openDetail(id);
     });
   };
-  try { storage.refFromURL(url).delete().then(doDelete).catch(doDelete); }
-  catch(e) { doDelete(); }
+    try { storage.refFromURL(url).delete().then(doDelete).catch(doDelete); }
+    catch(e) { doDelete(); }
+  }
+  var p = properties.find(function(x){ return x.id===id; });
+  if(p) { _doDeleteOnePhoto(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _doDeleteOnePhoto(f);
+  }); }
 }
 
 function deleteAllPhotos(id) {
-  var p = properties.find(function(x){ return x.id===id; });
-  if(!p || !p.photos || p.photos.length===0) return;
-  if(!confirm('사진 '+p.photos.length+'장을 모두 삭제하시겠습니까?')) return;
+  function _doDeleteAllPhotos(p) {
+    if(!p || !p.photos || p.photos.length===0) return;
+    if(!confirm('사진 '+p.photos.length+'장을 모두 삭제하시겠습니까?')) return;
   var deletes = p.photos.map(function(url) {
     try { return storage.refFromURL(url).delete().catch(function(){}); }
     catch(e) { return Promise.resolve(); }
@@ -3746,10 +3743,17 @@ function deleteAllPhotos(id) {
   Promise.all(deletes).then(function() {
     return db.collection(getPropertiesCollection()).doc(id).update({ photos: [] });
   }).then(function() {
-    p.photos = [];
-    openDetail(id);
-    showToast('✅ 사진이 모두 삭제됐어요!');
-  });
+      p.photos = [];
+      openDetail(id);
+      showToast('✅ 사진이 모두 삭제됐어요!');
+    });
+  }
+  var p = properties.find(function(x){ return x.id===id; });
+  if(p) { _doDeleteAllPhotos(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _doDeleteAllPhotos(f);
+  }); }
 }
 
 function toggleOwnerSection() {
@@ -3763,23 +3767,29 @@ function toggleOwnerSection() {
 
 function deleteProperty(id){
   if(!confirm('이 매물을 삭제하시겠습니까?')) return;
-  var p=properties.find(function(x){return x.id===id;});
-  var addr = p ? (p.address || id) : id;
-  deleteFromDB(id, p?p.photos:[], function(err){
+  function _doDeleteProperty(p) {
+    var addr = p ? (p.address || id) : id;
+    deleteFromDB(id, p?p.photos:[], function(err){
     if(err){ alert('삭제 오류: '+err.message); return; }
-    invalidatePropertyCache();
-    properties = properties.filter(function(x){ return x.id !== id; });
-    if(_fieldSettingsReady) renderTable();
-    appendActivityLog('매물 삭제', addr);
-    closeDetailModal();
-  });
+      invalidatePropertyCache();
+      properties = properties.filter(function(x){ return x.id !== id; });
+      if(_fieldSettingsReady) renderTable();
+      appendActivityLog('매물 삭제', addr);
+      closeDetailModal();
+    });
+  }
+  var p = properties.find(function(x){ return x.id===id; });
+  if(p) { _doDeleteProperty(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    _doDeleteProperty(doc.exists ? Object.assign({id:doc.id}, doc.data()) : null);
+  }); }
 }
 
 // ── 이벤트 ────────────────────────────────
 // ── 수정모달 문서섹션만 새로고침 (폼 내용 유지) ──
 function refreshFormDocSection(propId) {
   var p = properties.find(function(x){ return x.id === propId; });
-  if(!p) return;
+  if(!p) { db.collection(getPropertiesCollection()).doc(propId).get().then(function(doc) { if(doc.exists){ var f=Object.assign({id:doc.id},doc.data()); properties.push(f); refreshFormDocSection(propId); } }); return; }
   var docHtml = ['건축물대장','토지대장','토지등기부등본','건물등기부등본','토지이용계획','배치도'].map(function(docName){
     var url = p.docs && p.docs[docName] ? p.docs[docName] : null;
     return '<div class="doc-row">'+
@@ -3815,8 +3825,8 @@ function uploadDoc(e, propId, docName) {
   var origText = label.childNodes[0].textContent;
   label.childNodes[0].textContent = '업로드 중...';
 
-  var p = properties.find(function(x){ return x.id === propId; });
-  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+  var _p0 = properties.find(function(x){ return x.id === propId; });
+  var addrBase = (_p0 && _p0.address ? _p0.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
   var ext = file.name.split('.').pop() || 'pdf';
   var fileName = addrBase + '_' + docName + '.' + ext;
 
@@ -3828,6 +3838,7 @@ function uploadDoc(e, propId, docName) {
     update['docs.' + docName] = url;
     return db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
       var p = properties.find(function(x){ return x.id === propId; });
+      if(!p && _p0) { p = _p0; }
       if(p) { if(!p.docs) p.docs={}; p.docs[docName] = url; }
       appendActivityLog('문서 업로드', docName);
       if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
@@ -3847,13 +3858,13 @@ function uploadZipDoc(e, propId) {
   var label = e.target.parentElement;
   var origText = label.childNodes[0].textContent;
   label.childNodes[0].textContent = '업로드 중...';
-  var p = properties.find(function(x){ return x.id === propId; });
-  var addrBase = (p && p.address ? p.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
+  var _pz = properties.find(function(x){ return x.id === propId; });
+  var addrBase = (_pz && _pz.address ? _pz.address.replace(/[\\/:*?"<>|]/g,'').trim() : propId);
   var fileName = addrBase + '_ZIP.' + (file.name.split('.').pop() || 'zip');
   var ref = storage.ref('properties/' + propId + '/docs/' + fileName);
   ref.put(file).then(function() { return ref.getDownloadURL(); }).then(function(url) {
     return db.collection(getPropertiesCollection()).doc(propId).update({ 'docs.ZIP': url }).then(function() {
-      var px = properties.find(function(x){ return x.id === propId; });
+      var px = properties.find(function(x){ return x.id === propId; }) || _pz;
       if(px) { if(!px.docs) px.docs={}; px.docs['ZIP'] = url; }
       appendActivityLog('ZIP 업로드', px ? (px.address || propId) : propId);
       if(editingId === propId) refreshFormDocSection(propId);
@@ -3889,6 +3900,7 @@ function saveNotionLink(propId) {
   db.collection(getPropertiesCollection()).doc(propId).update({ notionLink: url }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = url;
+    else { db.collection(getPropertiesCollection()).doc(propId).get().then(function(doc){ if(doc.exists){ var f=Object.assign({id:doc.id},doc.data()); properties.push(f); } }); }
     showToast('✅ 노션 링크가 저장됐어요!');
     openDetail(propId);
   });
@@ -3899,32 +3911,37 @@ function removeNotionLink(propId) {
   db.collection(getPropertiesCollection()).doc(propId).update({ notionLink: '' }).then(function(){
     var p = properties.find(function(x){ return x.id===propId; });
     if(p) p.notionLink = '';
+    else { db.collection(getPropertiesCollection()).doc(propId).get().then(function(doc){ if(doc.exists){ var f=Object.assign({id:doc.id},doc.data()); properties.push(f); } }); }
     openDetail(propId);
   });
 }
 
 function deleteDoc(propId, docName) {
   if(!confirm('「'+docName+'」을 삭제하시겠습니까?')) return;
+  function _doDeleteDoc(p) {
+    var url = p && p.docs ? p.docs[docName] : null;
+    var doDelete = function() {
+      var update = {};
+      update['docs.' + docName] = firebase.firestore.FieldValue.delete();
+      db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
+        if(p && p.docs) delete p.docs[docName];
+        appendActivityLog('문서 삭제', docName);
+        if(editingId === propId) refreshFormDocSection(propId);
+        else openDetail(propId);
+      }).catch(function(err){ alert('삭제 오류: ' + err.message); });
+    };
+    if(url) {
+      try { storage.refFromURL(url).delete().then(doDelete).catch(doDelete); }
+      catch(e) { doDelete(); }
+    } else { doDelete(); }
+  }
   var p = properties.find(function(x){ return x.id === propId; });
-  var url = p && p.docs ? p.docs[docName] : null;
-
-  var doDelete = function() {
-    var update = {};
-    update['docs.' + docName] = firebase.firestore.FieldValue.delete();
-    db.collection(getPropertiesCollection()).doc(propId).update(update).then(function() {
-      if(p && p.docs) delete p.docs[docName];
-      appendActivityLog('문서 삭제', docName);
-      if(editingId === propId) refreshFormDocSection(propId); // 폼 내용 유지, 문서섹션만 갱신
-      else openDetail(propId);
-    }).catch(function(err){ alert('삭제 오류: ' + err.message); });
-  };
-
-  // Storage 파일도 삭제
-  if(url) {
-    try {
-      storage.refFromURL(url).delete().then(doDelete).catch(doDelete);
-    } catch(e) { doDelete(); }
-  } else { doDelete(); }
+  if(p) { _doDeleteDoc(p); }
+  else { db.collection(getPropertiesCollection()).doc(propId).get().then(function(doc) {
+    var f = doc.exists ? Object.assign({id:doc.id}, doc.data()) : null;
+    if(f) properties.push(f);
+    _doDeleteDoc(f);
+  }); }
 }
 
 // ── PDF 뷰어 ──────────────────────────────
@@ -4146,55 +4163,79 @@ function saveHistoryEdit(id, index) {
   var input = document.getElementById('historyEditInput_'+index);
   var newText = input.value.trim();
   if(!newText) return;
+  function _do(p) {
+    var history = p.history ? p.history.slice() : [];
+    history[index].text = newText;
+    db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
+      p.history = history;
+      renderHistoryList(id, history);
+    });
+  }
   var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
-  var history = p.history ? p.history.slice() : [];
-  history[index].text = newText;
-  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
-    p.history = history;
-    renderHistoryList(id, history);
-  });
+  if(p) { _do(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _do(f);
+  }); }
 }
 
 function addHistory(id) {
   var input = document.getElementById('historyInput');
   var text = input.value.trim();
   if(!text) return;
+  function _do(p) {
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    var newEntry = { date: dateStr, text: text };
+    var history = p.history ? p.history.slice() : [];
+    history.push(newEntry);
+    db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
+      p.history = history;
+      input.value = '';
+      renderHistoryList(id, history);
+    });
+  }
   var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
-  var now = new Date();
-  var dateStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  var newEntry = { date: dateStr, text: text };
-  var history = p.history ? p.history.slice() : [];
-  history.push(newEntry);
-  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
-    p.history = history;
-    input.value = '';
-    renderHistoryList(id, history);
-  });
+  if(p) { _do(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _do(f);
+  }); }
 }
 
 function deleteHistory(id, index) {
   if(!confirm('이 히스토리를 삭제하시겠습니까?')) return;
+  function _do(p) {
+    var history = p.history ? p.history.slice() : [];
+    history.splice(index, 1);
+    db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
+      p.history = history;
+      renderHistoryList(id, history);
+    });
+  }
   var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
-  var history = p.history ? p.history.slice() : [];
-  history.splice(index, 1);
-  db.collection(getPropertiesCollection()).doc(id).update({ history: history }).then(function() {
-    p.history = history;
-    renderHistoryList(id, history);
-  });
+  if(p) { _do(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _do(f);
+  }); }
 }
 
 function toggleDeparture(id) {
+  function _do(p) {
+    var newVal = (p.departure === false) ? true : false;
+    db.collection(getPropertiesCollection()).doc(id).update({ departure: newVal }).then(function() {
+      p.departure = newVal;
+      updateDepBtn(p);
+      renderTable();
+    });
+  }
   var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
-  var newVal = (p.departure === false) ? true : false;
-  db.collection(getPropertiesCollection()).doc(id).update({ departure: newVal }).then(function() {
-    p.departure = newVal;
-    updateDepBtn(p);
-    renderTable();
-  });
+  if(p) { _do(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _do(f);
+  }); }
 }
 
 function getAdDaysLeft(adStart, adEnd) {
@@ -4261,8 +4302,7 @@ function updateAdBtn(p) {
 }
 
 function toggleAd(id) {
-  var p = properties.find(function(x){ return x.id===id; });
-  if(!p) return;
+  function _do(p) {
   var btn = document.getElementById('detailAdBtn');
   var state = btn.dataset.state;
 
@@ -4293,6 +4333,13 @@ function toggleAd(id) {
       renderTable();
     });
   }
+  }
+  var p = properties.find(function(x){ return x.id===id; });
+  if(p) { _do(p); }
+  else { db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) return;
+    var f = Object.assign({id:doc.id}, doc.data()); properties.push(f); _do(f);
+  }); }
 }
 
 function getVideoEmbed(url) {
@@ -6425,9 +6472,13 @@ function getGroupMarkerImage(count) {
 // 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
 function openPropertyFromMap(id) {
   if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
-  var p = properties.find(function(x){ return x.id === id; });
-  if(!p) return;
-  openDetail(p.id);
+  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
+    var fetched = Object.assign({ id: doc.id }, doc.data());
+    var idx = properties.findIndex(function(x){ return x.id === id; });
+    if(idx !== -1) properties[idx] = fetched; else properties.push(fetched);
+    openDetail(fetched.id);
+  }).catch(function(e) { console.error('매물 조회 오류:', e); });
 }
 
 function openMapAll() {

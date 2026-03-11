@@ -3252,6 +3252,7 @@ function saveProperty(){
         if(p) { Object.assign(p, data); } else { properties.push(Object.assign({id:savedId}, data)); }
         if(_fieldSettingsReady) renderTable();
         appendActivityLog('매물 수정', address);
+        _formModalConfirmed = true;
         closeFormModal();
         openDetail(savedId);
       });
@@ -3267,6 +3268,7 @@ function saveProperty(){
         properties.unshift(Object.assign({id:newId}, data));
         if(_fieldSettingsReady) renderTable();
         appendActivityLog('매물 등록', address);
+        _formModalConfirmed = true;
         closeFormModal();
       });
     }

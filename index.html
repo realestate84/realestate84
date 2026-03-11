@@ -1935,6 +1935,7 @@ function updateSectorUI() {
 }
 
 function switchSector(sector) {
+  _allPropertiesCache = null; // 섹터 전환 시 고객 모달 매물 캐시 초기화
   if(sector !== SECTOR_RESIDENTIAL && sector !== SECTOR_COMMERCIAL) return;
   if(listMode === 'search') exitSearchMode();
   currentSector = sector;
@@ -5264,6 +5265,10 @@ function closeSettings() {
 }
 
 // ── 고객관리 ────────────────────────────────
+// 고객 모달용 전체 매물 캐시 (모달 열 때 1회 로드, 섹터 전환 시 초기화)
+var _allPropertiesCache = null;
+var _allPropertiesCacheSector = null;
+
 function openCustomers() {
   var modal = document.getElementById('customersModal');
   if(!modal) return;
@@ -5275,6 +5280,14 @@ function openCustomers() {
   _currentCustomerId = null;
   renderCustomerEmpty();
   renderCustomerList();
+  // 섹터가 바뀌었거나 캐시가 없으면 전체 매물 1회 로드
+  if(_allPropertiesCache === null || _allPropertiesCacheSector !== currentSector) {
+    _allPropertiesCache = null;
+    _allPropertiesCacheSector = currentSector;
+    db.collection(getPropertiesCollection()).get().then(function(snap) {
+      _allPropertiesCache = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    }).catch(function(e){ console.error('전체 매물 캐시 로드 오류:', e); });
+  }
 }
 
 function closeCustomers() {
@@ -5538,7 +5551,9 @@ function getPropertySearchCandidates(custId, query) {
   (c.shownProps||[]).forEach(function(pid){ already[pid] = true; });
 
   var searchKeys = getSearchableKeys();
-  return properties.filter(function(p){
+  // 고객 모달 오픈 시 로드한 전체 매물 캐시 우선 사용, 없으면 기존 properties 배열 fallback
+  var pool = (_allPropertiesCache !== null) ? _allPropertiesCache : properties;
+  return pool.filter(function(p){
     if(already[p.id]) return false;
     var hay = searchKeys.map(function(k){ var v = p[k]; return (v != null && v !== '') ? String(v) : ''; }).join(' ').toLowerCase();
     return hay.indexOf(lowerQ) !== -1;
@@ -6406,18 +6421,9 @@ function getGroupMarkerImage(count) {
 // 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
 function openPropertyFromMap(id) {
   if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
-  // 항상 Firestore에서 직접 최신 데이터 조회
-  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
-    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
-    var fetched = Object.assign({ id: doc.id }, doc.data());
-    // properties 배열 갱신 (수정/삭제 등 이후 동작 정상화)
-    var idx = properties.findIndex(function(x){ return x.id === id; });
-    if(idx !== -1) properties[idx] = fetched; else properties.push(fetched);
-    openDetail(fetched.id);
-  }).catch(function(e) {
-    console.error('매물 조회 오류:', e);
-    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
-  });
+  var p = properties.find(function(x){ return x.id === id; });
+  if(!p) return;
+  openDetail(p.id);
 }
 
 function openMapAll() {
@@ -6542,7 +6548,8 @@ function openMapAll() {
                 (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
                 '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
               content.onclick = function() {
-                openPropertyFromMap(p.id);
+                if(window._mapClickTimer){clearTimeout(window._mapClickTimer);window._mapClickTimer=null;}
+                openDetail(p.id);
               };
             } else {
               content.style.minWidth = '240px';

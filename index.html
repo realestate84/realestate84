@@ -2913,8 +2913,19 @@ function openAddModal(){
   updatePriceInputUI();
 }
 function openEditModal(id){
-  var p=properties.find(function(x){return x.id===id;});
-  if(!p) return;
+  // 항상 Firestore에서 직접 최신 데이터 조회
+  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
+    var p = Object.assign({ id: doc.id }, doc.data());
+    var idx = properties.findIndex(function(x){ return x.id === id; });
+    if(idx !== -1) properties[idx] = p; else properties.push(p);
+    _openEditModalWithData(id, p);
+  }).catch(function(e) {
+    console.error('매물 조회 오류:', e);
+    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
+  });
+}
+function _openEditModalWithData(id, p){
   editingId=id;
   document.getElementById('formModalTitle').textContent='매물 수정';
   fillFormTypeOptions();
@@ -3162,14 +3173,22 @@ function saveProperty(){
 function openDetail(id){
   window._currentDetailId = id;
 
-  var source = getRenderedProperties();
-  var p = source.find(function(x){ return x.id === id; });
+  // 항상 Firestore에서 직접 최신 데이터 조회
+  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
+    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
+    var p = Object.assign({ id: doc.id }, doc.data());
+    // properties 배열 갱신 (수정/삭제 등 이후 동작 정상화)
+    var idx = properties.findIndex(function(x){ return x.id === id; });
+    if(idx !== -1) properties[idx] = p; else properties.push(p);
+    _openDetailWithData(p);
+  }).catch(function(e) {
+    console.error('매물 조회 오류:', e);
+    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
+  });
+}
 
-  // 혹시 검색모드/일반모드 전환 타이밍 이슈가 있으면 보조 fallback
-  if(!p) p = properties.find(function(x){ return x.id === id; });
-  if(!p) p = searchResults.find(function(x){ return x.id === id; });
-
-  if(!p) return;
+function _openDetailWithData(p) {
+  var id = p.id;
 
   document.getElementById('detailTitle').innerHTML=
     (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
@@ -6406,18 +6425,9 @@ function getGroupMarkerImage(count) {
 // 지도 목록에서 매물 선택 시 기존 상세보기 모달 호출
 function openPropertyFromMap(id) {
   if(window._mapClickTimer) { clearTimeout(window._mapClickTimer); window._mapClickTimer = null; }
-  // 항상 Firestore에서 직접 최신 데이터 조회
-  db.collection(getPropertiesCollection()).doc(id).get().then(function(doc) {
-    if(!doc.exists) { alert('매물 정보를 찾을 수 없습니다.'); return; }
-    var fetched = Object.assign({ id: doc.id }, doc.data());
-    // properties 배열 갱신 (수정/삭제 등 이후 동작 정상화)
-    var idx = properties.findIndex(function(x){ return x.id === id; });
-    if(idx !== -1) properties[idx] = fetched; else properties.push(fetched);
-    openDetail(fetched.id);
-  }).catch(function(e) {
-    console.error('매물 조회 오류:', e);
-    alert('매물 정보를 불러오는 중 오류가 발생했습니다.');
-  });
+  var p = properties.find(function(x){ return x.id === id; });
+  if(!p) return;
+  openDetail(p.id);
 }
 
 function openMapAll() {
@@ -6542,7 +6552,8 @@ function openMapAll() {
                 (p.landArea?'<div style="font-size:12px;color:var(--text-muted)">토지 '+p.landArea+'평</div>':'')+
                 '<div style="margin-top:8px;text-align:center;font-size:12px;color:'+color+';font-weight:600;">▶ 클릭하면 상세보기</div>';
               content.onclick = function() {
-                openPropertyFromMap(p.id);
+                if(window._mapClickTimer){clearTimeout(window._mapClickTimer);window._mapClickTimer=null;}
+                openDetail(p.id);
               };
             } else {
               content.style.minWidth = '240px';

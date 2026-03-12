@@ -843,8 +843,9 @@ function getRenderedProperties() { return listMode === 'search' ? searchResults 
 function matchesSearch(p, keyword) {
   var k = String(keyword || '').toLowerCase();
   if(!k) return true;
-  var fields = [p.address, p.memo, p.note, p.ownerName, p.ownerPhone, p.type, p.georae];
-  return fields.some(function(v){ return String(v || '').toLowerCase().indexOf(k) > -1; });
+  return Object.values(p).some(function(v){
+    return v != null && typeof v !== 'object' && String(v).toLowerCase().indexOf(k) > -1;
+  });
 }
 function exitSearchMode() {
   listMode = 'browse';

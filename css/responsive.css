@@ -16,5 +16,5 @@
   #customersModal .modal-body{flex-direction:column;overflow:auto;}
   #customersModal .customer-left{width:100% !important;min-height:30vh;order:2;}
   #customersModal .customer-left .table-wrap{min-height:185px !important;max-height:37vh !important;flex:1 1 185px;}
-  #customersModal .modal-body > div:last-child{order:1;}
+  #customersModal .customer-right{order:1;}
 }

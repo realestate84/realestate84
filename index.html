@@ -5461,7 +5461,10 @@ function openCustomers() {
   if(titleEl) titleEl.textContent = '👥 고객문의 (' + (currentSector === SECTOR_COMMERCIAL ? '상업용' : '주거용') + ')';
   modal.classList.add('active');
   pushModalState();
-  if(document.getElementById('customerSearch')) document.getElementById('customerSearch').value = '';
+  if(document.getElementById('customerSearch')) {
+    document.getElementById('customerSearch').value = '';
+    document.getElementById('customerSearch').style.height = '';
+  }
   _currentCustomerId = null;
   renderCustomerEmpty();
   renderCustomerList();

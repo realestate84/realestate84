@@ -6838,10 +6838,14 @@ function openMapAll() {
                 openDetail(p.id);
               };
             } else {
+              // Step 3: 모바일 화면 높이에 맞게 max-height 동적 계산
+              var listMaxH = window.innerWidth < 600
+                ? Math.min(Math.round(window.innerHeight * 0.35), 320) + 'px'
+                : '240px';
               content.style.minWidth = '240px';
               content.innerHTML =
                 '<div style="padding:8px 12px;font-weight:600;font-size:13px;color:#1a1a1a;border-bottom:1px solid #e5e7eb;background:#fff;border-radius:10px 10px 0 0;">이 주소 매물 '+list.length+'건</div>'+
-                '<div style="max-height:240px;overflow-y:auto;background:#fff;color:#333;border-radius:0 0 10px 10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);">'+
+                '<div id="mapGroupList" style="max-height:'+listMaxH+';overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;background:#fff;color:#333;border-radius:0 0 10px 10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);">'+
                 list.slice().sort(function(a,b){ return (Number(b.propNo)||0)-(Number(a.propNo)||0); }).map(function(p){
                   var px = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
                   if(p.georae==='월세'&&p.monthlyRent!=null&&p.monthlyRent!=='') px += (px?' / ':'') + formatMonthlyRentComma(p.monthlyRent);
@@ -6849,8 +6853,17 @@ function openMapAll() {
                   return '<div class="map-property-item" onclick="openPropertyFromMap(\''+p.id.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="padding:8px 12px;cursor:pointer;font-size:12px;color:#333;border-bottom:1px solid #eee;background:#fff;" onmouseover="this.style.background=\'#3a7ef6\';this.style.color=\'#fff\';" onmouseout="this.style.background=\'#fff\';this.style.color=\'#333\';">'+escapeHtml(line)+'</div>';
                 }).join('')+
                 '</div>';
-              // 오버레이 위에서 휠 시 내부 목록만 스크롤, 지도로 이벤트 전달하지 않음
+              // Step 1: 휠(PC) 및 터치(모바일) 이벤트가 지도로 전달되지 않도록 차단
               content.addEventListener('wheel', function(ev) { ev.stopPropagation(); }, false);
+              // 팝업이 DOM에 추가된 직후 목록 요소에 터치 이벤트 등록
+              setTimeout(function() {
+                var listEl = content.querySelector('#mapGroupList');
+                if (listEl) {
+                  listEl.addEventListener('touchstart', function(ev) { ev.stopPropagation(); }, { passive: true });
+                  listEl.addEventListener('touchmove',  function(ev) { ev.stopPropagation(); }, { passive: false });
+                  listEl.addEventListener('touchend',   function(ev) { ev.stopPropagation(); }, { passive: true });
+                }
+              }, 0);
             }
             window._mapOverlay = new kakao.maps.CustomOverlay({ content: content, map: _mapObj, position: m.getPosition(), yAnchor: 1.4, zIndex: 3 });
           });

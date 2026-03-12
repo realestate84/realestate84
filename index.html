@@ -860,6 +860,16 @@ function runSearch(keyword) {
   if(!searchKeyword) { exitSearchMode(); return; }
   if(searchLoading) return;
   listMode = 'search';
+
+  // 전체 로드 완료된 경우 → Firestore 재조회 없이 메모리에서 바로 검색
+  var cache = sectorCache[currentSector];
+  if(cache && cache.reachedEnd) {
+    searchResults = properties.filter(function(p){ return matchesSearch(p, searchKeyword); });
+    if(_fieldSettingsReady) renderTable();
+    return;
+  }
+
+  // 아직 페이지네이션 진행 중 → Firestore 전체 조회
   searchLoading = true;
   showLoading('검색 중...');
   db.collection(getPropertiesCollection()).orderBy('createdAt','desc').get()
@@ -5793,23 +5803,6 @@ function renderCustomerShownProps(custId) {
   });
 }
 
-function getPropertySearchCandidates(custId, query) {
-  var c = getCustomerById(custId);
-  if(!c) return [];
-  var lowerQ = (query||'').toLowerCase();
-  if(!lowerQ) return [];
-
-  var already = {};
-  (c.shownProps||[]).forEach(function(pid){ already[pid] = true; });
-
-  var searchKeys = getSearchableKeys();
-  return properties.filter(function(p){
-    if(already[p.id]) return false;
-    var hay = searchKeys.map(function(k){ var v = p[k]; return (v != null && v !== '') ? String(v) : ''; }).join(' ').toLowerCase();
-    return hay.indexOf(lowerQ) !== -1;
-  });
-}
-
 function updateCustomerShownSuggestions(custId) {
   var input = document.getElementById('customerShownPropSearch');
   var box = document.getElementById('customerShownPropSuggestions');
@@ -5821,24 +5814,55 @@ function updateCustomerShownSuggestions(custId) {
     return;
   }
 
-  var candidates = getPropertySearchCandidates(custId, q).slice(0, 15);
-  if(candidates.length === 0) {
-    box.style.display = 'none';
-    box.innerHTML = '';
-    return;
+  var c = getCustomerById(custId);
+  if(!c) return;
+  var lowerQ = q.toLowerCase();
+  var already = {};
+  (c.shownProps||[]).forEach(function(pid){ already[pid] = true; });
+
+  // 로딩 표시
+  box.innerHTML = '<div style="padding:8px 10px;font-size:12px;color:var(--text-muted);">검색 중...</div>';
+  box.style.display = 'block';
+
+  function renderCandidates(allProps) {
+    var candidates = allProps.filter(function(p){
+      if(already[p.id]) return false;
+      return matchesSearch(p, lowerQ);
+    }).slice(0, 15);
+
+    if(candidates.length === 0) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+    box.innerHTML = candidates.map(function(p){
+      var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
+      var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
+      if (p.georae==='월세' && p.monthlyRent!==undefined && p.monthlyRent!==null && p.monthlyRent!=='') priceStr += (priceStr ? ' / ' : '') + formatMonthlyRentComma(p.monthlyRent);
+      var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr ? ' · '+priceStr : '');
+      return '<div onclick="selectCustomerShownProperty(\''+custId+'\',\''+p.id+'\')" style="padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--border);">'+
+        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
+        '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
+      '</div>';
+    }).join('');
+    box.style.display = 'block';
   }
 
-  box.innerHTML = candidates.map(function(p){
-    var title = (p.propNo?'No.'+p.propNo+' · ':'') + (p.address||'-');
-    var priceStr = (p.price!==undefined&&p.price!==null&&p.price!=='') ? formatPriceComma(p.price) : '';
-    if (p.georae==='월세' && p.monthlyRent!==undefined && p.monthlyRent!==null && p.monthlyRent!=='') priceStr += (priceStr ? ' / ' : '') + formatMonthlyRentComma(p.monthlyRent);
-    var sub = (p.type||'') + (p.georae?(' · '+p.georae):'') + (priceStr ? ' · '+priceStr : '');
-    return '<div onclick="selectCustomerShownProperty(\''+custId+'\',\''+p.id+'\')" style="padding:6px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--border);">'+
-      '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(title)+'</div>'+
-      '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(sub)+'</div>'+
-    '</div>';
-  }).join('');
-  box.style.display = 'block';
+  // 전체 로드 완료된 경우 메모리에서 바로 검색, 아니면 Firestore 전체 조회
+  var cache = sectorCache[currentSector];
+  if(cache && cache.reachedEnd) {
+    renderCandidates(properties);
+  } else {
+    db.collection(getPropertiesCollection()).orderBy('createdAt','desc').get()
+      .then(function(snap){
+        var allProps = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+        renderCandidates(allProps);
+      })
+      .catch(function(){
+        box.style.display = 'none';
+        box.innerHTML = '';
+      });
+  }
 }
 
 function selectCustomerShownProperty(custId, propId) {

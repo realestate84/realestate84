@@ -3219,9 +3219,10 @@ function closeFormModal(){
   }
   _formModalConfirmed = false;
   if (_modalStatePushed) {
-    _formModalConfirmed = true;
-    if (window.history && window.history.back) window.history.back();
-    return;
+    _modalStatePushed = false;
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.href);
+    }
   }
   document.getElementById('formModal').classList.remove('active');
 }

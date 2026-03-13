@@ -7725,6 +7725,22 @@ window.updateNoticeItem = function(i, val) {
 };
 
 // ── 공지사항 게시판 ──────────────────────────
+
+// URL을 클릭 가능한 링크로 변환 (XSS 방지 포함)
+function nbRenderContent(text) {
+  // 1) 특수문자 escape
+  var escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  // 2) URL 패턴을 <a> 태그로 변환
+  var urlPattern = /(https?:\/\/[^\s<>"'\u3000-\u303F\uFF00-\uFFEF]+)/g;
+  return escaped.replace(urlPattern, function(url) {
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" ' +
+      'style="color:var(--accent);text-decoration:underline;word-break:break-all;">' + url + '</a>';
+  });
+}
 var _nbCurrentUser = null;
 var _nbIsEditing = false;      // 현재 작성/수정 폼이 열려있는지
 var _nbOrigTitle = '';          // 폼 열릴 때 원본 제목 (변경감지용)
@@ -7835,7 +7851,7 @@ window.openNoticeBoardDetail = function(id) {
     var date = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('ko-KR') : '';
     document.getElementById('nbDetailTitle').textContent = d.title || '(제목 없음)';
     document.getElementById('nbDetailMeta').textContent = (d.authorName||d.author||'관리자') + ' · ' + date;
-    document.getElementById('nbDetailContent').textContent = d.content || '';
+    document.getElementById('nbDetailContent').innerHTML = nbRenderContent(d.content || '');
     var actions = document.getElementById('nbDetailActions');
     if(d.author === _nbCurrentUser) {
       actions.innerHTML =

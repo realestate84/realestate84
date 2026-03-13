@@ -96,6 +96,17 @@
   <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
 </header>
 
+<!-- 공지사항 티커 배너 -->
+<div class="notice-ticker" id="noticeTicker">
+  <span class="notice-ticker-label">📢 공지</span>
+  <div class="notice-ticker-track" id="noticeTrack">
+    <div class="notice-ticker-inner" id="noticeInner">
+      <!-- JS로 채워짐 -->
+    </div>
+  </div>
+  <button class="notice-ticker-close" onclick="closeNoticeTicker()" title="닫기">✕</button>
+</div>
+
 <!-- 모바일 드로어 -->
 <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
 <div class="mobile-drawer" id="mobileDrawer">
@@ -7505,6 +7516,68 @@ function applyAiParsed(parsed, RES_TYPES) {
   }, 150);
 }
 // ── AI 자동입력 끝 ────────────────────────────
+
+// ── 공지사항 티커 ──────────────────────────
+(function() {
+  var notices = [
+    '📋 매물 등록 시 사진을 반드시 첨부해 주세요.',
+    '🔔 계약 완료 매물은 즉시 상태를 변경해 주세요.',
+    '📅 매주 월요일 오전 9시 온라인 미팅이 있습니다.',
+    '💡 AI 자동입력 기능으로 빠르게 매물을 등록하세요.',
+    '🗺 지도 기능에서 매물 위치를 한눈에 확인하세요.',
+  ];
+  var idx = 0;
+  var inner = document.getElementById('noticeInner');
+  var ticker = document.getElementById('noticeTicker');
+  if(!inner || !ticker) return;
+
+  function setNotice(index, animate) {
+    if(animate) {
+      inner.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s';
+      inner.style.transform = 'translateY(-100%)';
+      inner.style.opacity = '0';
+      setTimeout(function() {
+        inner.textContent = notices[index % notices.length];
+        inner.style.transition = 'none';
+        inner.style.transform = 'translateY(100%)';
+        inner.style.opacity = '0';
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            inner.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s';
+            inner.style.transform = 'translateY(0)';
+            inner.style.opacity = '1';
+          });
+        });
+      }, 480);
+    } else {
+      inner.textContent = notices[index % notices.length];
+      inner.style.transform = 'translateY(0)';
+      inner.style.opacity = '1';
+    }
+  }
+
+  setNotice(0, false);
+  var timer = setInterval(function() {
+    idx = (idx + 1) % notices.length;
+    setNotice(idx, true);
+  }, 4000);
+
+  window._noticeTimer = timer;
+})();
+
+window.closeNoticeTicker = function() {
+  var ticker = document.getElementById('noticeTicker');
+  if(ticker) {
+    ticker.style.transition = 'max-height 0.3s, opacity 0.3s';
+    ticker.style.opacity = '0';
+    ticker.style.maxHeight = '0';
+    ticker.style.paddingTop = '0';
+    ticker.style.paddingBottom = '0';
+    ticker.style.overflow = 'hidden';
+    setTimeout(function(){ ticker.style.display = 'none'; }, 320);
+  }
+  if(window._noticeTimer) clearInterval(window._noticeTimer);
+};
 
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');

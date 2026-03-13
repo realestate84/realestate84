@@ -6116,6 +6116,8 @@ function confirmSettings() {
       renderCustomFieldsInForm(fType.value, null);
     }
   }
+  saveNoticesToDB();
+  startNoticeTicker();
   showToast('✅ 설정이 저장됐어요!');
 }
 
@@ -6421,8 +6423,32 @@ function renderSettingsPanel() {
     '</div>';
   }
 
+  // 공지사항 관리 (전체 탭에서만)
+  if(isAll) {
+    var noticeList = window._noticeList || [];
+    html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text)">📢 공지사항 관리</div>'+
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">헤더 아래 공지 배너에 표시될 문장을 추가·수정·삭제할 수 있어요.</div>'+
+      '<div id="noticeListWrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">';
+    noticeList.forEach(function(n, i) {
+      html += '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<input type="text" class="form-input" style="flex:1;font-size:13px;" value="'+n.replace(/"/g,'&quot;')+'" onchange="updateNoticeItem('+i+',this.value)" onblur="updateNoticeItem('+i+',this.value)">'+
+        '<button onclick="deleteNoticeItem('+i+')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="삭제">✕</button>'+
+        '</div>';
+    });
+    if(noticeList.length === 0) {
+      html += '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">공지사항이 없습니다. 아래에서 추가하세요.</div>';
+    }
+    html += '</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;">'+
+        '<input type="text" id="newNoticeInput" class="form-input" placeholder="새 공지 문장 입력..." style="flex:1;font-size:13px;" onkeydown="if(event.key===\'Enter\')addNoticeItem()">'+
+        '<button class="btn btn-outline btn-sm" onclick="addNoticeItem()" style="white-space:nowrap;">+ 추가</button>'+
+      '</div>'+
+    '</div>';
+  }
+
   // 저장/취소 버튼
-  html += '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:12px;border-top:2px solid var(--border);">'+
+  html += '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:12px;margin-top:16px;border-top:2px solid var(--border);">'+
     '<button class="btn btn-outline" onclick="closeSettings()" style="min-width:80px;">취소</button>'+
     '<button class="btn btn-primary" onclick="confirmSettings()" style="min-width:80px;">💾 저장</button>'+
     '</div>';
@@ -7518,26 +7544,59 @@ function applyAiParsed(parsed, RES_TYPES) {
 // ── AI 자동입력 끝 ────────────────────────────
 
 // ── 공지사항 티커 ──────────────────────────
-(function() {
-  var notices = [
-    '📋 매물 등록 시 사진을 반드시 첨부해 주세요.',
-    '🔔 계약 완료 매물은 즉시 상태를 변경해 주세요.',
-    '📅 매주 월요일 오전 9시 온라인 미팅이 있습니다.',
-    '💡 AI 자동입력 기능으로 빠르게 매물을 등록하세요.',
-    '🗺 지도 기능에서 매물 위치를 한눈에 확인하세요.',
-  ];
-  var idx = 0;
+var _DEFAULT_NOTICES = [
+  '📋 매물 등록 시 사진을 반드시 첨부해 주세요.',
+  '🔔 계약 완료 매물은 즉시 상태를 변경해 주세요.',
+  '📅 매주 월요일 오전 9시 온라인 미팅이 있습니다.',
+  '💡 AI 자동입력 기능으로 빠르게 매물을 등록하세요.',
+  '🗺 지도 기능에서 매물 위치를 한눈에 확인하세요.',
+];
+
+// Firestore에서 공지 불러오기 (없으면 기본값)
+function loadNoticesFromDB() {
+  if(!db) { startNoticeTicker(); return; }
+  db.collection('settings').doc('notices').get().then(function(doc) {
+    if(doc.exists && doc.data().list && doc.data().list.length > 0) {
+      window._noticeList = doc.data().list;
+    } else {
+      window._noticeList = _DEFAULT_NOTICES.slice();
+    }
+    startNoticeTicker();
+  }).catch(function() {
+    window._noticeList = _DEFAULT_NOTICES.slice();
+    startNoticeTicker();
+  });
+}
+
+function saveNoticesToDB() {
+  if(!db) return;
+  db.collection('settings').doc('notices').set({ list: window._noticeList || [] });
+}
+
+function startNoticeTicker() {
+  if(window._noticeTimer) clearInterval(window._noticeTimer);
+  var notices = window._noticeList || [];
   var inner = document.getElementById('noticeInner');
   var ticker = document.getElementById('noticeTicker');
   if(!inner || !ticker) return;
 
+  if(notices.length === 0) {
+    ticker.style.display = 'none';
+    return;
+  }
+  ticker.style.display = '';
+  ticker.style.opacity = '';
+  ticker.style.maxHeight = '';
+
+  var idx = 0;
   function setNotice(index, animate) {
+    var text = notices[index % notices.length];
     if(animate) {
       inner.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s';
       inner.style.transform = 'translateY(-100%)';
       inner.style.opacity = '0';
       setTimeout(function() {
-        inner.textContent = notices[index % notices.length];
+        inner.textContent = text;
         inner.style.transition = 'none';
         inner.style.transform = 'translateY(100%)';
         inner.style.opacity = '0';
@@ -7550,20 +7609,19 @@ function applyAiParsed(parsed, RES_TYPES) {
         });
       }, 480);
     } else {
-      inner.textContent = notices[index % notices.length];
+      inner.textContent = text;
       inner.style.transform = 'translateY(0)';
       inner.style.opacity = '1';
     }
   }
-
   setNotice(0, false);
-  var timer = setInterval(function() {
-    idx = (idx + 1) % notices.length;
-    setNotice(idx, true);
-  }, 4000);
-
-  window._noticeTimer = timer;
-})();
+  if(notices.length > 1) {
+    window._noticeTimer = setInterval(function() {
+      idx = (idx + 1) % notices.length;
+      setNotice(idx, true);
+    }, 4000);
+  }
+}
 
 window.closeNoticeTicker = function() {
   var ticker = document.getElementById('noticeTicker');
@@ -7579,10 +7637,37 @@ window.closeNoticeTicker = function() {
   if(window._noticeTimer) clearInterval(window._noticeTimer);
 };
 
+// 설정 모달에서 사용하는 공지 관리 함수
+window.addNoticeItem = function() {
+  var input = document.getElementById('newNoticeInput');
+  if(!input) return;
+  var val = input.value.trim();
+  if(!val) return;
+  if(!window._noticeList) window._noticeList = [];
+  window._noticeList.push(val);
+  input.value = '';
+  renderSettingsPanel();
+  // 스크롤 유지
+  var sb = document.getElementById('settingsBody');
+  if(sb) setTimeout(function(){ sb.scrollTop = sb.scrollHeight; }, 50);
+};
+
+window.deleteNoticeItem = function(i) {
+  if(!window._noticeList) return;
+  window._noticeList.splice(i, 1);
+  renderSettingsPanel();
+};
+
+window.updateNoticeItem = function(i, val) {
+  if(!window._noticeList) return;
+  window._noticeList[i] = val;
+};
+
 // ── 시작 ──────────────────────────────────
 showLoading('데이터 불러오는 중...');
 load();
 loadCustomers();
+loadNoticesFromDB();
 
 // 스크롤 하단 근처 도달 시 다음 페이지 prefetch (600px 전에 요청)
 // window와 .table-wrap 둘 다 감지 (실제 스크롤이 table-wrap 안에서 일어날 수 있음)

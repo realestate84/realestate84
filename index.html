@@ -6166,6 +6166,17 @@ function confirmSettings() {
       renderCustomFieldsInForm(fType.value, null);
     }
   }
+  // 공지 입력창 값 강제 동기화 (onblur 미발생 케이스 대비)
+  var noticeInputs = document.querySelectorAll('#noticeListWrap input[type="text"]');
+  noticeInputs.forEach(function(inp, i) {
+    if(window._noticeList && i < window._noticeList.length) {
+      window._noticeList[i] = inp.value;
+    }
+  });
+  // 빈 문자열 항목 제거
+  if(window._noticeList) {
+    window._noticeList = window._noticeList.filter(function(n){ return n.trim() !== ''; });
+  }
   saveNoticesToDB();
   startNoticeTicker();
   showToast('✅ 설정이 저장됐어요!');

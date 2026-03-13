@@ -666,11 +666,11 @@
 </div>
 
 <!-- 공지사항 게시판 모달 -->
-<div class="modal-overlay" id="noticeBoardModal" onclick="if(event.target===this)closeNoticeBoard()">
+<div class="modal-overlay" id="noticeBoardModal" onclick="if(event.target===this)noticeBoardOverlayClose()">
   <div class="modal" style="max-width:680px;height:85vh;">
     <div class="modal-header">
       <div class="modal-title">📢 공지사항</div>
-      <button class="modal-close" onclick="closeNoticeBoard()">×</button>
+      <button class="modal-close" onclick="noticeBoardXClose()">×</button>
     </div>
     <div class="modal-body" id="noticeBoardBody" style="padding:0;display:flex;flex-direction:column;height:100%;min-height:0;">
       <!-- 목록 뷰 -->
@@ -7714,17 +7714,51 @@ window.updateNoticeItem = function(i, val) {
 };
 
 // ── 공지사항 게시판 ──────────────────────────
-var _nbCurrentUser = null; // 현재 로그인 유저 email
+var _nbCurrentUser = null;
+var _nbIsEditing = false;      // 현재 작성/수정 폼이 열려있는지
+var _nbOrigTitle = '';          // 폼 열릴 때 원본 제목 (변경감지용)
+var _nbOrigContent = '';        // 폼 열릴 때 원본 내용 (변경감지용)
+
+// 변경사항이 있는지 확인
+function nbHasChanges() {
+  var title = (document.getElementById('nbFormTitle').value || '');
+  var content = (document.getElementById('nbFormContent').value || '');
+  return title !== _nbOrigTitle || content !== _nbOrigContent;
+}
+
+// 작성/수정 중 취소 확인 (변경사항 있을 때만 confirm)
+function nbConfirmDiscard() {
+  if(!_nbIsEditing) return true;
+  if(!nbHasChanges()) return true;
+  return confirm('작성 중인 내용이 있습니다.\n저장하지 않고 닫으시겠습니까?');
+}
+
+// overlay 클릭 → 작성/수정 중이면 무시
+window.noticeBoardOverlayClose = function() {
+  if(_nbIsEditing) return; // 폼 열려있으면 overlay 클릭 무효
+  closeNoticeBoard();
+};
+
+// X 버튼 → 작성/수정 중이면 confirm
+window.noticeBoardXClose = function() {
+  if(_nbIsEditing) {
+    if(!nbConfirmDiscard()) return;
+    _nbIsEditing = false;
+    showNoticeBoardList();
+    return;
+  }
+  closeNoticeBoard();
+};
 
 // 게시판 열기
 window.openNoticeBoard = function() {
   var modal = document.getElementById('noticeBoardModal');
   if(!modal) return;
-  // 현재 유저 확인
   if(firebase && firebase.auth) {
     var u = firebase.auth().currentUser;
     _nbCurrentUser = u ? u.email : null;
   }
+  _nbIsEditing = false;
   showNoticeBoardList();
   modal.classList.add('active');
   pushModalState();
@@ -7735,10 +7769,12 @@ window.closeNoticeBoard = function() {
   if(!modal) return;
   if(_modalStatePushed) { if(window.history && window.history.back) window.history.back(); return; }
   modal.classList.remove('active');
+  _nbIsEditing = false;
 };
 
 // 목록 뷰 표시
 function showNoticeBoardList() {
+  _nbIsEditing = false;
   document.getElementById('noticeBoardList').style.display = '';
   document.getElementById('noticeBoardWriteBar').style.display = '';
   document.getElementById('noticeBoardForm').style.display = 'none';
@@ -7758,7 +7794,7 @@ function loadNoticeBoardPosts() {
       return;
     }
     var html = '';
-    snap.forEach(function(doc, idx) {
+    snap.forEach(function(doc) {
       var d = doc.data();
       var date = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) : '';
       var isNew = d.createdAt && (Date.now() - d.createdAt.toDate().getTime() < 3*24*60*60*1000);
@@ -7789,7 +7825,6 @@ window.openNoticeBoardDetail = function(id) {
     document.getElementById('nbDetailTitle').textContent = d.title || '(제목 없음)';
     document.getElementById('nbDetailMeta').textContent = (d.authorName||d.author||'관리자') + ' · ' + date;
     document.getElementById('nbDetailContent').textContent = d.content || '';
-    // 수정/삭제 버튼 (작성자 본인만)
     var actions = document.getElementById('nbDetailActions');
     if(d.author === _nbCurrentUser) {
       actions.innerHTML =
@@ -7812,6 +7847,9 @@ window.openNoticeBoardWrite = function() {
   document.getElementById('nbFormId').value = '';
   document.getElementById('nbFormTitle').value = '';
   document.getElementById('nbFormContent').value = '';
+  _nbOrigTitle = '';
+  _nbOrigContent = '';
+  _nbIsEditing = true;
   document.getElementById('noticeBoardList').style.display = 'none';
   document.getElementById('noticeBoardWriteBar').style.display = 'none';
   document.getElementById('noticeBoardForm').style.display = 'flex';
@@ -7819,7 +7857,12 @@ window.openNoticeBoardWrite = function() {
   setTimeout(function(){ document.getElementById('nbFormTitle').focus(); }, 100);
 };
 
-window.closeNoticeBoardWrite = function() { showNoticeBoardList(); };
+// 취소 버튼
+window.closeNoticeBoardWrite = function() {
+  if(!nbConfirmDiscard()) return;
+  _nbIsEditing = false;
+  showNoticeBoardList();
+};
 
 // 수정 폼 열기
 window.editNoticeBoardPost = function(id) {
@@ -7830,6 +7873,9 @@ window.editNoticeBoardPost = function(id) {
     document.getElementById('nbFormId').value = id;
     document.getElementById('nbFormTitle').value = d.title || '';
     document.getElementById('nbFormContent').value = d.content || '';
+    _nbOrigTitle = d.title || '';
+    _nbOrigContent = d.content || '';
+    _nbIsEditing = true;
     document.getElementById('noticeBoardList').style.display = 'none';
     document.getElementById('noticeBoardWriteBar').style.display = 'none';
     document.getElementById('noticeBoardForm').style.display = 'flex';
@@ -7837,6 +7883,7 @@ window.editNoticeBoardPost = function(id) {
     setTimeout(function(){ document.getElementById('nbFormTitle').focus(); }, 100);
   });
 };
+
 
 // 저장 (신규/수정)
 window.saveNoticeBoardPost = function() {

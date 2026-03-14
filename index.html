@@ -6610,12 +6610,10 @@ function renderSettingsPanel() {
       '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">헤더 아래 공지 배너에 표시될 문장을 추가·수정·삭제할 수 있어요.</div>'+
       '<div id="noticeListWrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">';
     noticeList.forEach(function(n, i) {
-      html += '<div style="display:flex;align-items:center;gap:8px;">'+
-        '<div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0;">'+
-          '<button onclick="moveNoticeItem('+i+',-1)" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0 3px;line-height:1;" title="위로" '+(i===0?'disabled style="opacity:0.2;cursor:default;"':'')+'>▲</button>'+
-          '<button onclick="moveNoticeItem('+i+',1)" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0 3px;line-height:1;" title="아래로" '+(i===noticeList.length-1?'disabled style="opacity:0.2;cursor:default;"':'')+'>▼</button>'+
-        '</div>'+
-        '<input type="text" class="form-input" style="flex:1;font-size:13px;" value="'+n.replace(/"/g,'&quot;')+'" onchange="updateNoticeItem('+i+',this.value)" onblur="updateNoticeItem('+i+',this.value)">'+
+      html += '<div draggable="true" ondragstart="onNoticeDragStart(event)" ondragover="onNoticeDragOver(event)" ondrop="onNoticeDrop(event)" ondragend="onNoticeDragEnd(event)" data-notice-idx="'+i+'" '+
+        'style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:grab;user-select:none;">'+
+        '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>'+
+        '<input type="text" class="form-input" style="flex:1;font-size:13px;cursor:text;" value="'+n.replace(/"/g,'&quot;')+'" onchange="updateNoticeItem('+i+',this.value)" onblur="updateNoticeItem('+i+',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()">'+
         '<button onclick="deleteNoticeItem('+i+')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;" title="삭제">✕</button>'+
         '</div>';
     });
@@ -7841,12 +7839,35 @@ window.deleteNoticeItem = function(i) {
   renderSettingsPanel();
 };
 
-window.moveNoticeItem = function(i, dir) {
+var _noticeDragSrcIdx = null;
+window.onNoticeDragStart = function(e) {
+  _noticeDragSrcIdx = parseInt(e.currentTarget.dataset.noticeIdx);
+  e.currentTarget.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+};
+window.onNoticeDragOver = function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.style.borderColor = 'var(--accent)';
+  var scrollEl = document.getElementById('settingsBody');
+  if(!scrollEl) return;
+  var rect = scrollEl.getBoundingClientRect();
+  var edge = 44, step = 12;
+  if(e.clientY < rect.top + edge) scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - step);
+  else if(e.clientY > rect.bottom - edge) scrollEl.scrollTop = Math.min(scrollEl.scrollHeight - scrollEl.clientHeight, scrollEl.scrollTop + step);
+};
+window.onNoticeDragEnd = function(e) {
+  e.currentTarget.style.opacity = '1';
+  document.querySelectorAll('[data-notice-idx]').forEach(function(el){ el.style.borderColor = 'var(--border)'; });
+};
+window.onNoticeDrop = function(e) {
+  e.preventDefault();
+  var targetIdx = parseInt(e.currentTarget.dataset.noticeIdx);
+  if(isNaN(targetIdx) || targetIdx === _noticeDragSrcIdx || _noticeDragSrcIdx === null) return;
   var list = window._noticeList;
   if(!list) return;
-  var j = i + dir;
-  if(j < 0 || j >= list.length) return;
-  var tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+  var item = list.splice(_noticeDragSrcIdx, 1)[0];
+  list.splice(targetIdx, 0, item);
   var sb = document.getElementById('settingsBody');
   var scrollTop = sb ? sb.scrollTop : 0;
   renderSettingsPanel();

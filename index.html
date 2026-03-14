@@ -320,20 +320,47 @@
               <input class="form-input" type="text" id="f_lotCount" placeholder="예) 3필지">
             </div>
             <div class="form-group" data-field-key="landArea">
-              <label id="flabel_landArea">토지면적 (평)</label>
-              <input class="form-input" type="text" id="f_landArea" placeholder="예) 100">
+              <label id="flabel_landArea" style="display:flex;align-items:center;gap:8px;">토지면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_landAreaUnit_pyeong" onclick="setAreaUnit('landArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_landAreaUnit_sqm"    onclick="setAreaUnit('landArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_landArea" placeholder="예) 100" oninput="updateAreaHint('landArea')">
+                <span id="f_landArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_landAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="landShareRatio">
               <label id="flabel_landShareRatio">대지권의 비율</label>
               <input class="form-input" type="text" id="f_landShareRatio" placeholder="예) 1000분의 82.5">
             </div>
             <div class="form-group" data-field-key="roadShare">
-              <label id="flabel_roadShare">도로지분 (평)</label>
-              <input class="form-input" type="text" id="f_roadShare" placeholder="예) 15">
+              <label id="flabel_roadShare" style="display:flex;align-items:center;gap:8px;">도로지분
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_roadShareUnit_pyeong" onclick="setAreaUnit('roadShare','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_roadShareUnit_sqm"    onclick="setAreaUnit('roadShare','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_roadShare" placeholder="예) 15" oninput="updateAreaHint('roadShare')">
+                <span id="f_roadShare_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_roadShareUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="totalLandArea">
-              <label id="flabel_totalLandArea">총토지면적 (평)</label>
-              <input class="form-input" type="text" id="f_totalLandArea" placeholder="토지면적+도로지분">
+              <label id="flabel_totalLandArea" style="display:flex;align-items:center;gap:8px;">총토지면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_totalLandAreaUnit_pyeong" onclick="setAreaUnit('totalLandArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_totalLandAreaUnit_sqm"    onclick="setAreaUnit('totalLandArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_totalLandArea" placeholder="토지면적+도로지분" oninput="updateAreaHint('totalLandArea')">
+                <span id="f_totalLandArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_totalLandAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="roadArea">
               <label id="flabel_roadArea">도로부지면적 (평)</label>
@@ -353,20 +380,47 @@
             </div>
             <!-- ── 건물 정보 ── -->
             <div class="form-group" data-field-key="floorArea">
-              <label id="flabel_floorArea">연면적 (평)</label>
-              <input class="form-input" type="text" id="f_floorArea" placeholder="예) 120">
+              <label id="flabel_floorArea" style="display:flex;align-items:center;gap:8px;">연면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_floorAreaUnit_pyeong" onclick="setAreaUnit('floorArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_floorAreaUnit_sqm"    onclick="setAreaUnit('floorArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_floorArea" placeholder="예) 120" oninput="updateAreaHint('floorArea')">
+                <span id="f_floorArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_floorAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="structure">
               <label id="flabel_structure">건물구조</label>
               <input class="form-input" type="text" id="f_structure" placeholder="예) 철근콘크리트, 경량철골">
             </div>
             <div class="form-group" data-field-key="totalArea">
-              <label id="flabel_totalArea">건축면적 (평)</label>
-              <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50">
+              <label id="flabel_totalArea" style="display:flex;align-items:center;gap:8px;">건축면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_totalAreaUnit_pyeong" onclick="setAreaUnit('totalArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_totalAreaUnit_sqm"    onclick="setAreaUnit('totalArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_totalArea" placeholder="예) 50" oninput="updateAreaHint('totalArea')">
+                <span id="f_totalArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_totalAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="tempArea">
-              <label id="flabel_tempArea">가설면적 (평)</label>
-              <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20">
+              <label id="flabel_tempArea" style="display:flex;align-items:center;gap:8px;">가설면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_tempAreaUnit_pyeong" onclick="setAreaUnit('tempArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_tempAreaUnit_sqm"    onclick="setAreaUnit('tempArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_tempArea" placeholder="예) 20" oninput="updateAreaHint('tempArea')">
+                <span id="f_tempArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_tempAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="buildingUse">
               <label id="flabel_buildingUse">건축물용도</label>
@@ -3195,9 +3249,15 @@ function _openEditModalWithData(id, p){
   document.getElementById('f_premium').value=p.premium||'';
   document.getElementById('f_lotCount').value=p.lotCount||'';
   document.getElementById('f_landArea').value=p.landArea||'';
+  setAreaUnit('landArea', p.landAreaUnit||'pyeong');
+  updateAreaHint('landArea');
   document.getElementById('f_landShareRatio').value=p.landShareRatio||'';
   document.getElementById('f_roadShare').value=p.roadShare||'';
+  setAreaUnit('roadShare', p.roadShareUnit||'pyeong');
+  updateAreaHint('roadShare');
   document.getElementById('f_totalLandArea').value=p.totalLandArea||'';
+  setAreaUnit('totalLandArea', p.totalLandAreaUnit||'pyeong');
+  updateAreaHint('totalLandArea');
   document.getElementById('f_roadArea').value=p.roadArea||'';
   var useZoneVal = p.useZone;
   if(!useZoneVal && p.type) {
@@ -3209,9 +3269,15 @@ function _openEditModalWithData(id, p){
   document.getElementById('f_jimok').value=p.jimok||'';
   document.getElementById('f_access').value=p.access||'';
   document.getElementById('f_floorArea').value=p.floorArea||'';
+  setAreaUnit('floorArea', p.floorAreaUnit||'pyeong');
+  updateAreaHint('floorArea');
   document.getElementById('f_structure').value=p.structure||'';
   document.getElementById('f_totalArea').value=p.totalArea||'';
+  setAreaUnit('totalArea', p.totalAreaUnit||'pyeong');
+  updateAreaHint('totalArea');
   document.getElementById('f_tempArea').value=p.tempArea||'';
+  setAreaUnit('tempArea', p.tempAreaUnit||'pyeong');
+  updateAreaHint('tempArea');
   document.getElementById('f_buildingUse').value=p.buildingUse||'';
   document.getElementById('f_supplyArea').value=p.supplyArea||'';
   setAreaUnit('supplyArea', p.supplyAreaUnit||'pyeong');
@@ -3350,17 +3416,23 @@ function saveProperty(){
     premium:document.getElementById('f_premium').value.trim(),
     lotCount:document.getElementById('f_lotCount').value.trim(),
     landArea:document.getElementById('f_landArea').value.trim(),
+    landAreaUnit:document.getElementById('f_landAreaUnit').value||'pyeong',
     landShareRatio:document.getElementById('f_landShareRatio').value.trim(),
     roadShare:document.getElementById('f_roadShare').value.trim(),
+    roadShareUnit:document.getElementById('f_roadShareUnit').value||'pyeong',
     totalLandArea:document.getElementById('f_totalLandArea').value.trim(),
+    totalLandAreaUnit:document.getElementById('f_totalLandAreaUnit').value||'pyeong',
     roadArea:document.getElementById('f_roadArea').value.trim(),
     useZone:document.getElementById('f_useZone').value.trim(),
     jimok:document.getElementById('f_jimok').value.trim(),
     access:document.getElementById('f_access').value.trim(),
     floorArea:document.getElementById('f_floorArea').value.trim(),
+    floorAreaUnit:document.getElementById('f_floorAreaUnit').value||'pyeong',
     structure:document.getElementById('f_structure').value.trim(),
     totalArea:document.getElementById('f_totalArea').value.trim(),
+    totalAreaUnit:document.getElementById('f_totalAreaUnit').value||'pyeong',
     tempArea:document.getElementById('f_tempArea').value.trim(),
+    tempAreaUnit:document.getElementById('f_tempAreaUnit').value||'pyeong',
     buildingUse:document.getElementById('f_buildingUse').value.trim(),
     supplyArea:document.getElementById('f_supplyArea').value.trim(),
     supplyAreaUnit:document.getElementById('f_supplyAreaUnit').value||'pyeong',
@@ -3486,9 +3558,13 @@ function _openDetailWithData(p) {
         val = '<span class="area-val" data-raw="'+raw+'" data-unit="'+storedUnit2+'">'+formatAreaVal(raw,storedUnit2,window._detailAreaUnit||'pyeong')+'</span>';
       } else { val = '-'; }
     }
-    else if(['landArea','totalArea','tempArea','roadArea',
-             'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1)
-      val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
+    else if(['landArea','totalArea','supplyArea','tempArea','roadArea',
+             'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1) {
+      if(raw) {
+        var storedUnit3 = p[f.key+'Unit']||'pyeong';
+        val = '<span class="area-val" data-raw="'+raw+'" data-unit="'+storedUnit3+'">'+formatAreaVal(raw,storedUnit3,window._detailAreaUnit||'pyeong')+'</span>';
+      } else { val = '-'; }
+    }
     else if(f.key==='price') {
       var priceLabel = (p.georae==='매매')?'매매가 (만원)':(p.georae==='전세')?'전세가 (만원)':(p.georae==='월세')?'보증금 (만원)':(f.label||'가격 (만원)');
       return '<div class="detail-item"><label>'+priceLabel+'</label><div class="val" style="color:var(--accent)">'+(p.price!==undefined&&p.price!==null&&p.price!==''?formatPriceComma(p.price):'-')+'</div></div>';

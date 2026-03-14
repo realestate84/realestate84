@@ -373,12 +373,30 @@
               <input class="form-input" type="text" id="f_buildingUse" placeholder="예) 단독주택, 근린생활시설">
             </div>
             <div class="form-group" data-field-key="supplyArea">
-              <label id="flabel_supplyArea">공급면적 (평)</label>
-              <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50">
+              <label id="flabel_supplyArea" style="display:flex;align-items:center;gap:8px;">공급면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_supplyAreaUnit_pyeong" onclick="setAreaUnit('supplyArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_supplyAreaUnit_sqm"    onclick="setAreaUnit('supplyArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_supplyArea" placeholder="예) 50" oninput="updateAreaHint('supplyArea')">
+                <span id="f_supplyArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_supplyAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="exclusiveArea">
-              <label id="flabel_exclusiveArea">전용면적 (평)</label>
-              <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30">
+              <label id="flabel_exclusiveArea" style="display:flex;align-items:center;gap:8px;">전용면적
+                <span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;">
+                  <button type="button" id="f_exclusiveAreaUnit_pyeong" onclick="setAreaUnit('exclusiveArea','pyeong')" style="padding:2px 8px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>
+                  <button type="button" id="f_exclusiveAreaUnit_sqm"    onclick="setAreaUnit('exclusiveArea','sqm')"    style="padding:2px 8px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>
+                </span>
+              </label>
+              <div style="position:relative;">
+                <input class="form-input" type="text" id="f_exclusiveArea" placeholder="예) 30" oninput="updateAreaHint('exclusiveArea')">
+                <span id="f_exclusiveArea_hint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted);pointer-events:none;"></span>
+              </div>
+              <input type="hidden" id="f_exclusiveAreaUnit" value="pyeong">
             </div>
             <div class="form-group" data-field-key="direction">
               <label id="flabel_direction">방향</label>
@@ -3196,7 +3214,11 @@ function _openEditModalWithData(id, p){
   document.getElementById('f_tempArea').value=p.tempArea||'';
   document.getElementById('f_buildingUse').value=p.buildingUse||'';
   document.getElementById('f_supplyArea').value=p.supplyArea||'';
+  setAreaUnit('supplyArea', p.supplyAreaUnit||'pyeong');
+  updateAreaHint('supplyArea');
   document.getElementById('f_exclusiveArea').value=p.exclusiveArea||(p.rentArea||'');
+  setAreaUnit('exclusiveArea', p.exclusiveAreaUnit||'pyeong');
+  updateAreaHint('exclusiveArea');
   document.getElementById('f_direction').value=p.direction||'';
   document.getElementById('f_height').value=p.height||'';
   document.getElementById('f_hoist').value=p.hoist||'';
@@ -3341,7 +3363,9 @@ function saveProperty(){
     tempArea:document.getElementById('f_tempArea').value.trim(),
     buildingUse:document.getElementById('f_buildingUse').value.trim(),
     supplyArea:document.getElementById('f_supplyArea').value.trim(),
+    supplyAreaUnit:document.getElementById('f_supplyAreaUnit').value||'pyeong',
     exclusiveArea:document.getElementById('f_exclusiveArea').value.trim(),
+    exclusiveAreaUnit:document.getElementById('f_exclusiveAreaUnit').value||'pyeong',
     direction:document.getElementById('f_direction').value.trim(),
     height:document.getElementById('f_height').value.trim(),
     hoist:document.getElementById('f_hoist').value.trim(),
@@ -3418,6 +3442,7 @@ function openDetail(id){
 
 function _openDetailWithData(p) {
   var id = p.id;
+  window._detailAreaUnit = 'pyeong'; // 상세보기 열릴 때 단위 초기화
 
   document.getElementById('detailTitle').innerHTML=
     (p.propNo?'<span style="font-size:13px;color:var(--text-muted);margin-right:10px">No. '+p.propNo+'</span>':'')+
@@ -3448,8 +3473,20 @@ function _openDetailWithData(p) {
     var val;
     if(f.key==='electric') val = raw ? raw+(hasSuffixOverride ? suffix : 'kw') : '-';
     else if(f.key==='height') val = raw ? raw+(hasSuffixOverride ? suffix : 'm') : '-';
-    else if(f.key==='exclusiveArea') { var v=p.exclusiveArea||(p.rentArea)||''; val = v ? v+(hasSuffixOverride ? suffix : ' 평') : '-'; }
-    else if(['landArea','totalArea','supplyArea','tempArea','roadArea',
+    else if(f.key==='exclusiveArea') {
+      var v = p.exclusiveArea||(p.rentArea)||'';
+      if(v) {
+        var storedUnit = p.exclusiveAreaUnit||'pyeong';
+        val = '<span class="area-val" data-raw="'+v+'" data-unit="'+storedUnit+'">'+formatAreaVal(v,storedUnit,window._detailAreaUnit||'pyeong')+'</span>';
+      } else { val = '-'; }
+    }
+    else if(['supplyArea'].indexOf(f.key)>-1) {
+      if(raw) {
+        var storedUnit2 = p[f.key+'Unit']||'pyeong';
+        val = '<span class="area-val" data-raw="'+raw+'" data-unit="'+storedUnit2+'">'+formatAreaVal(raw,storedUnit2,window._detailAreaUnit||'pyeong')+'</span>';
+      } else { val = '-'; }
+    }
+    else if(['landArea','totalArea','tempArea','roadArea',
              'floorArea','roadShare','totalLandArea'].indexOf(f.key)>-1)
       val = raw ? raw+(hasSuffixOverride ? suffix : ' 평') : '-';
     else if(f.key==='price') {
@@ -3469,7 +3506,12 @@ function _openDetailWithData(p) {
       '<div class="detail-item full"><label>주소</label><div class="val" onclick="copyAddress(\''+( p.address||'').replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:6px">'+(p.address||'-')+'<span class="copy-badge" style="font-size:11px;color:var(--text-muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">복사</span></div></div>'+
       basicItems.map(function(f){ var h=renderFieldVal(f); if(f.key==='price'&&p.georae==='월세') h+=monthlyRentDetailHtml; return h; }).join('')+
     '</div></div>'+
-    '<div class="detail-section"><div class="detail-section-title">상세정보</div><div class="detail-grid">'+
+    '<div class="detail-section"><div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;"><span>상세정보</span>'+
+      '<span style="display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px;font-weight:500;" id="detailAreaUnitToggle">'+
+        '<button type="button" onclick="toggleDetailAreaUnit(\'pyeong\')" id="detailAreaUnitBtn_pyeong" style="padding:2px 10px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;">평</button>'+
+        '<button type="button" onclick="toggleDetailAreaUnit(\'sqm\')"    id="detailAreaUnitBtn_sqm"    style="padding:2px 10px;border:none;cursor:pointer;background:var(--surface);color:var(--text);font-size:11px;">㎡</button>'+
+      '</span>'+
+    '</div><div class="detail-grid">'+
       detailOnlyItems.map(renderFieldVal).join('')+
     '</div></div>'+
     '<div class="detail-section no-print">'+
@@ -7868,6 +7910,74 @@ window.openNoticeBoardDetail = function(id) {
 };
 
 window.closeNoticeBoardDetail = function() { showNoticeBoardList(); };
+
+// ── 면적 단위 변환 헬퍼 ──────────────────────────────────
+// 1평 = 3.3058㎡
+window._detailAreaUnit = 'pyeong'; // 상세보기 현재 표시 단위
+
+function formatAreaVal(raw, storedUnit, displayUnit) {
+  var num = parseFloat(raw);
+  if(isNaN(num)) return raw;
+  var inPyeong = (storedUnit === 'sqm') ? num / 3.3058 : num;
+  var inSqm    = (storedUnit === 'pyeong') ? num * 3.3058 : num;
+  if(displayUnit === 'sqm') {
+    return (Math.round(inSqm * 100) / 100) + ' ㎡';
+  } else {
+    return (Math.round(inPyeong * 100) / 100) + ' 평';
+  }
+}
+
+// 등록/수정 폼 단위 토글
+window.setAreaUnit = function(field, unit) {
+  document.getElementById('f_'+field+'Unit').value = unit;
+  var btnP = document.getElementById('f_'+field+'Unit_pyeong');
+  var btnS = document.getElementById('f_'+field+'Unit_sqm');
+  if(!btnP || !btnS) return;
+  if(unit === 'pyeong') {
+    btnP.style.background = 'var(--accent)'; btnP.style.color = '#fff';
+    btnS.style.background = 'var(--surface)'; btnS.style.color = 'var(--text)';
+  } else {
+    btnS.style.background = 'var(--accent)'; btnS.style.color = '#fff';
+    btnP.style.background = 'var(--surface)'; btnP.style.color = 'var(--text)';
+  }
+  updateAreaHint(field);
+};
+
+// 입력값 옆 힌트 (반대 단위 자동 표시)
+window.updateAreaHint = function(field) {
+  var val = parseFloat(document.getElementById('f_'+field).value);
+  var unit = document.getElementById('f_'+field+'Unit').value;
+  var hint = document.getElementById('f_'+field+'_hint');
+  if(!hint) return;
+  if(isNaN(val) || val <= 0) { hint.textContent = ''; return; }
+  if(unit === 'pyeong') {
+    hint.textContent = '= ' + (Math.round(val * 3.3058 * 100) / 100) + ' ㎡';
+  } else {
+    hint.textContent = '= ' + (Math.round(val / 3.3058 * 100) / 100) + ' 평';
+  }
+};
+
+// 상세보기 토글
+window.toggleDetailAreaUnit = function(unit) {
+  window._detailAreaUnit = unit;
+  var btnP = document.getElementById('detailAreaUnitBtn_pyeong');
+  var btnS = document.getElementById('detailAreaUnitBtn_sqm');
+  if(btnP && btnS) {
+    if(unit === 'pyeong') {
+      btnP.style.background = 'var(--accent)'; btnP.style.color = '#fff';
+      btnS.style.background = 'var(--surface)'; btnS.style.color = 'var(--text)';
+    } else {
+      btnS.style.background = 'var(--accent)'; btnS.style.color = '#fff';
+      btnP.style.background = 'var(--surface)'; btnP.style.color = 'var(--text)';
+    }
+  }
+  // 현재 상세보기에 렌더된 면적 값들을 실시간 업데이트
+  document.querySelectorAll('.area-val').forEach(function(el) {
+    var raw = el.dataset.raw;
+    var storedUnit = el.dataset.unit || 'pyeong';
+    el.textContent = formatAreaVal(raw, storedUnit, unit);
+  });
+};
 
 // 작성 폼 열기
 window.openNoticeBoardWrite = function() {

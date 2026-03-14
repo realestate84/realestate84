@@ -6566,6 +6566,7 @@ function renderSettingsPanel() {
 
     var keyEsc = (f.key||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var typeEsc = (activeType||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    if(isAll) console.log('[DEBUG field]', JSON.stringify(f.key), JSON.stringify(f.label), JSON.stringify(f.suffix));
     html += '<div '+dragAttrs+' data-key="'+f.key+'" '+
       'style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13px;'+cursor+'user-select:none;">'+
       (isAll ? '<span style="color:var(--text-muted);font-size:14px;flex-shrink:0;">☰</span>' : '<span style="width:18px;flex-shrink:0;"></span>')+
@@ -6575,7 +6576,7 @@ function renderSettingsPanel() {
         ((_tmpFieldSuffixOverrides[f.key]||f.suffix) ? '<span style="font-size:10px;color:var(--text-muted);margin-left:3px;">['+(_tmpFieldSuffixOverrides[f.key]!==undefined?_tmpFieldSuffixOverrides[f.key]:f.suffix)+']</span>' : '')+
         (isCustom?'<span style="font-size:10px;color:var(--accent);margin-left:4px;">커스텀</span>':'')+
       '</span>'+
-      (isAll && !['landArea','roadShare','totalLandArea','floorArea','totalArea','tempArea','supplyArea','exclusiveArea'].includes(f.key) ? '<button onclick="startLabelEdit(\''+f.key+'\',\''+(_tmpFieldLabelOverrides[f.key]||f.label).replace(/'/g,"\\'")+'\',\''+(_tmpFieldSuffixOverrides[f.key]!==undefined?_tmpFieldSuffixOverrides[f.key]:(f.suffix||'')).replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 3px;opacity:0.6;" title="이름/단위 변경">✏️</button>' : '')+
+      (isAll && !['landArea','roadShare','totalLandArea','floorArea','totalArea','tempArea','supplyArea','exclusiveArea'].includes(f.key) && !['토지면적','도로지분','총토지면적','연면적','건축면적','가설면적','공급면적','전용면적'].includes((_tmpFieldLabelOverrides[f.key]||f.label)) ? '<button onclick="startLabelEdit(\''+f.key+'\',\''+(_tmpFieldLabelOverrides[f.key]||f.label).replace(/'/g,"\\'")+'\',\''+(_tmpFieldSuffixOverrides[f.key]!==undefined?_tmpFieldSuffixOverrides[f.key]:(f.suffix||'')).replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0 3px;opacity:0.6;" title="이름/단위 변경">✏️</button>' : '')+
       (isAll ? '<button onclick="event.stopPropagation();tmpDeleteField(\''+typeEsc+'\',\''+keyEsc+'\','+isCustom+')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0;" title="항목 삭제">✕</button>' : '')+
       '</div>';
   });
